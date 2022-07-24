@@ -26,6 +26,16 @@ namespace MpbkpuLib.DataModel
         public DateTime? StartedAt { get; set; }
         public DateTime? CompletedAt { get; set; }
 
+        public TimeSpan? Duration
+        {
+            get
+            {
+                if (StartedAt.HasValue && CompletedAt.HasValue)
+                    return CompletedAt.Value - StartedAt.Value;
+                return null;
+            }
+        }
+
         public ICollection<BackupWarning>? Warnings { get; set; }
         public ICollection<BackupItem>? Items { get; set; }
     }
