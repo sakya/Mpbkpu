@@ -12,8 +12,6 @@ namespace MpbkpuLib
 
         private const int MaxFilesPerDirectory = 1000;
         private int? _bakupId;
-        private int _directoryFilesCount = 0;
-        private int _directoryNumber = 0;
         private StreamWriter? _logWriter = null;
         private CancellationToken? _cancellationToken = null;
         #endregion
@@ -58,9 +56,7 @@ namespace MpbkpuLib
             }
 
             ValidateSettings();
-            _directoryFilesCount = 0;
-            _directoryNumber = 1;
-            
+
             LogInfo("Starting with settings:");
             LogInfo(JsonConvert.SerializeObject(Settings, Formatting.Indented));
             
@@ -102,7 +98,7 @@ namespace MpbkpuLib
                 // Read last backup items
                 if (lastBackup != null) {
                     var lastItems = backupFile.BackupItems.AsNoTracking()
-                        .Where(i => i.BackupId == lastBackup.Id);
+                        .Where(i => i.Volume.BackupId == lastBackup.Id);
 
                     foreach (var item in lastItems) {
                         // Check if the source file has changed
@@ -208,7 +204,6 @@ namespace MpbkpuLib
                 case File.FileTyes.Directory:
                     backupFile.BackupItems.Add(new BackupItem()
                     {
-                        BackupId = _bakupId.Value,
                         Type = sourceFile.Type,
                         OriginalPath = sourceFile.FullPath,
                         OriginalSize = sourceFile.Size,
@@ -220,8 +215,7 @@ namespace MpbkpuLib
                     });
                     break;
                 case File.FileTyes.File:
-                    var backupItem = await GetNextBackupItem();
-                    backupItem.BackupId = _bakupId.Value;
+                    var backupItem = await GetNextBackupItem(backupFile);
                     backupItem.Type = sourceFile.Type;
                     backupItem.OriginalCreated = sourceFile.Created;
                     backupItem.OriginalExtension = sourceFile.Extension;
@@ -236,7 +230,7 @@ namespace MpbkpuLib
                     var sourceFm = FileManagers.FileManagerFactory.GetFileManager(sourceFile.FullPath, out _);
                     var destFm = FileManagers.FileManagerFactory.GetFileManager(Settings.Destination, out destPath);
 
-                    var destFilePath = destFm.CombinePath(destPath, backupItem.RelativePath);
+                    var destFilePath = destFm.CombinePath(destPath, backupItem.Volume.Name, backupItem.Name);
                     LogDebug($"Backing up {sourceFile.FullPath} to {destFilePath}");
                     using (var sourceStream = await sourceFm.OpenFile(sourceFile.FullPath)) {
                         using (var destStream = await destFm.OpenFile(destFilePath, true)) {
@@ -254,24 +248,30 @@ namespace MpbkpuLib
             return true;
         }
 
-        private async Task<DataModel.BackupItem> GetNextBackupItem()
+        private async Task<DataModel.BackupItem> GetNextBackupItem(BackupFile backupFile)
         {
-            if (++_directoryFilesCount > MaxFilesPerDirectory) {
-                _directoryNumber++;
-                _directoryFilesCount = 0;
+            var volume = await backupFile.BackupVolumes.AsNoTracking()
+                .Where(v => v.Items.Count() < MaxFilesPerDirectory)
+                .FirstOrDefaultAsync();
+            if (volume == null) {
+                volume = new BackupVolume()
+                {
+                    BackupId = _bakupId.Value,
+                    Name = Guid.NewGuid().ToString("N")
+                };
+                backupFile.BackupVolumes.Add(volume);
             }
-
             string? destPath; 
             var destFm = FileManagers.FileManagerFactory.GetFileManager(Settings.Destination, out destPath);
 
             var res = new DataModel.BackupItem()
             {
-                Name = Guid.NewGuid().ToString("N")
+                Name = Guid.NewGuid().ToString("N"),
+                Volume = volume
             };
-            var fullPath = destFm.CombinePath(destPath, _directoryNumber.ToString());
+            var fullPath = destFm.CombinePath(destPath, volume.Name);
             if (!await destFm.DirectoryExists(fullPath))
                 await destFm.CreateDirectory(fullPath);
-            res.RelativePath = destFm.CombinePath(_directoryNumber.ToString(), res.Name);
             return res;
         }
         

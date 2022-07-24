@@ -27,6 +27,6 @@ namespace MpbkpuLib.DataModel
         public DateTime? CompletedAt { get; set; }
 
         public ICollection<BackupWarning>? Warnings { get; set; }
-        public ICollection<BackupItem>? Items { get; set; }
+        public ICollection<BackupVolume>? Volumes { get; set; }
     }
 }

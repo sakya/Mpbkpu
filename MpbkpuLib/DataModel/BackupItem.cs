@@ -4,16 +4,13 @@ namespace MpbkpuLib.DataModel;
 
 public class BackupItem : BaseModel
 {
-    [Required]
-    public int BackupId { get; set; }
-    public Backup? Backup { get; set; }
+    public int VolumeId { get; set; }
+    public BackupVolume? Volume { get; set; }
     
     public File.FileTyes Type { get; set; }
     
     [MaxLength(255)]
-    public string? Name { get; set; }    
-    [MaxLength(255)]
-    public string? RelativePath { get; set; }
+    public string? Name { get; set; }
     
     [MaxLength(255)]
     public string? OriginalPath { get; set; }    

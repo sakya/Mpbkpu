@@ -31,6 +31,11 @@ public class BackupFile : IDisposable
         get { return _context?.BackupItems; }
     }
     
+    public DbSet<DataModel.BackupVolume>? BackupVolumes
+    {
+        get { return _context?.BackupVolumes; }
+    }
+    
     public DbSet<DataModel.BackupWarning>? BackupWarnings
     {
         get { return _context?.BackupWarnings; }

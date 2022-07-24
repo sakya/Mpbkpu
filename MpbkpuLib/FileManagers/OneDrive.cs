@@ -32,6 +32,21 @@ namespace MpbkpuLib.FileManagers
             return $"{part1}{part2}";
         }
         
+        public string CombinePath(string? part1, string part2, string part3)
+        {
+            if (string.IsNullOrEmpty(part1))
+                throw new ArgumentNullException(nameof(part1));
+            if (string.IsNullOrEmpty(part2))
+                throw new ArgumentNullException(nameof(part2));
+            if (string.IsNullOrEmpty(part3))
+                throw new ArgumentNullException(nameof(part3));
+            if (!part1.EndsWith(("/")))
+                part1 = $"{part1}/";
+            if (!part2.EndsWith(("/")))
+                part2 = $"{part2}/";            
+            return $"{part1}{part2}{part3}";
+        }
+        
         public IAsyncEnumerable<DataModel.File> GetDirectoryContent(string? position, bool includeHidden = true)
         {
             throw new NotImplementedException();

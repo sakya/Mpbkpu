@@ -12,6 +12,7 @@ namespace MpbkpuLib.Context
     {
         public DbSet<DataModel.Backup>? Backups { get; set; }
         public DbSet<DataModel.BackupItem>? BackupItems { get; set; }
+        public DbSet<DataModel.BackupVolume>? BackupVolumes { get; set; }
         public DbSet<DataModel.BackupWarning>? BackupWarnings { get; set; }
         public DbSet<DataModel.File>? Files { get; set; }
 
@@ -25,6 +26,12 @@ namespace MpbkpuLib.Context
         {
             base.OnModelCreating(modelBuilder);
 
+            modelBuilder.Entity<DataModel.BackupVolume>(e =>
+            {
+                e.HasIndex(e => e.Name)
+                    .IsUnique(true);
+            });
+            
             modelBuilder.Entity<DataModel.File>(e =>
             {
                 e.HasIndex(e => new { e.RootPath, e.RelativePath })

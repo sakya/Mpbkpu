@@ -9,6 +9,7 @@ namespace MpbkpuLib.Interfaces
     public interface IFileManager
     {
         public string CombinePath(string? part1, string part2);
+        public string CombinePath(string? part1, string part2, string part3);
         public Task<bool> CreateDirectory(string? path);
         public Task<bool> DeleteDirectory(string? path);
         public Task<bool> DeleteFile(string? path);
