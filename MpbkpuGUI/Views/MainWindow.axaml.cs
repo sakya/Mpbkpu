@@ -22,7 +22,7 @@ namespace Mpbkpu.Views
             base.InitializeComponent();
         }
 
-        private void OnStartClick(object sender, RoutedEventArgs args)
+        private async void OnStartClick(object sender, RoutedEventArgs args)
         {
             var settings = new BackupJobSettings()
             {
@@ -41,6 +41,15 @@ namespace Mpbkpu.Views
             this.FindControl<Button>("_startBtn").IsEnabled = false;
             this.FindControl<Button>("_stopBtn").IsEnabled = true;
             _backupTask = Task.Run( () => bkp.Run(_cts.Token));
+            
+            await _backupTask;
+
+            if (_cts != null) {
+                _cts.Dispose();
+                _cts = null;
+            }
+            this.FindControl<Button>("_startBtn").IsEnabled = true;
+            this.FindControl<Button>("_stopBtn").IsEnabled = false;            
         }
 
 
