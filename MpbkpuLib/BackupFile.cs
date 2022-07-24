@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace MpbkpuLib;
 
@@ -59,6 +60,12 @@ public class BackupFile : IDisposable
         return true;
     }
 
+    public IDbContextTransaction BeginTransaction()
+    {
+        EnsureDbOpen();
+        return _context.Database.BeginTransaction();
+    }
+    
     public async Task<DataModel.Backup?> LastBackup()
     {
         EnsureDbOpen();

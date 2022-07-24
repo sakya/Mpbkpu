@@ -47,6 +47,7 @@ namespace MpbkpuLib
         #endregion
 
         #region public operations
+
         public async Task<bool> Run(CancellationToken cancellationToken)
         {
             _cancellationToken = cancellationToken;
@@ -67,96 +68,111 @@ namespace MpbkpuLib
             using (var backupFile = new BackupFile()) {
                 await backupFile.Open(dbFilePath);
                 await backupFile.EmptyFiles();
-                
-                var lastBackup = await backupFile.LastBackup();
-                var bkp = new DataModel.Backup()
-                {
-                    Name = Settings.Name,
-                    Type = Settings.BackupType,
-                    Settings = JsonConvert.SerializeObject(Settings, Formatting.Indented),
-                    StartedAt = DateTime.UtcNow,
-                };
-                backupFile.Backups.Add(bkp);
-                await backupFile.SaveChangesAsync();
-                _bakupId = bkp.Id;
+                var transaction = backupFile.BeginTransaction();
 
-                // Read source
-                LogInfo($"Reading source {Settings.Source}");
-                if (!ReadPathContent(backupFile, Settings.Source, Settings.Source).Result) {
-                    LogError("Failed to read source");
-                    await SetBackupResult(backupFile, DataModel.Backup.Results.Error);
+                try {
+                    await RunPrimitive(backupFile);
+                    await transaction.CommitAsync();
+                } catch (Exception ex) {
+                    await transaction.RollbackAsync();
+                    LogError(ex);
+                    throw;
+                } 
+            }
+
+            return false;
+        }
+        #endregion
+
+        #region private operations
+        public async Task<bool> RunPrimitive(BackupFile backupFile)
+        {
+            var lastBackup = await backupFile.LastBackup();
+            var bkp = new DataModel.Backup()
+            {
+                Name = Settings.Name,
+                Type = Settings.BackupType,
+                Settings = JsonConvert.SerializeObject(Settings, Formatting.Indented),
+                StartedAt = DateTime.UtcNow,
+            };
+            backupFile.Backups.Add(bkp);
+            await backupFile.SaveChangesAsync();
+            _bakupId = bkp.Id;
+
+            // Read source
+            LogInfo($"Reading source {Settings.Source}");
+            if (!ReadPathContent(backupFile, Settings.Source, Settings.Source).Result) {
+                LogError("Failed to read source");
+                await SetBackupResult(backupFile, DataModel.Backup.Results.Error);
+                return false;
+            }
+            if (_cancellationToken?.IsCancellationRequested == true) {
+                LogInfo("Cancelled by user");
+                await SetBackupResult(backupFile, DataModel.Backup.Results.Cancelled);
+                return false;
+            }
+            await backupFile.SaveChangesAsync();
+
+            // Compute files to backup
+            // Read last backup items
+            if (lastBackup != null) {
+                var lastItems = backupFile.BackupItems.AsNoTracking()
+                    .Where(i => i.BackupId == lastBackup.Id);
+
+                foreach (var item in lastItems) {
+                    // Check if the source file has changed
+                    var sourceFile = await backupFile.Files.Where(f => f.FullPath == item.OriginalPath)
+                        .FirstOrDefaultAsync();
+                    if (sourceFile != null) {
+                        if (sourceFile.Size != item.OriginalSize || sourceFile.LastModified != item.OriginalLastModified) {
+                            sourceFile.Action = File.Actions.Backup;
+                        } else {
+                            sourceFile.Action = File.Actions.None;
+                        }
+                    }
+                }
+
+                await backupFile.SaveChangesAsync();
+            }
+
+            // Confirm backup
+            if (ConfirmBackup != null) {
+                var cArgs = new ConfirmArgs()
+                {
+                    FilesToBackup = await backupFile.Files.AsNoTracking()
+                                                    .Where(f => f.Action == DataModel.File.Actions.Backup)
+                                                    .CountAsync(),
+                    BytesToBackup = await backupFile.Files.AsNoTracking()
+                                                    .Where(f => f.Action == DataModel.File.Actions.Backup)
+                                                    .Select(f => f.Size)
+                                                    .SumAsync(),
+                };
+                if (!await ConfirmBackup.Invoke(this, cArgs)) {
+                    LogInfo("Cancelled by user");
+                    await SetBackupResult(backupFile, DataModel.Backup.Results.Cancelled);
                     return false;
                 }
+            }
+
+            // Backup files
+            var filesToBackup = backupFile.Files.AsNoTracking()
+                                .Where(f => f.Action == DataModel.File.Actions.Backup);
+            foreach (var fileToBackup in filesToBackup) {
                 if (_cancellationToken?.IsCancellationRequested == true) {
                     LogInfo("Cancelled by user");
                     await SetBackupResult(backupFile, DataModel.Backup.Results.Cancelled);
                     return false;
                 }
-                await backupFile.SaveChangesAsync();
-
-                // Compute files to backup
-                // Read last backup items
-                if (lastBackup != null) {
-                    var lastItems = backupFile.BackupItems.AsNoTracking()
-                        .Where(i => i.Volume.BackupId == lastBackup.Id);
-
-                    foreach (var item in lastItems) {
-                        // Check if the source file has changed
-                        var sourceFile = await backupFile.Files.Where(f => f.FullPath == item.OriginalPath)
-                            .FirstOrDefaultAsync();
-                        if (sourceFile != null) {
-                            if (sourceFile.Size != item.OriginalSize || sourceFile.LastModified != item.OriginalLastModified) {
-                                sourceFile.Action = File.Actions.Backup;
-                            } else {
-                                sourceFile.Action = File.Actions.None;
-                            }
-                        }
-                    }
-
-                    await backupFile.SaveChangesAsync();
-                }
-
-                // Confirm backup
-                if (ConfirmBackup != null) {
-                    var cArgs = new ConfirmArgs()
-                    {
-                        FilesToBackup = await backupFile.Files.AsNoTracking()
-                                                        .Where(f => f.Action == DataModel.File.Actions.Backup)
-                                                        .CountAsync(),
-                        BytesToBackup = await backupFile.Files.AsNoTracking()
-                                                        .Where(f => f.Action == DataModel.File.Actions.Backup)
-                                                        .Select(f => f.Size)
-                                                        .SumAsync(),
-                    };
-                    if (!await ConfirmBackup.Invoke(this, cArgs)) {
-                        LogInfo("Cancelled by user");
-                        await SetBackupResult(backupFile, DataModel.Backup.Results.Cancelled);
-                        return false;
-                    }
-                }
-
-                // Backup files
-                var filesToBackup = backupFile.Files.AsNoTracking()
-                                    .Where(f => f.Action == DataModel.File.Actions.Backup);
-                foreach (var fileToBackup in filesToBackup) {
-                    if (_cancellationToken?.IsCancellationRequested == true) {
-                        LogInfo("Cancelled by user");
-                        await SetBackupResult(backupFile, DataModel.Backup.Results.Cancelled);
-                        return false;
-                    }
-                    await BackupFile(backupFile, fileToBackup);
-                }
-
-                await SetBackupResult(backupFile, DataModel.Backup.Results.Completed);
-                await backupFile.SaveChangesAsync();
-                await backupFile.EmptyFiles();
+                await BackupFile(backupFile, fileToBackup);
             }
+
+            await SetBackupResult(backupFile, DataModel.Backup.Results.Completed);
+            await backupFile.SaveChangesAsync();
+            await backupFile.EmptyFiles();
             LogInfo("Completed");
             return true;
         }
-        #endregion
-
-        #region private operations
+        
         private void ValidateSettings()
         {
             if (string.IsNullOrEmpty(Settings.Source))
@@ -204,6 +220,7 @@ namespace MpbkpuLib
                 case File.FileTyes.Directory:
                     backupFile.BackupItems.Add(new BackupItem()
                     {
+                        BackupId = _bakupId.Value,
                         Type = sourceFile.Type,
                         OriginalPath = sourceFile.FullPath,
                         OriginalSize = sourceFile.Size,
@@ -216,6 +233,7 @@ namespace MpbkpuLib
                     break;
                 case File.FileTyes.File:
                     var backupItem = await GetNextBackupItem(backupFile);
+                    backupItem.BackupId = _bakupId.Value;
                     backupItem.Type = sourceFile.Type;
                     backupItem.OriginalCreated = sourceFile.Created;
                     backupItem.OriginalExtension = sourceFile.Extension;
@@ -245,6 +263,7 @@ namespace MpbkpuLib
                     }
                     break;
             }
+            await backupFile.SaveChangesAsync();
             return true;
         }
 
@@ -256,7 +275,6 @@ namespace MpbkpuLib
             if (volume == null) {
                 volume = new BackupVolume()
                 {
-                    BackupId = _bakupId.Value,
                     Name = Guid.NewGuid().ToString("N")
                 };
                 backupFile.BackupVolumes.Add(volume);
@@ -340,6 +358,17 @@ namespace MpbkpuLib
             Log(BackupJobSettings.LogLevels.Warning, message);
         }
 
+        private void LogError(Exception exception)
+        {
+            var ex = exception;
+            while (ex != null) {
+                LogError(ex.Message);
+                if (!string.IsNullOrEmpty(ex.StackTrace))
+                    LogError(ex.StackTrace);
+                ex = ex.InnerException;
+            }
+        }        
+        
         private void Log(BackupJobSettings.LogLevels level, string message)
         {
             if (level < Settings.LogLevel)
