@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.2.32630.192
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MpbkpuGUI", "MpbkpuGUI\MpbkpuGUI.csproj", "{1F52B674-7F2E-4E96-8BFD-19547F05306C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MpbkpuLib", "MpbkpuLib\MpbkpuLib.csproj", "{2E9A9087-4673-47D9-AE50-3215E5BD27ED}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1F52B674-7F2E-4E96-8BFD-19547F05306C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1F52B674-7F2E-4E96-8BFD-19547F05306C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1F52B674-7F2E-4E96-8BFD-19547F05306C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1F52B674-7F2E-4E96-8BFD-19547F05306C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2E9A9087-4673-47D9-AE50-3215E5BD27ED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2E9A9087-4673-47D9-AE50-3215E5BD27ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2E9A9087-4673-47D9-AE50-3215E5BD27ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2E9A9087-4673-47D9-AE50-3215E5BD27ED}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F0B07F20-325A-4136-84A3-1731A0AFE88A}
+	EndGlobalSection
+EndGlobal
