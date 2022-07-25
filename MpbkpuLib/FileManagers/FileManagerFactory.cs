@@ -10,6 +10,19 @@ namespace MpbkpuLib.FileManagers
 {
     public static class FileManagerFactory
     {
+        /// <summary>
+        /// Create a <see cref="IFileManager"/> based on the <see cref="path"/>
+        /// ftp://user:password@host/position
+        /// sftp://user:password@host/position
+        /// sftp://user:keyfile=pathToFile@host/position
+        /// smb://domain\user:password@host\position
+        /// onedrive://accessToken:refreshToken:position
+        /// </summary>
+        /// <param name="path">The path</param>
+        /// <param name="newPosition">The position computed from the <see cref="Path"/></param>
+        /// <returns>A <see cref="IFileManager"/></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="Exception"></exception>
         public static IFileManager GetFileManager(string? path, out string newPosition)
         {
             if (string.IsNullOrEmpty(path))
@@ -104,6 +117,7 @@ namespace MpbkpuLib.FileManagers
                     throw new Exception("Invalid address");
             }
 
+            // Default to FileSystem
             return new FileSystem();
         } // GetFileManager
     } // FileManagerFactory
