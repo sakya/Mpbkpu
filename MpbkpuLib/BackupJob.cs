@@ -7,6 +7,9 @@ using File = MpbkpuLib.DataModel.File;
 
 namespace MpbkpuLib
 {
+    /// <summary>
+    /// A job to backup files
+    /// </summary>
     public class BackupJob
     {
         #region classes
@@ -61,7 +64,6 @@ namespace MpbkpuLib
         #endregion
 
         #region public operations
-
         public async Task<bool> Run(CancellationToken cancellationToken)
         {
             _cancellationToken = cancellationToken;

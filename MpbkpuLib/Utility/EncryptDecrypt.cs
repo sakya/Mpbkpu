@@ -34,6 +34,8 @@ namespace MpbkpuLib.Utility
                 throw new Exception("Cannot encrypt without a key");
 
             using (var aesAlg = Aes.Create()) {
+                aesAlg.Mode = CipherMode.CBC;
+                aesAlg.Padding = PaddingMode.PKCS7;
                 using (var encryptor = aesAlg.CreateEncryptor(_KeyBytes, aesAlg.IV)) {
                     using (var csEncrypt = new CryptoStream(destination, encryptor, CryptoStreamMode.Write)) {
                         byte[] buffer = new byte[4096];
@@ -62,6 +64,8 @@ namespace MpbkpuLib.Utility
             source.Read(iv);
 
             using (var aesAlg = Aes.Create()) {
+                aesAlg.Mode = CipherMode.CBC;
+                aesAlg.Padding = PaddingMode.PKCS7;
                 using (var decryptor = aesAlg.CreateDecryptor(_KeyBytes, iv)) {
                     using (var csDecrypt = new CryptoStream(source, decryptor, CryptoStreamMode.Read)) {
                         byte[] buffer = new byte[4096];
