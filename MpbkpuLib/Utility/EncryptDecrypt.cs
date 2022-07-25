@@ -61,7 +61,8 @@ namespace MpbkpuLib.Utility
                 throw new Exception("Cannot decrypt without a key");
 
             var iv = new byte[16];
-            source.Read(iv);
+            if (await source.ReadAsync(iv, 0, iv.Length) != 16)
+                throw new Exception("Cannot read IV");
 
             using (var aesAlg = Aes.Create()) {
                 aesAlg.Mode = CipherMode.CBC;
