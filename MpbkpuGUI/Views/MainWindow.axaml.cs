@@ -36,6 +36,9 @@ namespace Mpbkpu.Views
 
         private async void OnStartClick(object sender, RoutedEventArgs args)
         {
+            var progress = this.FindControl<ProgressBar>("_progress");
+            progress.Value = 0;
+            
             var settings = new BackupJobSettings()
             {
                 Name = "Test",
@@ -47,6 +50,14 @@ namespace Mpbkpu.Views
                 LogToConsole = true,
             };
             var bkp = new BackupJob(settings);
+            bkp.Progress += async (sender, fileIdx, totalFiles,bytes, totalBytes) =>
+            {
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    progress.Value = (double)bytes / (double)totalBytes * 100.0;
+                }, DispatcherPriority.Background);
+            };
+            
             bkp.LogEmitted += async (s, level, message) =>
             {
                 while (_log.Count >= 100) {

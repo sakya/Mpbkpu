@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using System.Security.Cryptography;
+using Newtonsoft.Json;
 using Microsoft.EntityFrameworkCore;
 using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
@@ -29,8 +30,7 @@ namespace MpbkpuLib
         #region delegates
         public delegate void LogHandler(object sender, BackupJobSettings.LogLevels level, string message);
         public event LogHandler? LogEmitted;
-
-
+        
         public class ConfirmArgs : EventArgs
         {
             public int FilesToBackup { get; set; }
@@ -38,6 +38,14 @@ namespace MpbkpuLib
         }
         public delegate Task<bool> ConfirmHandler(object sender, ConfirmArgs e);
         public event ConfirmHandler? ConfirmBackup;
+        
+        public delegate void ProgressHandler(object sender, int file, int totalFiles, long bytes, long totalBytes);
+
+        public event ProgressHandler? Progress;
+        
+        public delegate void FileProgressHandler(object sender, long bytes, long total);
+
+        public event FileProgressHandler? FileProgress;        
         #endregion
 
         public BackupJob(BackupJobSettings? settings)
@@ -141,17 +149,17 @@ namespace MpbkpuLib
             }
 
             // Confirm backup
+            var cArgs = new ConfirmArgs()
+            {
+                FilesToBackup = await backupFile.Files.AsNoTracking()
+                    .Where(f => f.Action == File.Actions.Backup)
+                    .CountAsync(),
+                BytesToBackup = await backupFile.Files.AsNoTracking()
+                    .Where(f => f.Action == File.Actions.Backup)
+                    .Select(f => f.Size)
+                    .SumAsync(),
+            };            
             if (ConfirmBackup != null) {
-                var cArgs = new ConfirmArgs()
-                {
-                    FilesToBackup = await backupFile.Files.AsNoTracking()
-                                                    .Where(f => f.Action == File.Actions.Backup)
-                                                    .CountAsync(),
-                    BytesToBackup = await backupFile.Files.AsNoTracking()
-                                                    .Where(f => f.Action == File.Actions.Backup)
-                                                    .Select(f => f.Size)
-                                                    .SumAsync(),
-                };
                 if (!await ConfirmBackup.Invoke(this, cArgs)) {
                     LogInfo("Cancelled by user");
                     await SetBackupResult(backupFile, Backup.Results.Cancelled);
@@ -164,6 +172,9 @@ namespace MpbkpuLib
             if (!string.IsNullOrEmpty(Settings.EncryptPassword)) {
                 encryptor = new Utility.EncryptDecrypt(Settings.EncryptPassword);
             }
+
+            int fileIdx = 0;
+            long bytes = 0;
             var filesToBackup = backupFile.Files.AsNoTracking()
                                 .Where(f => f.Action == File.Actions.Backup);
             foreach (var fileToBackup in filesToBackup) {
@@ -173,6 +184,9 @@ namespace MpbkpuLib
                     return false;
                 }
                 await BackupItem(backupFile, fileToBackup, encryptor);
+
+                bytes += fileToBackup.Size;
+                Progress?.Invoke(this, ++fileIdx, cArgs.FilesToBackup, bytes, cArgs.BytesToBackup);
             }
 
             await SetBackupResult(backupFile, Backup.Results.Completed);
@@ -212,8 +226,10 @@ namespace MpbkpuLib
                 return dbFilePath;
             }
 
-            if (await fm.FileExists(dbFilePath))
+            if (await fm.FileExists(dbFilePath)) {
+                LogDebug("Found existing db file");
                 return dbFilePath;
+            }
 
             // If the database doesn't exists this is a full backup
             Settings.BackupType = BackupJobSettings.BackupTypes.Full;
