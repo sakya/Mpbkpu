@@ -4,7 +4,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         WindowStartupLocation="CenterScreen"
-        x:Class="Mpbkpu.Views.MainWindow"
+        x:Class="MpbkpuGUI.Views.MainWindow"
         Title="Mpbkpu">
   <Grid Margin="5">
     <Grid.RowDefinitions>

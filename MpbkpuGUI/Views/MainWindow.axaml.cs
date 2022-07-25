@@ -9,7 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 
-namespace Mpbkpu.Views
+namespace MpbkpuGUI.Views
 {
     public partial class MainWindow : BaseView
     {
