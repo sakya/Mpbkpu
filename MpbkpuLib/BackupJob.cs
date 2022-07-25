@@ -273,7 +273,11 @@ namespace MpbkpuLib
                         using (var destStream = await destFm.OpenFile(destFilePath, true)) {
                             if (encryptor != null) {
                                 // Encrypt file
-                                await encryptor.Encrypt(sourceStream, destStream);
+                                var progressAction = new Action<long>((copied) =>
+                                {
+                                    FileProgress?.Invoke(this, copied, sourceFile.Size);
+                                });
+                                await encryptor.Encrypt(sourceStream, destStream, progressAction);
                             } else {
                                 // Normal copy
                                 long copied = 0;
@@ -282,6 +286,7 @@ namespace MpbkpuLib
                                     int read = await sourceStream.ReadAsync(buffer, 0, buffer.Length);
                                     await destStream.WriteAsync(buffer, 0, read);
                                     copied += read;
+                                    FileProgress?.Invoke(this, copied, sourceFile.Size);
                                 }
                             }
                         }

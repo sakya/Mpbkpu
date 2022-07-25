@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Text;
 using System.Security.Cryptography;
 
 namespace MpbkpuLib.Utility
@@ -12,7 +8,7 @@ namespace MpbkpuLib.Utility
     /// </summary>
     internal class EncryptDecrypt
     {        
-        static byte[]? _KeyBytes;
+        static byte[]? _keyBytes;
 
         public EncryptDecrypt(string? key)
         {
@@ -20,29 +16,34 @@ namespace MpbkpuLib.Utility
                 throw new ArgumentNullException(nameof(key));
 
             using (HashAlgorithm hash = MD5.Create()) {
-                _KeyBytes = hash.ComputeHash(Encoding.Unicode.GetBytes(key));
+                _keyBytes = hash.ComputeHash(Encoding.Unicode.GetBytes(key));
             }
         }
 
-        public async Task<bool> Encrypt(Stream source, Stream destination)
+        public async Task<bool> Encrypt(Stream source, Stream destination, Action<long>? progressAction = null)
         {
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
             if (destination == null)
                 throw new ArgumentNullException(nameof(destination));
-            if (_KeyBytes == null)
+            if (_keyBytes == null)
                 throw new Exception("Cannot encrypt without a key");
 
             using (var aesAlg = Aes.Create()) {
                 aesAlg.Mode = CipherMode.CBC;
                 aesAlg.Padding = PaddingMode.PKCS7;
-                using (var encryptor = aesAlg.CreateEncryptor(_KeyBytes, aesAlg.IV)) {
+                using (var encryptor = aesAlg.CreateEncryptor(_keyBytes, aesAlg.IV)) {
                     using (var csEncrypt = new CryptoStream(destination, encryptor, CryptoStreamMode.Write)) {
                         byte[] buffer = new byte[4096];
 
                         await csEncrypt.WriteAsync(aesAlg.IV);
-                        while (await source.ReadAsync(buffer) > 0) {
+                        long processed = 0;
+                        int read;
+                        while ((read = await source.ReadAsync(buffer)) > 0) {
                             await csEncrypt.WriteAsync(buffer);
+                            
+                            processed += read;
+                            progressAction?.Invoke(processed);
                         }
                     }
                 }
@@ -51,13 +52,13 @@ namespace MpbkpuLib.Utility
             return true;
         } // Encrypt
 
-        public async Task<bool> Decrypt(Stream source, Stream destination)
+        public async Task<bool> Decrypt(Stream source, Stream destination, Action<long>? progressAction = null)
         {
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
             if (destination == null)
                 throw new ArgumentNullException(nameof(destination));
-            if (_KeyBytes == null)
+            if (_keyBytes == null)
                 throw new Exception("Cannot decrypt without a key");
 
             var iv = new byte[16];
@@ -67,11 +68,17 @@ namespace MpbkpuLib.Utility
             using (var aesAlg = Aes.Create()) {
                 aesAlg.Mode = CipherMode.CBC;
                 aesAlg.Padding = PaddingMode.PKCS7;
-                using (var decryptor = aesAlg.CreateDecryptor(_KeyBytes, iv)) {
+                using (var decryptor = aesAlg.CreateDecryptor(_keyBytes, iv)) {
                     using (var csDecrypt = new CryptoStream(source, decryptor, CryptoStreamMode.Read)) {
                         byte[] buffer = new byte[4096];
-                        while (await csDecrypt.ReadAsync(buffer) > 0) {
+                        
+                        long processed = 0;
+                        int read;                        
+                        while ((read = await csDecrypt.ReadAsync(buffer)) > 0) {
                             await destination.WriteAsync(buffer);
+                            
+                            processed += read;
+                            progressAction?.Invoke(processed);                            
                         }
                     }
                 }

@@ -12,6 +12,7 @@
       <RowDefinition Height="Auto" />
       <RowDefinition Height="Auto" />
       <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
       <RowDefinition Height="*" />
     </Grid.RowDefinitions>
     <TextBox Name="_source" />
@@ -23,7 +24,9 @@
     
     <ProgressBar Grid.Row="3" Name="_progress" Minimum="0" Maximum="100" ShowProgressText="True" Height="20"
                  Margin="0,5,0,0"></ProgressBar>
-    <ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+    <ProgressBar Grid.Row="4" Name="_fileProgress" Minimum="0" Maximum="100" ShowProgressText="True" Height="20"
+                 Margin="0,5,0,0"></ProgressBar>    
+    <ScrollViewer Grid.Row="5" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
                   Margin="0,5,0,0">
       <TextBlock Name="_log" FontFamily="Consolas" />
     </ScrollViewer>

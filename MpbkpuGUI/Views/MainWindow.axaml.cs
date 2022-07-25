@@ -7,6 +7,7 @@ using MpbkpuLib;
 using Avalonia.Threading;
 using System;
 using System.Collections.Generic;
+using System.Security.Cryptography;
 
 namespace Mpbkpu.Views
 {
@@ -37,7 +38,9 @@ namespace Mpbkpu.Views
         private async void OnStartClick(object sender, RoutedEventArgs args)
         {
             var progress = this.FindControl<ProgressBar>("_progress");
+            var fileProgress = this.FindControl<ProgressBar>("_fileProgress");
             progress.Value = 0;
+            fileProgress.Value = 0;
             
             var settings = new BackupJobSettings()
             {
@@ -50,7 +53,14 @@ namespace Mpbkpu.Views
                 LogToConsole = true,
             };
             var bkp = new BackupJob(settings);
-            bkp.Progress += async (sender, fileIdx, totalFiles,bytes, totalBytes) =>
+            bkp.FileProgress += async (sender, bytes, totalBytes) =>
+            {
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    fileProgress.Value = (double)bytes / (double)totalBytes * 100.0;
+                }, DispatcherPriority.Background);
+            };
+            bkp.Progress += async (sender, fileIdx, totalFiles, bytes, totalBytes) =>
             {
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
