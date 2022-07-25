@@ -6,15 +6,22 @@
         WindowStartupLocation="CenterScreen"
         x:Class="Mpbkpu.Views.MainWindow"
         Title="Mpbkpu">
-  <Grid>
+  <Grid Margin="5">
     <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
       <RowDefinition Height="Auto" />
       <RowDefinition Height="*" />
     </Grid.RowDefinitions>
-    <StackPanel Orientation="Horizontal">
+    <TextBox Name="_source" />
+    <TextBox Name="_destination" Grid.Row="1" />
+    <StackPanel Grid.Row="2" Orientation="Horizontal">
       <Button Name="_startBtn" Click="OnStartClick" Content="Backup" />
       <Button Name="_stopBtn" Click="OnStopClick" Content="Stop" IsEnabled="false" />
     </StackPanel>
-    <TextBlock Name="_Log" Grid.Row="1"/>
+
+    <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+      <TextBlock Name="_log" FontFamily="Consolas"/>
+    </ScrollViewer>
   </Grid>
 </Window>

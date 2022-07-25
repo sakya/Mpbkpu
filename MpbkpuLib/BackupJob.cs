@@ -160,6 +160,10 @@ namespace MpbkpuLib
             }
 
             // Backup files
+            Utility.EncryptDecrypt? encryptor = null;
+            if (!string.IsNullOrEmpty(Settings.EncryptPassword)) {
+                encryptor = new Utility.EncryptDecrypt(Settings.EncryptPassword);
+            }
             var filesToBackup = backupFile.Files.AsNoTracking()
                                 .Where(f => f.Action == File.Actions.Backup);
             foreach (var fileToBackup in filesToBackup) {
@@ -168,7 +172,7 @@ namespace MpbkpuLib
                     await SetBackupResult(backupFile, Backup.Results.Cancelled);
                     return false;
                 }
-                await BackupItem(backupFile, fileToBackup);
+                await BackupItem(backupFile, fileToBackup, encryptor);
             }
 
             await SetBackupResult(backupFile, Backup.Results.Completed);
@@ -203,8 +207,10 @@ namespace MpbkpuLib
             string? path;
             var fm = FileManagerFactory.GetFileManager(Settings.Destination, out path);
             var dbFilePath = fm.CombinePath(path, MpbkpuLib.BackupFile.DefaultDatabaseFileName);
-            if (!await fm.DirectoryExists(Settings.Destination))
+            if (!await fm.DirectoryExists(Settings.Destination)) {
+                await fm.CreateDirectory(Settings.Destination);
                 return dbFilePath;
+            }
 
             if (await fm.FileExists(dbFilePath))
                 return dbFilePath;
@@ -214,7 +220,7 @@ namespace MpbkpuLib
             return dbFilePath;
         }
         
-        private async Task<bool> BackupItem(BackupFile? backupFile, File? sourceFile)
+        private async Task<bool> BackupItem(BackupFile? backupFile, File? sourceFile, Utility.EncryptDecrypt? encryptor)
         {
             if (backupFile == null)
                 throw new ArgumentNullException(nameof(backupFile));            
@@ -247,12 +253,18 @@ namespace MpbkpuLib
                     LogDebug($"Backing up {sourceFile.FullPath} to {destFilePath}");
                     using (var sourceStream = await sourceFm.OpenFile(sourceFile.FullPath)) {
                         using (var destStream = await destFm.OpenFile(destFilePath, true)) {
-                            long copied = 0;
-                            byte[] buffer = new byte[4096];
-                            while (copied < sourceFile.Size) {
-                                int read = await sourceStream.ReadAsync(buffer, 0, buffer.Length);
-                                await destStream.WriteAsync(buffer, 0, read);
-                                copied += read;
+                            if (encryptor != null) {
+                                // Encrypt file
+                                await encryptor.Encrypt(sourceStream, destStream);
+                            } else {
+                                // Normal copy
+                                long copied = 0;
+                                byte[] buffer = new byte[4096];
+                                while (copied < sourceFile.Size) {
+                                    int read = await sourceStream.ReadAsync(buffer, 0, buffer.Length);
+                                    await destStream.WriteAsync(buffer, 0, read);
+                                    copied += read;
+                                }
                             }
                         }
                     }

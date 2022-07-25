@@ -4,6 +4,9 @@ using Avalonia.Markup.Xaml;
 using System.Threading;
 using System.Threading.Tasks;
 using MpbkpuLib;
+using Avalonia.Threading;
+using System;
+using System.Collections.Generic;
 
 namespace Mpbkpu.Views
 {
@@ -11,6 +14,7 @@ namespace Mpbkpu.Views
     {
         private Task? _backupTask = null;
         private CancellationTokenSource? _cts = null;
+        private List<string> _log = new List<string>();
         public MainWindow()
         {
             InitializeComponent();
@@ -20,6 +24,14 @@ namespace Mpbkpu.Views
         {
             AvaloniaXamlLoader.Load(this);
             base.InitializeComponent();
+
+            if (OperatingSystem.IsWindows()) {
+                this.FindControl<TextBox>("_source").Text = @"c:\Users\paolo.iommarini\Development\";
+                this.FindControl<TextBox>("_destination").Text = @"c:\Users\paolo.iommarini\Backup\";
+            } else {
+                this.FindControl<TextBox>("_source").Text = "/home/sakya/Development/";
+                this.FindControl<TextBox>("_destination").Text = "/home/sakya/backup/";
+            }
         }
 
         private async void OnStartClick(object sender, RoutedEventArgs args)
@@ -29,24 +41,41 @@ namespace Mpbkpu.Views
                 Name = "Test",
                 BackupType = BackupJobSettings.BackupTypes.Incremental,
                 LogLevel = BackupJobSettings.LogLevels.Debug,
-                Source = "/home/sakya/Development/",
-                Destination = "/home/sakya/backup/",
+                Source = this.FindControl<TextBox>("_source").Text,
+                Destination = this.FindControl<TextBox>("_destination").Text,
+                EncryptPassword = "ciccioPasticcio",
                 LogToConsole = true,
             };
             var bkp = new BackupJob(settings);
+            bkp.LogEmitted += async (s, level, message) =>
+            {
+                while (_log.Count >= 100) {
+                    _log.RemoveAt(0);
+                }
+                _log.Add(message);
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    var tb = this.FindControl<TextBlock>("_log");
+                    tb.Text = string.Join('\n', _log);
+                }, DispatcherPriority.Background);
+            };
             bkp.ConfirmBackup += (s, a) => {
                 return Task.FromResult(true);
             };
-            _cts = new CancellationTokenSource();
             this.FindControl<Button>("_startBtn").IsEnabled = false;
             this.FindControl<Button>("_stopBtn").IsEnabled = true;
-            _backupTask = Task.Run( () => bkp.Run(_cts.Token));
-            
-            await _backupTask;
 
-            if (_cts != null) {
-                _cts.Dispose();
-                _cts = null;
+            _cts = new CancellationTokenSource();
+            try {
+                _backupTask = Task.Run(() => bkp.Run(_cts.Token));
+                await _backupTask;
+            } catch (Exception ex) {
+
+            } finally {
+                if (_cts != null) {
+                    _cts.Dispose();
+                    _cts = null;
+                }
             }
             this.FindControl<Button>("_startBtn").IsEnabled = true;
             this.FindControl<Button>("_stopBtn").IsEnabled = false;            
