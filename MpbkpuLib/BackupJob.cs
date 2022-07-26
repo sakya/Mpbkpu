@@ -122,9 +122,9 @@ namespace MpbkpuLib
             }
 
             if (lastBackup != null) {
-                var lastBackupSettings = JsonConvert.DeserializeObject<BackupJobSettings>(lastBackup.Settings);
+                var lastBackupSettings = JsonConvert.DeserializeObject<BackupJobSettings>(lastBackup.Settings!);
                 if (lastBackupSettings?.Source != Settings.Source) {
-                    LogWarning($"Changed backup source from {lastBackupSettings.Source} to {Settings.Source}");
+                    LogWarning($"Changed backup source from {lastBackupSettings!.Source} to {Settings.Source}");
                 }
             }
             
@@ -144,7 +144,7 @@ namespace MpbkpuLib
                 throw new Exception($"The backup destination {backupDirectory} exist");
             await destFm.CreateDirectory(backupDirectory);
 
-            backupFile.Backups!.Add(_backup);
+            backupFile.Backups.Add(_backup);
             await backupFile.SaveChangesAsync();
             backupFile.Detach(_backup);
 
@@ -170,7 +170,7 @@ namespace MpbkpuLib
                         continue;
 
                     // Check if the source file has changed
-                    var sourceFile = await backupFile.Files!.Where(f => f.FullPath == item.OriginalPath)
+                    var sourceFile = await backupFile.Files.Where(f => f.FullPath == item.OriginalPath)
                         .FirstOrDefaultAsync();
                     if (sourceFile != null) {
                         if (sourceFile.Size != item.OriginalSize || sourceFile.LastModified != item.OriginalLastModified) {
@@ -180,7 +180,7 @@ namespace MpbkpuLib
                             sourceFile.Action = File.Actions.None;
                         }
                     } else {
-                        backupFile.Files!.Add(new File()
+                        backupFile.Files.Add(new File()
                         {
                             Action = File.Actions.Delete,
                             Created = item.OriginalCreated,
@@ -201,10 +201,10 @@ namespace MpbkpuLib
             // Confirm backup
             var cArgs = new ConfirmArgs()
             {
-                FilesToBackup = await backupFile.Files!.AsNoTracking()
+                FilesToBackup = await backupFile.Files.AsNoTracking()
                     .Where(f => f.Action == File.Actions.Backup)
                     .CountAsync(),
-                BytesToBackup = await backupFile.Files!.AsNoTracking()
+                BytesToBackup = await backupFile.Files.AsNoTracking()
                     .Where(f => f.Action == File.Actions.Backup)
                     .Select(f => f.Size)
                     .SumAsync(),
@@ -225,7 +225,7 @@ namespace MpbkpuLib
 
             int fileIdx = 0;
             long bytes = 0;
-            var filesToBackup = backupFile.Files!.AsNoTracking()
+            var filesToBackup = backupFile.Files.AsNoTracking()
                                 .Where(f => f.Action == File.Actions.Backup || f.Action == File.Actions.Delete);
             foreach (var fileToBackup in filesToBackup) {
                 if (_cancellationToken?.IsCancellationRequested == true) {
@@ -323,11 +323,11 @@ namespace MpbkpuLib
             backupItem.OriginalName = sourceFile.Name;
             backupItem.OriginalPath = sourceFile.FullPath;
             backupItem.OriginalSize = sourceFile.Size;
-            backupFile.BackupItems!.Add(backupItem);
+            backupFile.BackupItems.Add(backupItem);
             
             string? destPath;
             var destFm = FileManagerFactory.GetFileManager(Settings.Destination, out destPath);
-            var destFilePath = destFm.CombinePath(destPath, _backup.Guid, backupItem.Volume.Name, backupItem.Name);
+            var destFilePath = destFm.CombinePath(destPath, _backup.Guid, backupItem.Volume!.Name!, backupItem.Name!);
             switch (sourceFile.Type) {
                 case File.FileTyes.Directory:
                     // Create a zero byte file as a placeholder
@@ -386,7 +386,7 @@ namespace MpbkpuLib
                 OriginalSize = sourceFile.Size,
 
             };
-            backupFile.BackupItems!.Add(item);
+            backupFile.BackupItems.Add(item);
             await backupFile.SaveChangesAsync();
             return true;
         }
@@ -406,7 +406,7 @@ namespace MpbkpuLib
                 volumeName = _lastUsedVolume.Name;
                 _lastUsedVolume.ItemsCount++;
             } else {
-                var volume = await backupFile.BackupVolumes!.AsNoTracking()
+                var volume = await backupFile.BackupVolumes.AsNoTracking()
                     .Where(v => v.BackupId == _backup!.Id && v.Items!.Count() < Settings.MaxFilesPerDirectory)
                     .FirstOrDefaultAsync();
                 if (volume == null) {
@@ -415,7 +415,7 @@ namespace MpbkpuLib
                         BackupId = _backup!.Id,
                         Name = Guid.NewGuid().ToString("N"),
                     };
-                    backupFile.BackupVolumes!.Add(volume);
+                    backupFile.BackupVolumes.Add(volume);
                     await backupFile.SaveChangesAsync();
                 }
 
@@ -434,9 +434,9 @@ namespace MpbkpuLib
             var res = new BackupItem()
             {
                 Name = Guid.NewGuid().ToString("N"),
-                VolumeId = volumeId.Value
+                VolumeId = volumeId!.Value
             };
-            var volumePath = destFm.CombinePath(destPath, _backup!.Guid, volumeName);
+            var volumePath = destFm.CombinePath(destPath, _backup!.Guid, volumeName!);
             if (!await destFm.DirectoryExists(volumePath))
                 await destFm.CreateDirectory(volumePath);
             return res;
@@ -467,7 +467,7 @@ namespace MpbkpuLib
                 file.Action = File.Actions.Backup;
                 file.RootPath = rootPath;
                 file.RelativePath = file.FullPath?.Substring(file.RootPath.Length);
-                bkpFile.Files!.Add(file);
+                bkpFile.Files.Add(file);
                 if (file.Type == File.FileTyes.Directory)
                     await ReadPathContent(bkpFile, rootPath, file.FullPath);
             }
@@ -476,7 +476,7 @@ namespace MpbkpuLib
 
         private async Task<bool> SetBackupResult(BackupFile bkpFile, Backup.Results result)
         {
-            var bkp = await bkpFile.Backups!.Where(b => b.Id == _backup!.Id).FirstOrDefaultAsync();
+            var bkp = await bkpFile.Backups.Where(b => b.Id == _backup!.Id).FirstOrDefaultAsync();
             if (bkp != null) {
                 bkp.Result = result;
                 bkp.CompletedAt = DateTime.UtcNow;

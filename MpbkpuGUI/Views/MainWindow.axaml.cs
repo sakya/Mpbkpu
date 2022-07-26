@@ -91,7 +91,7 @@ namespace MpbkpuGUI.Views
                 _backupTask = Task.Run(() => bkp.Run(_cts.Token));
                 await _backupTask;
             } catch (Exception ex) {
-
+                
             } finally {
                 if (_cts != null) {
                     _cts.Dispose();

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Sqlite.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
 using MpbkpuLib.DataModel;
 
@@ -18,29 +19,49 @@ public class BackupFile : IDisposable
         
     }
 
-    public DbSet<DataModel.Backup>? Backups
+    public DbSet<DataModel.Backup> Backups
     {
-        get { return _context?.Backups; }
+        get
+        {
+            EnsureDbOpen();
+            return _context!.Backups;
+        }
     }
 
-    public DbSet<DataModel.File>? Files
+    public DbSet<DataModel.File> Files
     {
-        get { return _context?.Files; }
+        get
+        {
+            EnsureDbOpen();
+            return _context!.Files;
+        }
     }
 
-    public DbSet<DataModel.BackupItem>? BackupItems
+    public DbSet<DataModel.BackupItem> BackupItems
     {
-        get { return _context?.BackupItems; }
+        get
+        {
+            EnsureDbOpen();
+            return _context!.BackupItems;
+        }
     }
     
-    public DbSet<DataModel.BackupVolume>? BackupVolumes
+    public DbSet<DataModel.BackupVolume> BackupVolumes
     {
-        get { return _context?.BackupVolumes; }
+        get
+        {
+            EnsureDbOpen();
+            return _context!.BackupVolumes;
+        }
     }
     
-    public DbSet<DataModel.BackupWarning>? BackupWarnings
+    public DbSet<DataModel.BackupWarning> BackupWarnings
     {
-        get { return _context?.BackupWarnings; }
+        get
+        {
+            EnsureDbOpen();
+            return _context!.BackupWarnings;
+        }
     }
     
     public void Dispose()
@@ -50,12 +71,11 @@ public class BackupFile : IDisposable
     
     public async Task<bool> Open(string? path)
     {
-        if (string.IsNullOrEmpty((path)))
+        if (string.IsNullOrEmpty(path))
             throw new ArgumentNullException(nameof(path));
         
-        var builder = new DbContextOptionsBuilder();
-        var sqliteBuilder = builder.UseSqlite($"Data Source={path}");
-        _context = new Context.BackupContext(builder.Options);
+        var sqliteBuilder = new DbContextOptionsBuilder().UseSqlite($"Data Source={path}");
+        _context = new Context.BackupContext(sqliteBuilder.Options);
         await _context!.Database.EnsureCreatedAsync();
         
         return true;
@@ -97,7 +117,8 @@ public class BackupFile : IDisposable
     /// <summary>
     /// Get the backup items for a backup.
     /// </summary>
-    /// <returns></returns>
+    /// <param name="backupId">The backup id</param>
+    /// <returns>A <see cref="IAsyncEnumerable"/> of <see cref="BackupItem"/></returns>
     public async IAsyncEnumerable<DataModel.BackupItem> GetBackupItems(int backupId)
     {
         EnsureDbOpen();
@@ -152,6 +173,31 @@ public class BackupFile : IDisposable
             }
         }
     }
+
+    /// <summary>
+    /// Verify the database and checks backup files
+    /// </summary>
+    /// <remarks>This method can be very slow for backups with a lot of files</remarks>
+    /// <returns>True on success</returns>
+    public async Task<bool> Verify()
+    {
+        EnsureDbOpen();
+        
+        // Verify backup folders
+        var backups = _context!.Backups!.AsNoTracking()
+            .OrderBy(b => b.Id);
+        foreach (var backup in backups) {
+            // Verify backup items
+            var items = _context!.BackupItems!.AsNoTracking()
+                .Where(i => i.BackupId == backup.Id)
+                .OrderBy(i => i.Id);
+            foreach (var item in items) {
+                
+            }
+        }
+        return true;
+    }
+
     #region private operations
 
     private void EnsureDbOpen()

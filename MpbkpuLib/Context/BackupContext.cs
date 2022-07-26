@@ -11,11 +11,12 @@ namespace MpbkpuLib.Context
 {
     public class BackupContext : DbContext
     {
-        public DbSet<DataModel.Backup>? Backups { get; set; }
-        public DbSet<DataModel.BackupItem>? BackupItems { get; set; }
-        public DbSet<DataModel.BackupVolume>? BackupVolumes { get; set; }
-        public DbSet<DataModel.BackupWarning>? BackupWarnings { get; set; }
-        public DbSet<DataModel.File>? Files { get; set; }
+
+        public DbSet<DataModel.Backup> Backups => Set<DataModel.Backup>();
+        public DbSet<DataModel.BackupItem> BackupItems => Set<DataModel.BackupItem>();
+        public DbSet<DataModel.BackupVolume> BackupVolumes => Set<DataModel.BackupVolume>();
+        public DbSet<DataModel.BackupWarning> BackupWarnings => Set<DataModel.BackupWarning>();
+        public DbSet<DataModel.File> Files => Set<DataModel.File>();
 
         public BackupContext(DbContextOptions options) :
             base(options)
