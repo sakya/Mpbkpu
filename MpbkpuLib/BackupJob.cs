@@ -1,4 +1,4 @@
-﻿using System.Security.Cryptography;
+﻿using System.IO.Compression;
 using Newtonsoft.Json;
 using Microsoft.EntityFrameworkCore;
 using MpbkpuLib.DataModel;
@@ -152,12 +152,14 @@ namespace MpbkpuLib
             LogInfo($"Reading source {Settings.Source}");
             if (!ReadPathContent(backupFile, Settings.Source, Settings.Source).Result) {
                 LogError("Failed to read source");
-                await SetBackupResult(backupFile, Backup.Results.Error);
+                if (!await SetBackupResult(backupFile, Backup.Results.Error))
+                    LogWarning("Cannot set backup result");
                 return false;
             }
             if (_cancellationToken?.IsCancellationRequested == true) {
                 LogInfo("Cancelled by user");
-                await SetBackupResult(backupFile, Backup.Results.Cancelled);
+                if (!await SetBackupResult(backupFile, Backup.Results.Cancelled))
+                    LogWarning("Cannot set backup result");
                 return false;
             }
             await backupFile.SaveChangesAsync();
@@ -166,7 +168,7 @@ namespace MpbkpuLib
             // Read last backup items
             if (lastBackup != null && _backup.Type != BackupJobSettings.BackupTypes.Full) {
                 await foreach (var item in backupFile.GetBackupItems(lastBackup.Id)) {
-                    if (item.Action == DataModel.BackupItem.Actions.Deleted)
+                    if (item.Action == BackupItem.Actions.Deleted)
                         continue;
 
                     // Check if the source file has changed
@@ -212,7 +214,8 @@ namespace MpbkpuLib
             if (ConfirmBackup != null) {
                 if (!await ConfirmBackup.Invoke(this, cArgs)) {
                     LogInfo("Cancelled by user");
-                    await SetBackupResult(backupFile, Backup.Results.Cancelled);
+                    if (!await SetBackupResult(backupFile, Backup.Results.Cancelled))
+                        LogWarning("Cannot set backup result");
                     return false;
                 }
             }
@@ -222,7 +225,7 @@ namespace MpbkpuLib
             if (!string.IsNullOrEmpty(Settings.EncryptPassword)) {
                 encryptor = new Utility.EncryptDecrypt(Settings.EncryptPassword);
             }
-
+            
             int fileIdx = 0;
             long bytes = 0;
             var filesToBackup = backupFile.Files.AsNoTracking()
@@ -230,21 +233,24 @@ namespace MpbkpuLib
             foreach (var fileToBackup in filesToBackup) {
                 if (_cancellationToken?.IsCancellationRequested == true) {
                     LogInfo("Cancelled by user");
-                    await SetBackupResult(backupFile, Backup.Results.Cancelled);
+                    if (!await SetBackupResult(backupFile, Backup.Results.Cancelled))
+                        LogWarning("Cannot set backup result");
                     return false;
                 }
 
                 if (fileToBackup.Action == File.Actions.Backup) {
-                    await BackupItem(backupFile, fileToBackup, encryptor);
-
-                    bytes += fileToBackup.Size;
-                    Progress?.Invoke(this, ++fileIdx, cArgs.FilesToBackup, bytes, cArgs.BytesToBackup);
+                    if (await BackupFileFromSource(backupFile, fileToBackup, encryptor)) {
+                        bytes += fileToBackup.Size;
+                        Progress?.Invoke(this, ++fileIdx, cArgs.FilesToBackup, bytes, cArgs.BytesToBackup);
+                    } else {
+                        LogWarning($"Failed to backup {fileToBackup.FullPath}");
+                    }
                 } else {
                     await DeleteItem(backupFile, fileToBackup);
                 }
             }
-
-            await SetBackupResult(backupFile, Backup.Results.Completed);
+            if (!await SetBackupResult(backupFile, Backup.Results.Completed))
+                LogWarning("Cannot set backup result");
             await backupFile.SaveChangesAsync();
             await backupFile.EmptyFiles();
             LogInfo("Completed");
@@ -302,10 +308,10 @@ namespace MpbkpuLib
         /// </summary>
         /// <param name="backupFile">The <see cref="BackupFile"/></param>
         /// <param name="sourceFile">The <see cref="DataModel.File"/> to backup</param>
-        /// <param name="encryptor">The optional <see cref="Utility.EncryptDecrypt"/> to enxrypt the file</param>
+        /// <param name="encryptor">The optional <see cref="Utility.EncryptDecrypt"/> to encrypt the file</param>
         /// <returns>True on success</returns>
         /// <exception cref="ArgumentNullException"></exception>
-        private async Task<bool> BackupItem(BackupFile? backupFile, File? sourceFile, Utility.EncryptDecrypt? encryptor)
+        private async Task<bool> BackupFileFromSource(BackupFile? backupFile, File? sourceFile, Utility.EncryptDecrypt? encryptor)
         {
             if (backupFile == null)
                 throw new ArgumentNullException(nameof(backupFile));            
@@ -314,7 +320,7 @@ namespace MpbkpuLib
 
             var backupItem = await GetNextBackupItem(backupFile);
             backupItem.BackupId = _backup!.Id;
-            backupItem.Action = sourceFile.Modified ? DataModel.BackupItem.Actions.Modified : DataModel.BackupItem.Actions.Added;
+            backupItem.Action = sourceFile.Modified ? BackupItem.Actions.Modified : BackupItem.Actions.Added;
             backupItem.Type = sourceFile.Type;
             backupItem.OriginalCreated = sourceFile.Created;
             backupItem.OriginalExtension = sourceFile.Extension;
@@ -331,12 +337,13 @@ namespace MpbkpuLib
             switch (sourceFile.Type) {
                 case File.FileTyes.Directory:
                     // Create a zero byte file as a placeholder
-                    using (var destStream = await destFm.OpenFile(destFilePath, true)) {
+                    await using (var _ = await destFm.OpenFile(destFilePath, true)) {
                     }
                     break;
                 case File.FileTyes.File:
                     var sourceFm = FileManagerFactory.GetFileManager(sourceFile.FullPath, out _);
                     LogDebug($"Backing up {sourceFile.FullPath} to {destFilePath}");
+
                     using (var sourceStream = await sourceFm.OpenFile(sourceFile.FullPath)) {
                         using (var destStream = await destFm.OpenFile(destFilePath, true)) {
                             if (encryptor != null) {
@@ -345,16 +352,52 @@ namespace MpbkpuLib
                                 {
                                     FileProgress?.Invoke(this, copied, sourceFile.Size);
                                 });
-                                await encryptor.Encrypt(sourceStream, destStream, progressAction);
+
+                                if (Settings.Compress) {
+                                    string? tempFileName;
+                                    using (var tempFileStream = Utility.TempFile.GetTempFileStream(string.Empty, out tempFileName)) {
+                                        if (tempFileStream == null)
+                                            throw new Exception("Failed to create temp file");
+                                        using (var compressorStream = new GZipStream(tempFileStream, CompressionLevel.Optimal, true)) {
+                                            long copied = 0;
+                                            byte[] buffer = new byte[4096];
+                                            while (copied < sourceFile.Size) {
+                                                int read = await sourceStream.ReadAsync(buffer, 0, buffer.Length);
+                                                await compressorStream.WriteAsync(buffer, 0, read);
+                                                copied += read;
+                                            }
+                                        }
+                                    }
+
+                                    using (var gzippedStream = new FileStream(tempFileName!, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+                                        await encryptor.Encrypt(gzippedStream, destStream, progressAction);   
+                                    }
+                                    System.IO.File.Delete(tempFileName!);
+                                } else {
+                                    await encryptor.Encrypt(sourceStream, destStream, progressAction);   
+                                }
                             } else {
-                                // Normal copy
-                                long copied = 0;
-                                byte[] buffer = new byte[4096];
-                                while (copied < sourceFile.Size) {
-                                    int read = await sourceStream.ReadAsync(buffer, 0, buffer.Length);
-                                    await destStream.WriteAsync(buffer, 0, read);
-                                    copied += read;
-                                    FileProgress?.Invoke(this, copied, sourceFile.Size);
+                                if (Settings.Compress) {
+                                    using (var compressor = new GZipStream(destStream, CompressionLevel.Optimal)) {
+                                        long copied = 0;
+                                        byte[] buffer = new byte[4096];
+                                        while (copied < sourceFile.Size) {
+                                            int read = await sourceStream.ReadAsync(buffer, 0, buffer.Length);
+                                            await compressor.WriteAsync(buffer, 0, read);
+                                            copied += read;
+                                            FileProgress?.Invoke(this, copied, sourceFile.Size);
+                                        }                                             
+                                    }
+                                } else {
+                                    // Normal copy
+                                    long copied = 0;
+                                    byte[] buffer = new byte[4096];
+                                    while (copied < sourceFile.Size) {
+                                        int read = await sourceStream.ReadAsync(buffer, 0, buffer.Length);
+                                        await destStream.WriteAsync(buffer, 0, read);
+                                        copied += read;
+                                        FileProgress?.Invoke(this, copied, sourceFile.Size);
+                                    }                                    
                                 }
                             }
                         }
@@ -375,7 +418,7 @@ namespace MpbkpuLib
             var item = new BackupItem()
             {
                 BackupId = _backup!.Id,
-                Action = DataModel.BackupItem.Actions.Deleted,
+                Action = BackupItem.Actions.Deleted,
                 Type = sourceFile.Type,
                 OriginalCreated = sourceFile.Created,
                 OriginalExtension = sourceFile.Extension,
@@ -399,8 +442,8 @@ namespace MpbkpuLib
         /// <returns>A <see cref="DataModel.BackupItem"/></returns>
         private async Task<BackupItem> GetNextBackupItem(BackupFile backupFile)
         {
-            int? volumeId = null;
-            string? volumeName = null; 
+            int? volumeId;
+            string? volumeName; 
             if (_lastUsedVolume?.ItemsCount < Settings.MaxFilesPerDirectory) {
                 volumeId = _lastUsedVolume.Id;
                 volumeName = _lastUsedVolume.Name;

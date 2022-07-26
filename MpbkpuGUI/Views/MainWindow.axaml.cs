@@ -50,6 +50,7 @@ namespace MpbkpuGUI.Views
                 Source = this.FindControl<TextBox>("_source").Text,
                 Destination = this.FindControl<TextBox>("_destination").Text,
                 EncryptPassword = "ciccioPasticcio",
+                Compress = true,
                 LogToConsole = true,
             };
             var bkp = new BackupJob(settings);
