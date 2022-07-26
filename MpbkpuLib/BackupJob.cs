@@ -111,7 +111,11 @@ namespace MpbkpuLib
         public async Task<bool> RunPrimitive(BackupFile backupFile)
         {
             _lastUsedVolume = null;
-            var lastBackup = await backupFile.LastBackup();
+            Backup? lastBackup = null;
+            if (Settings.BackupType == BackupJobSettings.BackupTypes.Incremental) {
+                // Incremental starts always from the last full backup
+                lastBackup = await backupFile.LastBackup(BackupJobSettings.BackupTypes.Full); 
+            }
             // If there is no previous backup this is a full backup
             if (lastBackup == null && Settings.BackupType != BackupJobSettings.BackupTypes.Full) {
                 LogWarning("No previous backup found, switching to Full backup");

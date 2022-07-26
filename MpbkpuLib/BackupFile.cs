@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
+using MpbkpuLib.DataModel;
 
 namespace MpbkpuLib;
 
@@ -72,10 +73,13 @@ public class BackupFile : IDisposable
         _context.Entry(entity).State = EntityState.Detached;
     }
     
-    public async Task<DataModel.Backup?> LastBackup()
+    public async Task<DataModel.Backup?> LastBackup(BackupJobSettings.BackupTypes? type = null)
     {
         EnsureDbOpen();
-        return await _context.Backups.AsNoTracking()
+        var filter = _context.Backups.AsNoTracking();
+        if (type.HasValue)
+            filter = filter.Where(b => b.Type == type.Value);
+        return await filter
             .OrderByDescending(b => b.Id)
             .FirstOrDefaultAsync();
     }
