@@ -354,25 +354,33 @@ namespace MpbkpuLib
                                 });
 
                                 if (Settings.Compress) {
-                                    string? tempFileName;
-                                    using (var tempFileStream = Utility.TempFile.GetTempFileStream(string.Empty, out tempFileName)) {
-                                        if (tempFileStream == null)
-                                            throw new Exception("Failed to create temp file");
-                                        using (var compressorStream = new GZipStream(tempFileStream, CompressionLevel.Optimal, true)) {
-                                            long copied = 0;
-                                            byte[] buffer = new byte[4096];
-                                            while (copied < sourceFile.Size) {
-                                                int read = await sourceStream.ReadAsync(buffer, 0, buffer.Length);
-                                                await compressorStream.WriteAsync(buffer, 0, read);
-                                                copied += read;
+                                    // Compress to a temporary file and then encrypt it
+                                    string? tempFileName = null;
+                                    try {
+                                        using (var tempFileStream =
+                                               Utility.TempFile.GetTempFileStream(string.Empty, out tempFileName)) {
+                                            if (tempFileStream == null)
+                                                throw new Exception("Failed to create temp file");
+                                            using (var compressorStream = new GZipStream(tempFileStream,
+                                                       CompressionLevel.Optimal, true)) {
+                                                long copied = 0;
+                                                byte[] buffer = new byte[4096];
+                                                while (copied < sourceFile.Size) {
+                                                    int read = await sourceStream.ReadAsync(buffer, 0, buffer.Length);
+                                                    await compressorStream.WriteAsync(buffer, 0, read);
+                                                    copied += read;
+                                                }
                                             }
                                         }
-                                    }
 
-                                    using (var gzippedStream = new FileStream(tempFileName!, FileMode.Open, FileAccess.Read, FileShare.Read)) {
-                                        await encryptor.Encrypt(gzippedStream, destStream, progressAction);   
+                                        using (var gzippedStream = new FileStream(tempFileName!, FileMode.Open,
+                                                   FileAccess.Read, FileShare.Read)) {
+                                            await encryptor.Encrypt(gzippedStream, destStream, progressAction);
+                                        }
+                                    } finally {
+                                        if (!string.IsNullOrEmpty(tempFileName))
+                                            System.IO.File.Delete(tempFileName);
                                     }
-                                    System.IO.File.Delete(tempFileName!);
                                 } else {
                                     await encryptor.Encrypt(sourceStream, destStream, progressAction);   
                                 }
