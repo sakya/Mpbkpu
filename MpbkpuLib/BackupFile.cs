@@ -123,7 +123,19 @@ public class BackupFile : IDisposable
                 .FirstOrDefaultAsync();
             if (fullBkp == null)
                 throw new Exception($"Full backup not found");
-            
+
+            var items = _context.BackupItems.AsNoTracking()
+                .Where(i => i.BackupId == fullBkp.Id);
+            foreach (var item in items) {
+                // Read the same items from subsequent backups
+                var nextBackups = _context.BackupItems.AsNoTracking()
+                    .Where(i => i.Backup.Type == BackupJobSettings.BackupTypes.Incremental && i.BackupId <= backupId &&
+                                i.BackupId >= fullBkp.Id && i.OriginalPath == item.OriginalPath)
+                    .OrderBy(i => i.Id);
+                foreach (var nextItem in nextBackups) {
+                    
+                }
+            }            
         } else if (bkp.Type == BackupJobSettings.BackupTypes.Differential) {
             var fullBkp = await _context.Backups.AsNoTracking()
                 .Where(b => b.Type == BackupJobSettings.BackupTypes.Full && b.Id < bkp.Id)
@@ -131,6 +143,7 @@ public class BackupFile : IDisposable
                 .FirstOrDefaultAsync();
             if (fullBkp == null)
                 throw new Exception($"Full backup not found");
+                
             var items = _context.BackupItems.AsNoTracking()
                 .Where(i => i.BackupId == fullBkp.Id);
             foreach (var item in items) {

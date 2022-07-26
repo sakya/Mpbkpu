@@ -120,6 +120,9 @@ namespace MpbkpuLib
             if (lastBackup == null && Settings.BackupType != BackupJobSettings.BackupTypes.Full) {
                 LogWarning("No previous backup found, switching to Full backup");
                 Settings.BackupType = BackupJobSettings.BackupTypes.Full;
+            } else if (lastBackup != null && (lastBackup.Type == BackupJobSettings.BackupTypes.Differential || lastBackup.Type == BackupJobSettings.BackupTypes.Incremental) && lastBackup.Type != Settings.BackupType) {
+                // We cannot change backup type
+                throw new Exception($"Cannot change backup type. Backup to a different destination");
             }
 
             _backup = new Backup()
@@ -160,6 +163,9 @@ namespace MpbkpuLib
             // Read last backup items
             if (lastBackup != null && _backup.Type != BackupJobSettings.BackupTypes.Full) {
                 await foreach (var item in backupFile.GetBackupItems(lastBackup.Id)) {
+                    if (item.Action == DataModel.BackupItem.Actions.Deleted)
+                            continue;
+
                     // Check if the source file has changed
                     var sourceFile = await backupFile.Files.Where(f => f.FullPath == item.OriginalPath)
                         .FirstOrDefaultAsync();
