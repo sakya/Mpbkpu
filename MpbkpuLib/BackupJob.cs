@@ -137,8 +137,7 @@ namespace MpbkpuLib
             };
 
             // Create the backup folder
-            string destPath;
-            var destFm = FileManagerFactory.GetFileManager(Settings.Destination, out destPath);
+            var destFm = FileManagerFactory.GetFileManager(Settings.Destination, out string destPath);
             var backupDirectory = destFm.CombinePath(destPath, _backup.Guid);
             if (await destFm.DirectoryExists(backupDirectory))
                 throw new Exception($"The backup destination {backupDirectory} exist");
