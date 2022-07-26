@@ -386,12 +386,12 @@ namespace MpbkpuLib
                                 }
                             } else {
                                 if (Settings.Compress) {
-                                    using (var compressor = new GZipStream(destStream, CompressionLevel.Optimal)) {
+                                    using (var compressorStream = new GZipStream(destStream, CompressionLevel.Optimal)) {
                                         long copied = 0;
                                         byte[] buffer = new byte[4096];
                                         while (copied < sourceFile.Size) {
                                             int read = await sourceStream.ReadAsync(buffer, 0, buffer.Length);
-                                            await compressor.WriteAsync(buffer, 0, read);
+                                            await compressorStream.WriteAsync(buffer, 0, read);
                                             copied += read;
                                             FileProgress?.Invoke(this, copied, sourceFile.Size);
                                         }                                             
