@@ -36,6 +36,11 @@ namespace MpbkpuLib
             Error
         }
 
+        public BackupJobSettings()
+        {
+            MaxFilesPerDirectory = 1000;
+        }
+
         /// <summary>
         /// The job name
         /// </summary>
@@ -53,6 +58,7 @@ namespace MpbkpuLib
         /// <value></value>
         public string? Destination { get; set; }
 
+        public int MaxFilesPerDirectory { get; set; }
         public bool IncludeHiddenFiles { get; set; }
         
         /// <summary>

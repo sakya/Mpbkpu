@@ -23,7 +23,6 @@ namespace MpbkpuLib
         #endregion
         #region private members
 
-        private const int MaxFilesPerDirectory = 1000;
         private Backup? _backup;
         private LastUsedVolume? _lastUsedVolume;
         private StreamWriter? _logWriter;
@@ -260,6 +259,9 @@ namespace MpbkpuLib
             
             if (Settings.Destination.StartsWith(Settings.Source))
                 throw new ArgumentException("Destination cannot be a subdirectory of Source");
+
+            if (Settings.MaxFilesPerDirectory <= 0)
+                throw new ArgumentException("MaxFilesPerDirectory must be greater than zero");
         }
 
         /// <summary>
@@ -384,13 +386,13 @@ namespace MpbkpuLib
         {
             int? volumeId = null;
             string? volumeName = null; 
-            if (_lastUsedVolume?.ItemsCount < MaxFilesPerDirectory) {
+            if (_lastUsedVolume?.ItemsCount < Settings.MaxFilesPerDirectory) {
                 volumeId = _lastUsedVolume.Id;
                 volumeName = _lastUsedVolume.Name;
                 _lastUsedVolume.ItemsCount++;
             } else {
                 var volume = await backupFile.BackupVolumes.AsNoTracking()
-                    .Where(v => v.BackupId == _backup.Id && v.Items.Count() < MaxFilesPerDirectory)
+                    .Where(v => v.BackupId == _backup.Id && v.Items.Count() < Settings.MaxFilesPerDirectory)
                     .FirstOrDefaultAsync();
                 if (volume == null) {
                     volume = new BackupVolume()
