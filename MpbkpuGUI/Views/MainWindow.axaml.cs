@@ -27,10 +27,10 @@ namespace MpbkpuGUI.Views
             base.InitializeComponent();
 
             if (OperatingSystem.IsWindows()) {
-                this.FindControl<TextBox>("_source").Text = @"c:\Users\paolo.iommarini\Development\";
+                this.FindControl<TextBox>("_source").Text = @"c:\Users\paolo.iommarini\Development\Mpbkpu";
                 this.FindControl<TextBox>("_destination").Text = @"c:\Users\paolo.iommarini\Backup\";
             } else {
-                this.FindControl<TextBox>("_source").Text = "/home/sakya/Development/";
+                this.FindControl<TextBox>("_source").Text = "/home/sakya/Development/Mpbkpu";
                 this.FindControl<TextBox>("_destination").Text = "/home/sakya/backup/";
             }
         }

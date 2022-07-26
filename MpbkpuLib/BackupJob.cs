@@ -111,11 +111,7 @@ namespace MpbkpuLib
         public async Task<bool> RunPrimitive(BackupFile backupFile)
         {
             _lastUsedVolume = null;
-            Backup? lastBackup = null;
-            if (Settings.BackupType == BackupJobSettings.BackupTypes.Incremental) {
-                // Incremental starts always from the last full backup
-                lastBackup = await backupFile.LastBackup(BackupJobSettings.BackupTypes.Full); 
-            }
+            Backup? lastBackup = await backupFile.LastBackup();
             // If there is no previous backup this is a full backup
             if (lastBackup == null && Settings.BackupType != BackupJobSettings.BackupTypes.Full) {
                 LogWarning("No previous backup found, switching to Full backup");
@@ -125,6 +121,13 @@ namespace MpbkpuLib
                 throw new Exception($"Cannot change backup type. Backup to a different destination");
             }
 
+            if (lastBackup != null) {
+                var lastBackupSettings = JsonConvert.DeserializeObject<BackupJobSettings>(lastBackup.Settings);
+                if (lastBackupSettings.Source != Settings.Source) {
+                    LogWarning($"Changed backup source from {lastBackupSettings.Source} to {Settings.Source}");
+                }
+            }
+            
             _backup = new Backup()
             {
                 Name = Settings.Name,
@@ -164,7 +167,7 @@ namespace MpbkpuLib
             if (lastBackup != null && _backup.Type != BackupJobSettings.BackupTypes.Full) {
                 await foreach (var item in backupFile.GetBackupItems(lastBackup.Id)) {
                     if (item.Action == DataModel.BackupItem.Actions.Deleted)
-                            continue;
+                        continue;
 
                     // Check if the source file has changed
                     var sourceFile = await backupFile.Files.Where(f => f.FullPath == item.OriginalPath)

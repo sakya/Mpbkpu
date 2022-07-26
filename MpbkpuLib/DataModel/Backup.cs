@@ -27,6 +27,7 @@ namespace MpbkpuLib.DataModel
         public string Guid { get; set; }
 
         public BackupJobSettings.BackupTypes Type { get; set; }
+        
         [MaxLength(4096)]
         public string? Settings { get; set; }
         public Results Result { get; set; }

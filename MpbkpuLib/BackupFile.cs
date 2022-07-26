@@ -73,13 +73,10 @@ public class BackupFile : IDisposable
         _context.Entry(entity).State = EntityState.Detached;
     }
     
-    public async Task<DataModel.Backup?> LastBackup(BackupJobSettings.BackupTypes? type = null)
+    public async Task<DataModel.Backup?> LastBackup()
     {
         EnsureDbOpen();
-        var filter = _context.Backups.AsNoTracking();
-        if (type.HasValue)
-            filter = filter.Where(b => b.Type == type.Value);
-        return await filter
+        return await _context.Backups.AsNoTracking()
             .OrderByDescending(b => b.Id)
             .FirstOrDefaultAsync();
     }
@@ -116,7 +113,6 @@ public class BackupFile : IDisposable
                 yield return item;
             }
         } else if (bkp.Type == BackupJobSettings.BackupTypes.Incremental) {
-            // TODO: read the previous full backup and all subsequent Incremental
             var fullBkp = await _context.Backups.AsNoTracking()
                 .Where(b => b.Type == BackupJobSettings.BackupTypes.Full && b.Id < bkp.Id)
                 .OrderByDescending(b => b.Id)
@@ -128,12 +124,16 @@ public class BackupFile : IDisposable
                 .Where(i => i.BackupId == fullBkp.Id);
             foreach (var item in items) {
                 // Read the same items from subsequent backups
-                var nextBackups = _context.BackupItems.AsNoTracking()
+                var itemLastBackup = await _context.BackupItems.AsNoTracking()
                     .Where(i => i.Backup.Type == BackupJobSettings.BackupTypes.Incremental && i.BackupId <= backupId &&
                                 i.BackupId >= fullBkp.Id && i.OriginalPath == item.OriginalPath)
-                    .OrderBy(i => i.Id);
-                foreach (var nextItem in nextBackups) {
-                    
+                    .OrderBy(i => i.Id)
+                    .LastOrDefaultAsync();
+                if (itemLastBackup != null) {
+                    if (itemLastBackup.Action != BackupItem.Actions.Deleted)
+                        yield return itemLastBackup;
+                } else {
+                    yield return item;
                 }
             }            
         } else if (bkp.Type == BackupJobSettings.BackupTypes.Differential) {
