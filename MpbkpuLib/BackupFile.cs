@@ -96,7 +96,48 @@ public class BackupFile : IDisposable
         EnsureDbOpen();
         return await _context.SaveChangesAsync();
     }
-    
+
+    /// <summary>
+    /// Get the backup items for a backup.
+    /// </summary>
+    /// <returns></returns>
+    public async IAsyncEnumerable<DataModel.BackupItem> GetBackupItems(int backupId)
+    {
+        var bkp = await _context.Backups.AsNoTracking()
+            .Where(b => b.Id == backupId)
+            .FirstOrDefaultAsync();
+        if (bkp == null)
+            throw new Exception($"Backup with id {backupId} not found");
+
+        if (bkp.Type == BackupJobSettings.BackupTypes.Full) {
+            var items = _context.BackupItems.AsNoTracking()
+                .Where(i => i.BackupId == backupId);
+            foreach (var item in items) {
+                yield return item;
+            }
+        } else if (bkp.Type == BackupJobSettings.BackupTypes.Incremental) {
+            // TODO: read the previous full backup and all subsequent Incremental
+            var fullBkp = await _context.Backups.AsNoTracking()
+                .Where(b => b.Type == BackupJobSettings.BackupTypes.Full && b.Id < bkp.Id)
+                .OrderByDescending(b => b.Id)
+                .FirstOrDefaultAsync();
+            if (fullBkp == null)
+                throw new Exception($"Full backup not found");
+            
+        } else if (bkp.Type == BackupJobSettings.BackupTypes.Differential) {
+            var fullBkp = await _context.Backups.AsNoTracking()
+                .Where(b => b.Type == BackupJobSettings.BackupTypes.Full && b.Id < bkp.Id)
+                .OrderByDescending(b => b.Id)
+                .FirstOrDefaultAsync();
+            if (fullBkp == null)
+                throw new Exception($"Full backup not found");
+            var items = _context.BackupItems.AsNoTracking()
+                .Where(i => i.BackupId == fullBkp.Id);
+            foreach (var item in items) {
+                yield return item;
+            }
+        }
+    }
     #region private operations
 
     private void EnsureDbOpen()

@@ -159,10 +159,7 @@ namespace MpbkpuLib
             // Compute files to backup (only if not a full backup)
             // Read last backup items
             if (lastBackup != null && _backup.Type != BackupJobSettings.BackupTypes.Full) {
-                var lastItems = backupFile.BackupItems.AsNoTracking()
-                    .Where(i => i.BackupId == lastBackup.Id);
-
-                foreach (var item in lastItems) {
+                await foreach (var item in backupFile.GetBackupItems(lastBackup.Id)) {
                     // Check if the source file has changed
                     var sourceFile = await backupFile.Files.Where(f => f.FullPath == item.OriginalPath)
                         .FirstOrDefaultAsync();
