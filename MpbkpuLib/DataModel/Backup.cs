@@ -18,7 +18,14 @@ namespace MpbkpuLib.DataModel
             Error
         }
 
+        public Backup()
+        {
+            Guid = System.Guid.NewGuid().ToString("N");
+        }
+
         public string? Name { get; set; }
+        public string Guid { get; set; }
+
         public BackupJobSettings.BackupTypes Type { get; set; }
         [MaxLength(4096)]
         public string? Settings { get; set; }

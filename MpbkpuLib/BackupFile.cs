@@ -69,7 +69,7 @@ public class BackupFile : IDisposable
     public void Detach(object entity)
     {
         EnsureDbOpen();
-        _context.Entry(entity).State = EntityState.Added;
+        _context.Entry(entity).State = EntityState.Detached;
     }
     
     public async Task<DataModel.Backup?> LastBackup()

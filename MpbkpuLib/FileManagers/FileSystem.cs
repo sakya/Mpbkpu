@@ -27,7 +27,22 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(part3))
                 throw new ArgumentNullException(nameof(part3));
             return Path.Combine(part1, part2, part3);
-        }        
+        }
+
+        public string CombinePath(string? part1, string part2, string part3, string part4)
+        {
+            if (string.IsNullOrEmpty(part1))
+                throw new ArgumentNullException(nameof(part1));
+            if (string.IsNullOrEmpty(part2))
+                throw new ArgumentNullException(nameof(part2));
+            if (string.IsNullOrEmpty(part3))
+                throw new ArgumentNullException(nameof(part3));
+            if (string.IsNullOrEmpty(part4))
+                throw new ArgumentNullException(nameof(part4));
+
+            return Path.Combine(part1, part2, part3, part4);
+        }
+
         public Task<bool> CreateDirectory(string? path)
         {
             if (string.IsNullOrEmpty(path))

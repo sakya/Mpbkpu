@@ -52,5 +52,6 @@ namespace MpbkpuLib.DataModel
         public DateTime? LastModified { get; set; }
 
         public Actions Action { get; set; }
+        public bool Modified { get; set; }
     }
 }

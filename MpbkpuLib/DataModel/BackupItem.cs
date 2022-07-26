@@ -4,6 +4,13 @@ namespace MpbkpuLib.DataModel;
 
 public class BackupItem : BaseModel
 {
+    public enum Actions
+    {
+        Added,
+        Modified,
+        Deleted
+    }
+
     [Required]
     public int BackupId { get; set; }
     public Backup? Backup { get; set; }
@@ -13,6 +20,8 @@ public class BackupItem : BaseModel
     
     public File.FileTyes Type { get; set; }
     
+    public Actions Action { get; set; } 
+
     [MaxLength(255)]
     public string? Name { get; set; }
 
