@@ -56,7 +56,7 @@ public class BackupFile : IDisposable
         var builder = new DbContextOptionsBuilder();
         var sqliteBuilder = builder.UseSqlite($"Data Source={path}");
         _context = new Context.BackupContext(builder.Options);
-        await _context.Database.EnsureCreatedAsync();
+        await _context!.Database.EnsureCreatedAsync();
         
         return true;
     }
@@ -64,19 +64,19 @@ public class BackupFile : IDisposable
     public IDbContextTransaction BeginTransaction()
     {
         EnsureDbOpen();
-        return _context.Database.BeginTransaction();
+        return _context!.Database.BeginTransaction();
     }
     
     public void Detach(object entity)
     {
         EnsureDbOpen();
-        _context.Entry(entity).State = EntityState.Detached;
+        _context!.Entry(entity).State = EntityState.Detached;
     }
     
     public async Task<DataModel.Backup?> LastBackup()
     {
         EnsureDbOpen();
-        return await _context.Backups.AsNoTracking()
+        return await _context!.Backups!.AsNoTracking()
             .OrderByDescending(b => b.Id)
             .FirstOrDefaultAsync();
     }
@@ -84,14 +84,14 @@ public class BackupFile : IDisposable
     public async Task<bool> EmptyFiles()
     {
         EnsureDbOpen();
-        await _context.Database.ExecuteSqlRawAsync("DELETE FROM Files");
+        await _context!.Database.ExecuteSqlRawAsync("DELETE FROM Files");
         return true;
     }
     
     public async Task<int> SaveChangesAsync()
     {
         EnsureDbOpen();
-        return await _context.SaveChangesAsync();
+        return await _context!.SaveChangesAsync();
     }
 
     /// <summary>
@@ -100,32 +100,33 @@ public class BackupFile : IDisposable
     /// <returns></returns>
     public async IAsyncEnumerable<DataModel.BackupItem> GetBackupItems(int backupId)
     {
-        var bkp = await _context.Backups.AsNoTracking()
+        EnsureDbOpen();
+        var bkp = await _context!.Backups!.AsNoTracking()
             .Where(b => b.Id == backupId)
             .FirstOrDefaultAsync();
         if (bkp == null)
             throw new Exception($"Backup with id {backupId} not found");
 
         if (bkp.Type == BackupJobSettings.BackupTypes.Full) {
-            var items = _context.BackupItems.AsNoTracking()
+            var items = _context!.BackupItems!.AsNoTracking()
                 .Where(i => i.BackupId == backupId);
             foreach (var item in items) {
                 yield return item;
             }
         } else if (bkp.Type == BackupJobSettings.BackupTypes.Incremental) {
-            var fullBkp = await _context.Backups.AsNoTracking()
+            var fullBkp = await _context!.Backups!.AsNoTracking()
                 .Where(b => b.Type == BackupJobSettings.BackupTypes.Full && b.Id < bkp.Id)
                 .OrderByDescending(b => b.Id)
                 .FirstOrDefaultAsync();
             if (fullBkp == null)
                 throw new Exception($"Full backup not found");
 
-            var items = _context.BackupItems.AsNoTracking()
+            var items = _context!.BackupItems!.AsNoTracking()
                 .Where(i => i.BackupId == fullBkp.Id);
             foreach (var item in items) {
                 // Read the same items from subsequent backups
-                var itemLastBackup = await _context.BackupItems.AsNoTracking()
-                    .Where(i => i.Backup.Type == BackupJobSettings.BackupTypes.Incremental && i.BackupId <= backupId &&
+                var itemLastBackup = await _context!.BackupItems!.AsNoTracking()
+                    .Where(i => i.Backup!.Type == BackupJobSettings.BackupTypes.Incremental && i.BackupId <= backupId &&
                                 i.BackupId >= fullBkp.Id && i.OriginalPath == item.OriginalPath)
                     .OrderBy(i => i.Id)
                     .LastOrDefaultAsync();
@@ -137,14 +138,14 @@ public class BackupFile : IDisposable
                 }
             }            
         } else if (bkp.Type == BackupJobSettings.BackupTypes.Differential) {
-            var fullBkp = await _context.Backups.AsNoTracking()
+            var fullBkp = await _context!.Backups!.AsNoTracking()
                 .Where(b => b.Type == BackupJobSettings.BackupTypes.Full && b.Id < bkp.Id)
                 .OrderByDescending(b => b.Id)
                 .FirstOrDefaultAsync();
             if (fullBkp == null)
                 throw new Exception($"Full backup not found");
                 
-            var items = _context.BackupItems.AsNoTracking()
+            var items = _context!.BackupItems!.AsNoTracking()
                 .Where(i => i.BackupId == fullBkp.Id);
             foreach (var item in items) {
                 yield return item;
