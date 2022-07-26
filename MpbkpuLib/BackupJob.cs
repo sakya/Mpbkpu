@@ -64,6 +64,11 @@ namespace MpbkpuLib
         #endregion
 
         #region public operations
+        /// <summary>
+        /// Run the backp using the given <see cref="Settings"/>
+        /// </summary>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/></param>
+        /// <returns>True on success</returns>
         public async Task<bool> Run(CancellationToken cancellationToken)
         {
             _cancellationToken = cancellationToken;
@@ -94,15 +99,26 @@ namespace MpbkpuLib
                 } 
             }
 
-            return false;
+            return true;
         }
         #endregion
 
         #region private operations
+        /// <summary>
+        /// Run the backp using the given <see cref="Settings"/>
+        /// </summary>
+        /// <param name="backupFile">The <see cref="BackupFile"/> to use</param>
+        /// <returns>True on success</returns>
         public async Task<bool> RunPrimitive(BackupFile backupFile)
         {
             _lastUsedVolume = null;
             var lastBackup = await backupFile.LastBackup();
+            // If there is no previous backup this is a full backup
+            if (lastBackup == null && Settings.BackupType != BackupJobSettings.BackupTypes.Full) {
+                LogWarning("No previous backup found, switching to Full backup");
+                Settings.BackupType = BackupJobSettings.BackupTypes.Full;
+            }
+
             var bkp = new Backup()
             {
                 Name = Settings.Name,
@@ -198,6 +214,11 @@ namespace MpbkpuLib
             return true;
         }
         
+        /// <summary>
+        /// Validate the <see cref="BackupJobSettings"/>
+        /// </summary>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="ArgumentException"></exception>
         private void ValidateSettings()
         {
             if (string.IsNullOrEmpty(Settings.Source))
@@ -233,11 +254,17 @@ namespace MpbkpuLib
                 return dbFilePath;
             }
 
-            // If the database doesn't exists this is a full backup
-            Settings.BackupType = BackupJobSettings.BackupTypes.Full;
             return dbFilePath;
         }
         
+        /// <summary>
+        /// Backup a <see cref="DataModel.File"/>
+        /// </summary>
+        /// <param name="backupFile">The <see cref="BackupFile"/></param>
+        /// <param name="sourceFile">The <see cref="DataModel.File"/> to backup</param>
+        /// <param name="encryptor">The optional <see cref="Utility.EncryptDecrypt"/> to enxrypt the file</param>
+        /// <returns>True on success</returns>
+        /// <exception cref="ArgumentNullException"></exception>
         private async Task<bool> BackupItem(BackupFile? backupFile, File? sourceFile, Utility.EncryptDecrypt? encryptor)
         {
             if (backupFile == null)
@@ -297,6 +324,12 @@ namespace MpbkpuLib
             return true;
         }
 
+        /// <summary>
+        /// Get the next <see cref="DataModel.BackupItem"/>.
+        /// Find the first free <see cref="BackupVolume"/> or create a new one for the file
+        /// </summary>
+        /// <param name="backupFile">The <see cref="BackupFile"/> to backup</param>
+        /// <returns>A <see cref="DataModel.BackupItem"/></returns>
         private async Task<BackupItem> GetNextBackupItem(BackupFile backupFile)
         {
             int? volumeId = null;
