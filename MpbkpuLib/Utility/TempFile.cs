@@ -5,7 +5,7 @@ public static class TempFile
     public static Stream? GetTempFileStream(string? extension, out string? tempFilePath)
     {
         tempFilePath = null;
-        var tempFolder = System.IO.Path.GetTempPath();
+        var tempFolder = Path.GetTempPath();
         while (tempFilePath == null) {
             var fileName = $"{Guid.NewGuid().ToString("N")}{extension}";
             tempFilePath = Path.Combine(tempFolder, fileName);
