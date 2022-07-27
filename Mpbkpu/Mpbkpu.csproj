@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
+    <Import Project="..\SolutionInfo.proj" />
     <PropertyGroup>
         <OutputType>Exe</OutputType>
         <TargetFramework>net6.0</TargetFramework>
@@ -11,4 +11,7 @@
       <ProjectReference Include="..\MpbkpuLib\MpbkpuLib.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <PackageReference Include="Heyes.GetOpt" Version="1.0.6" />
+    </ItemGroup>          
 </Project>
