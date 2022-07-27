@@ -200,7 +200,7 @@ namespace MpbkpuLib
                     .Where(f => f.FileAction == File.FileActions.Backup)
                     .Select(f => f.Size)
                     .SumAsync(),
-            };            
+            };
             if (ConfirmBackup != null) {
                 if (!await ConfirmBackup.Invoke(this, cArgs)) {
                     LogInfo("Cancelled by user");
