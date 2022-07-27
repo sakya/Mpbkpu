@@ -7,14 +7,13 @@ using MpbkpuLib;
 using Avalonia.Threading;
 using System;
 using System.Collections.Generic;
-using System.Security.Cryptography;
 
 namespace MpbkpuGUI.Views
 {
     public partial class MainWindow : BaseView
     {
-        private Task? _backupTask = null;
-        private CancellationTokenSource? _cts = null;
+        private Task? _backupTask;
+        private CancellationTokenSource? _cts;
         private List<string> _log = new List<string>();
         public MainWindow()
         {
@@ -91,7 +90,7 @@ namespace MpbkpuGUI.Views
             try {
                 _backupTask = Task.Run(() => bkp.Run(_cts.Token));
                 await _backupTask;
-            } catch (Exception ex) {
+            } catch (Exception) {
                 
             } finally {
                 if (_cts != null) {
