@@ -175,15 +175,15 @@ namespace MpbkpuLib
                         .FirstOrDefaultAsync();
                     if (sourceFile != null) {
                         if (sourceFile.Size != item.OriginalSize || sourceFile.LastModified != item.OriginalLastModified) {
-                            sourceFile.Action = File.Actions.Backup;
+                            sourceFile.FileAction = File.FileActions.Backup;
                             sourceFile.Modified = true;
                         } else {
-                            sourceFile.Action = File.Actions.None;
+                            sourceFile.FileAction = File.FileActions.None;
                         }
                     } else {
                         backupFile.Files.Add(new File()
                         {
-                            Action = File.Actions.Delete,
+                            FileAction = File.FileActions.Delete,
                             Created = item.OriginalCreated,
                             Extension = item.OriginalExtension,
                             FullPath = item.OriginalPath,
@@ -203,10 +203,10 @@ namespace MpbkpuLib
             var cArgs = new ConfirmArgs()
             {
                 FilesToBackup = await backupFile.Files.AsNoTracking()
-                    .Where(f => f.Action == File.Actions.Backup)
+                    .Where(f => f.FileAction == File.FileActions.Backup)
                     .CountAsync(),
                 BytesToBackup = await backupFile.Files.AsNoTracking()
-                    .Where(f => f.Action == File.Actions.Backup)
+                    .Where(f => f.FileAction == File.FileActions.Backup)
                     .Select(f => f.Size)
                     .SumAsync(),
             };            
@@ -228,7 +228,7 @@ namespace MpbkpuLib
             int fileIdx = 0;
             long bytes = 0;
             var filesToBackup = backupFile.Files.AsNoTracking()
-                                .Where(f => f.Action == File.Actions.Backup || f.Action == File.Actions.Delete);
+                                .Where(f => f.FileAction == File.FileActions.Backup || f.FileAction == File.FileActions.Delete);
             foreach (var fileToBackup in filesToBackup) {
                 if (_cancellationToken?.IsCancellationRequested == true) {
                     LogInfo("Cancelled by user");
@@ -237,7 +237,7 @@ namespace MpbkpuLib
                     return false;
                 }
 
-                if (fileToBackup.Action == File.Actions.Backup) {
+                if (fileToBackup.FileAction == File.FileActions.Backup) {
                     if (await BackupFileFromSource(backupFile, fileToBackup, encryptor)) {
                         bytes += fileToBackup.Size;
                         Progress?.Invoke(this, ++fileIdx, cArgs.FilesToBackup, bytes, cArgs.BytesToBackup);
@@ -352,37 +352,7 @@ namespace MpbkpuLib
                                     FileProgress?.Invoke(this, copied, sourceFile.Size);
                                 });
 
-                                if (Settings.Compress) {
-                                    // Compress to a temporary file and then encrypt it
-                                    string? tempFileName = null;
-                                    try {
-                                        using (var tempFileStream =
-                                               Utility.TempFile.GetTempFileStream(string.Empty, out tempFileName)) {
-                                            if (tempFileStream == null)
-                                                throw new Exception("Failed to create temp file");
-                                            using (var compressorStream = new GZipStream(tempFileStream,
-                                                       CompressionLevel.Optimal, true)) {
-                                                long copied = 0;
-                                                byte[] buffer = new byte[4096];
-                                                while (copied < sourceFile.Size) {
-                                                    int read = await sourceStream.ReadAsync(buffer, 0, buffer.Length);
-                                                    await compressorStream.WriteAsync(buffer, 0, read);
-                                                    copied += read;
-                                                }
-                                            }
-                                        }
-
-                                        using (var gzippedStream = new FileStream(tempFileName!, FileMode.Open,
-                                                   FileAccess.Read, FileShare.Read)) {
-                                            await encryptor.Encrypt(gzippedStream, destStream, progressAction);
-                                        }
-                                    } finally {
-                                        if (!string.IsNullOrEmpty(tempFileName))
-                                            System.IO.File.Delete(tempFileName);
-                                    }
-                                } else {
-                                    await encryptor.Encrypt(sourceStream, destStream, progressAction);   
-                                }
+                                await encryptor.Encrypt(sourceStream, destStream, Settings.Compress, progressAction);
                             } else {
                                 if (Settings.Compress) {
                                     using (var compressorStream = new GZipStream(destStream, CompressionLevel.Optimal)) {
@@ -514,7 +484,7 @@ namespace MpbkpuLib
                 if (_cancellationToken?.IsCancellationRequested == true)
                     return true;
 
-                file.Action = File.Actions.Backup;
+                file.FileAction = File.FileActions.Backup;
                 file.RootPath = rootPath;
                 file.RelativePath = file.FullPath?.Substring(file.RootPath.Length);
                 bkpFile.Files.Add(file);

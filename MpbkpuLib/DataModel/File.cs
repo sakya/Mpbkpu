@@ -15,7 +15,7 @@ namespace MpbkpuLib.DataModel
             Directory
         }
 
-        public enum Actions
+        public enum FileActions
         {
             None = 0,
             Delete,
@@ -51,7 +51,7 @@ namespace MpbkpuLib.DataModel
         public DateTime? Created { get; set; }
         public DateTime? LastModified { get; set; }
 
-        public Actions Action { get; set; }
+        public FileActions FileAction { get; set; }
         public bool Modified { get; set; }
     }
 }

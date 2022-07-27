@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.IO.Compression;
+using System.Text;
 using System.Security.Cryptography;
 
 namespace MpbkpuLib.Utility
@@ -20,7 +21,17 @@ namespace MpbkpuLib.Utility
             }
         }
 
-        public async Task<bool> Encrypt(Stream source, Stream destination, Action<long>? progressAction = null)
+        /// <summary>
+        /// Encrypt a stream
+        /// </summary>
+        /// <param name="source">The source <see cref="Stream"/></param>
+        /// <param name="destination">The destination <see cref="Stream"/></param>
+        /// <param name="compress">If set to true the <see cref="source"/> is compressed before the encryption</param>
+        /// <param name="progressAction">A <see cref="Action{T}"/> called to report progress</param>
+        /// <returns>True on success</returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="Exception"></exception>
+        public async Task<bool> Encrypt(Stream source, Stream destination, bool compress, Action<long>? progressAction = null)
         {
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
@@ -39,11 +50,22 @@ namespace MpbkpuLib.Utility
                         await csEncrypt.WriteAsync(aesAlg.IV);
                         long processed = 0;
                         int read;
-                        while ((read = await source.ReadAsync(buffer)) > 0) {
-                            await csEncrypt.WriteAsync(buffer);
-                            
-                            processed += read;
-                            progressAction?.Invoke(processed);
+                        if (compress) {
+                            using (var gzipStream = new GZipStream(csEncrypt, CompressionLevel.Optimal, true)) {
+                                while ((read = await source.ReadAsync(buffer)) > 0) {
+                                    await gzipStream.WriteAsync(buffer);
+
+                                    processed += read;
+                                    progressAction?.Invoke(processed);
+                                }                                
+                            }
+                        } else {
+                            while ((read = await source.ReadAsync(buffer)) > 0) {
+                                await csEncrypt.WriteAsync(buffer);
+
+                                processed += read;
+                                progressAction?.Invoke(processed);
+                            }
                         }
                     }
                 }
@@ -52,7 +74,17 @@ namespace MpbkpuLib.Utility
             return true;
         } // Encrypt
 
-        public async Task<bool> Decrypt(Stream source, Stream destination, Action<long>? progressAction = null)
+        /// <summary>
+        /// Decrypt a stream
+        /// </summary>
+        /// <param name="source">The source <see cref="Stream"/></param>
+        /// <param name="destination">The destination <see cref="Stream"/></param>
+        /// <param name="decompress">If set to true the <see cref="source"/> is decompressed after the encryption</param>
+        /// <param name="progressAction">A <see cref="Action{T}"/> called to report progress</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="Exception"></exception>
+        public async Task<bool> Decrypt(Stream source, Stream destination, bool decompress, Action<long>? progressAction = null)
         {
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
@@ -73,12 +105,23 @@ namespace MpbkpuLib.Utility
                         byte[] buffer = new byte[4096];
                         
                         long processed = 0;
-                        int read;                        
-                        while ((read = await csDecrypt.ReadAsync(buffer)) > 0) {
-                            await destination.WriteAsync(buffer);
-                            
-                            processed += read;
-                            progressAction?.Invoke(processed);                            
+                        int read;
+                        if (decompress) {
+                            using (var gzipStream = new GZipStream(destination, CompressionLevel.Optimal, true)) {
+                                while ((read = await csDecrypt.ReadAsync(buffer)) > 0) {
+                                    await gzipStream.WriteAsync(buffer);
+
+                                    processed += read;
+                                    progressAction?.Invoke(processed);
+                                }                                
+                            }
+                        } else {
+                            while ((read = await csDecrypt.ReadAsync(buffer)) > 0) {
+                                await destination.WriteAsync(buffer);
+
+                                processed += read;
+                                progressAction?.Invoke(processed);
+                            }
                         }
                     }
                 }

@@ -51,7 +51,7 @@ namespace MpbkpuLib.Context
                 e.HasIndex(e => e.FullPath)
                     .IsUnique(false);
 
-                e.HasIndex(e => e.Action)
+                e.HasIndex(e => e.FileAction)
                     .IsUnique(false);
             });
         }
