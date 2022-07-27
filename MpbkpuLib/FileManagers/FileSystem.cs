@@ -9,6 +9,11 @@ namespace MpbkpuLib.FileManagers
 {
     public class FileSystem : IFileManager
     {
+        public bool CanOpenDatabase()
+        {
+            return true;
+        }
+        
         public string CombinePath(string? part1, string part2)
         {
             if (string.IsNullOrEmpty(part1))

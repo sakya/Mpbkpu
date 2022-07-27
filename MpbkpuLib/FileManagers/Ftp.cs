@@ -15,6 +15,11 @@ namespace MpbkpuLib.FileManagers
         public int Port { get; set; }
         public NetworkCredential? Credentials { get; set; }
 
+        public bool CanOpenDatabase()
+        {
+            return false;
+        }
+        
         public string CombinePath(string? part1, string part2)
         {
             if (string.IsNullOrEmpty(part1))

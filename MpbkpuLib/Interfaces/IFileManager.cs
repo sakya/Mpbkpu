@@ -8,6 +8,11 @@ namespace MpbkpuLib.Interfaces
 {
     public interface IFileManager
     {
+        /// <summary>
+        /// Return if the database can b directly opend in this file system
+        /// </summary>
+        /// <returns>True/False</returns>
+        public bool CanOpenDatabase();
         public string CombinePath(string? part1, string part2);
         public string CombinePath(string? part1, string part2, string part3);
         public string CombinePath(string? part1, string part2, string part3, string part4);

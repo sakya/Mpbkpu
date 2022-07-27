@@ -25,7 +25,7 @@ public class RestoreJob : BaseJob
     #endregion    
     
     #region public operations
-    public override async Task<bool> Run(CancellationToken cancellationToken)
+    public override Task<bool> Run(CancellationToken cancellationToken)
     {
         throw new NotImplementedException();
     }

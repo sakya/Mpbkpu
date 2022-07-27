@@ -14,6 +14,11 @@ namespace MpbkpuLib.FileManagers
         private string? _accessToken = null;
         private string? _refreshToken = null;
 
+        public bool CanOpenDatabase()
+        {
+            return false;
+        }
+        
         public OneDrive(string? accessToken, string? refreshToken)
         {
             _accessToken = accessToken;
