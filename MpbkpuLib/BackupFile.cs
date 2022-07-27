@@ -9,7 +9,7 @@ namespace MpbkpuLib;
 /// </summary>
 public class BackupFile : IDisposable
 {
-    public const string DefaultDatabaseFileName = "_backup.db";
+    public const string DefaultDatabaseFileName = "mpbkpu.db";
 
     private Context.BackupContext? _context;
 
