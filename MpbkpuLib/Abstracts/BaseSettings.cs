@@ -1,4 +1,4 @@
-﻿namespace MpbkpuLib;
+﻿namespace MpbkpuLib.Abstracts;
 
 public abstract class BaseSettings
 {

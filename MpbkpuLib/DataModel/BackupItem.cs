@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using MpbkpuLib.Abstracts;
 
 namespace MpbkpuLib.DataModel;
 

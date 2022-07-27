@@ -1,4 +1,6 @@
-﻿namespace MpbkpuLib
+﻿using MpbkpuLib.Abstracts;
+
+namespace MpbkpuLib
 {
     public class BackupJobSettings : BaseSettings
     {

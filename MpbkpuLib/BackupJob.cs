@@ -1,6 +1,7 @@
 ﻿using System.IO.Compression;
 using Newtonsoft.Json;
 using Microsoft.EntityFrameworkCore;
+using MpbkpuLib.Abstracts;
 using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
 using File = MpbkpuLib.DataModel.File;
@@ -22,15 +23,9 @@ namespace MpbkpuLib
         }
         #endregion
         #region private members
-
         private Backup? _backup;
         private LastUsedVolume? _lastUsedVolume;
         private CancellationToken? _cancellationToken;
-
-        private new BackupJobSettings Settings
-        {
-            get { return (base.Settings as BackupJobSettings)!; }
-        }
         #endregion
 
         #region delegates
@@ -56,6 +51,13 @@ namespace MpbkpuLib
         {
         }
 
+        #region properties
+        public new BackupJobSettings Settings
+        {
+            get { return (base.Settings as BackupJobSettings)!; }
+        }
+        #endregion
+        
         #region public operations
         /// <summary>
         /// Run the backp using the given <see cref="Settings"/>

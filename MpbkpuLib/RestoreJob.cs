@@ -1,3 +1,5 @@
+using MpbkpuLib.Abstracts;
+
 namespace MpbkpuLib;
 
 /// <summary>
@@ -12,14 +14,14 @@ public class RestoreJob : BaseJob
     public RestoreJob(RestoreJobSettings? settings) :
         base((settings))
     {
-        if (settings == null)
-            throw new ArgumentNullException(nameof(settings));
-
-        Settings = settings;
     }
     
     #region properties
-    public RestoreJobSettings Settings { get; private set; }
+    public new RestoreJobSettings Settings
+    {
+        get { return (base.Settings as RestoreJobSettings)!; }
+    }
+
     #endregion    
     
     #region public operations
