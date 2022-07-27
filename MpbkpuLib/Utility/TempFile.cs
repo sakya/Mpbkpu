@@ -2,22 +2,33 @@ namespace MpbkpuLib.Utility;
 
 public static class TempFile
 {
-    public static Stream? GetTempFileStream(string? extension, out string? tempFilePath)
+    public static string? GetTempFileName(string? extension)
     {
-        tempFilePath = null;
+        string? res = null;
         var tempFolder = Path.GetTempPath();
-        while (tempFilePath == null) {
-            var fileName = $"{Guid.NewGuid().ToString("N")}{extension}";
-            tempFilePath = Path.Combine(tempFolder, fileName);
-            if (!File.Exists(fileName)) {
+        while (res == null) {
+            res = Path.Combine(tempFolder, $"{Guid.NewGuid().ToString("N")}{extension}");
+            if (!File.Exists(res)) {
                 try {
-                    return new FileStream(tempFilePath, FileMode.Create, FileAccess.Write, FileShare.Read);
+                    using (var _ = new FileStream(res, FileMode.Create, FileAccess.Write, FileShare.Read)) {
+                    }
+                    return res;
                 } catch {
-                    tempFilePath = null;
+                    res = null;    
                 }
+            } else {
+                res = null;
             }
         }
 
+        return null;
+    }
+
+    public static Stream? GetTempFileStream(string? extension, out string? tempFilePath)
+    {
+        tempFilePath = GetTempFileName(extension);
+        if (!string.IsNullOrEmpty(tempFilePath))
+            return new FileStream(tempFilePath, FileMode.Create, FileAccess.Write, FileShare.Read);
         return null;
     }
 }

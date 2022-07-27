@@ -1,6 +1,6 @@
 ﻿namespace MpbkpuLib
 {
-    public class BackupJobSettings
+    public class BackupJobSettings : BaseSettings
     {
         /// <summary>
         /// The backup type
@@ -20,14 +20,6 @@
             /// Backup only changed files since the last full backup
             /// </summary>
             Differential
-        }
-
-        public enum LogLevels
-        {
-            Debug,
-            Info,
-            Warning,
-            Error
         }
 
         public BackupJobSettings()
@@ -69,9 +61,5 @@
         /// </summary>
         /// <value></value>
         public bool Compress { get; set; }
-
-        public bool LogToConsole { get; set; }
-        public string? LogFile { get; set; }
-        public LogLevels LogLevel { get; set; }
     }
 }

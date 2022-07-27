@@ -1,6 +1,6 @@
 namespace MpbkpuLib;
 
-public class RestoreJobSettings
+public class RestoreJobSettings : BaseSettings
 {
     
 }

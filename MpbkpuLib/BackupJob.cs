@@ -10,7 +10,7 @@ namespace MpbkpuLib
     /// <summary>
     /// A job to backup files
     /// </summary>
-    public class BackupJob
+    public class BackupJob : BaseJob
     {
         #region classes
 
@@ -25,14 +25,15 @@ namespace MpbkpuLib
 
         private Backup? _backup;
         private LastUsedVolume? _lastUsedVolume;
-        private StreamWriter? _logWriter;
         private CancellationToken? _cancellationToken;
+
+        private new BackupJobSettings Settings
+        {
+            get { return (base.Settings as BackupJobSettings)!; }
+        }
         #endregion
 
         #region delegates
-        public delegate void LogHandler(object sender, BackupJobSettings.LogLevels level, string message);
-        public event LogHandler? LogEmitted;
-        
         public class ConfirmArgs : EventArgs
         {
             public int FilesToBackup { get; set; }
@@ -50,17 +51,10 @@ namespace MpbkpuLib
         public event FileProgressHandler? FileProgress;        
         #endregion
 
-        public BackupJob(BackupJobSettings? settings)
+        public BackupJob(BackupJobSettings? settings) :
+            base((settings))
         {
-            if (settings == null)
-                throw new ArgumentNullException(nameof(settings));
-
-            Settings = settings;
         }
-
-        #region properties
-        public BackupJobSettings Settings { get; private set; }
-        #endregion
 
         #region public operations
         /// <summary>
@@ -68,14 +62,9 @@ namespace MpbkpuLib
         /// </summary>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/></param>
         /// <returns>True on success</returns>
-        public async Task<bool> Run(CancellationToken cancellationToken)
+        public override async Task<bool> Run(CancellationToken cancellationToken)
         {
             _cancellationToken = cancellationToken;
-            // Open the log file
-            if (!string.IsNullOrEmpty(Settings.LogFile)) {
-                _logWriter = new StreamWriter(Settings.LogFile, false, System.Text.Encoding.UTF8);
-            }
-
             ValidateSettings();
 
             LogInfo("Starting with settings:");
@@ -475,8 +464,7 @@ namespace MpbkpuLib
                 return true;
 
             LogDebug($"  {path}");
-            string? newPath;
-            var fm = FileManagerFactory.GetFileManager(path, out newPath);
+            var fm = FileManagerFactory.GetFileManager(path, out string newPath);
             if (fm == null)
                 throw new Exception($"Cannot create FileManager for path {path}");
 
@@ -507,78 +495,6 @@ namespace MpbkpuLib
             return false;
         }
 
-        private void LogDebug(string message)
-        {
-            Log(BackupJobSettings.LogLevels.Debug, message);
-        }
-
-        private void LogInfo(string message)
-        {
-            Log(BackupJobSettings.LogLevels.Info, message);
-        }
-
-        private void LogWarning(string message)
-        {
-            Log(BackupJobSettings.LogLevels.Warning, message);
-        }
-
-        private void LogError(string message)
-        {
-            Log(BackupJobSettings.LogLevels.Warning, message);
-        }
-
-        private void LogError(Exception exception)
-        {
-            var ex = exception;
-            while (ex != null) {
-                LogError(ex.Message);
-                if (!string.IsNullOrEmpty(ex.StackTrace))
-                    LogError(ex.StackTrace);
-                ex = ex.InnerException;
-            }
-        }        
-        
-        private void Log(BackupJobSettings.LogLevels level, string message)
-        {
-            if (level < Settings.LogLevel)
-                return;
-
-            var levelStr = string.Empty;
-            var color = ConsoleColor.Gray;
-
-            switch (level) {
-                case BackupJobSettings.LogLevels.Debug:
-                    levelStr = "DBG";
-                    color = ConsoleColor.DarkGray;
-                    break;
-                case BackupJobSettings.LogLevels.Info:
-                    levelStr = "INF";
-                    color = ConsoleColor.White;
-                    break;
-                case BackupJobSettings.LogLevels.Warning:
-                    levelStr = "WRN";
-                    color = ConsoleColor.DarkYellow;
-                    break;
-                case BackupJobSettings.LogLevels.Error:
-                    levelStr = "ERR";
-                    color = ConsoleColor.Red;
-                    break;
-            }
-            var logLine = $"[{DateTime.Now.ToString("yyyyMMdd HH:mm:ss.fff")}][{levelStr}] {message}";
-
-            if (_logWriter != null) {
-                _logWriter.WriteLine(logLine);
-                _logWriter.Flush();
-            }
-
-            if (Settings.LogToConsole) {
-                Console.ForegroundColor = color;
-                Console.WriteLine(logLine);
-                Console.ResetColor();
-            }
-
-            LogEmitted?.Invoke(this, level, logLine);
-        }
-        #endregion
+       #endregion
     }
 }

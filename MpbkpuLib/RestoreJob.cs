@@ -3,13 +3,14 @@ namespace MpbkpuLib;
 /// <summary>
 /// A job to restore files from a backup
 /// </summary>
-public class RestoreJob
+public class RestoreJob : BaseJob
 {
     #region classes
     
     #endregion
 
-    public RestoreJob(RestoreJobSettings? settings)
+    public RestoreJob(RestoreJobSettings? settings) :
+        base((settings))
     {
         if (settings == null)
             throw new ArgumentNullException(nameof(settings));
@@ -22,7 +23,7 @@ public class RestoreJob
     #endregion    
     
     #region public operations
-    public async Task<bool> Run(CancellationToken cancellationToken)
+    public override async Task<bool> Run(CancellationToken cancellationToken)
     {
         throw new NotImplementedException();
     }
