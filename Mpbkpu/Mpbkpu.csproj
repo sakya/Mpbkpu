@@ -12,6 +12,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Heyes.GetOpt" Version="1.0.6" />
+        <PackageReference Include="CmdLineArgsParser" Version="0.1.0" />
     </ItemGroup>          
 </Project>
