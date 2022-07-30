@@ -19,7 +19,7 @@ public static class Program
 
         Console.WriteLine();
         Console.WriteLine("Examples:");
-        Console.WriteLine("mpbkpu --backup --source=/home/user/ --dest=/mnt/backup/");
+        Console.WriteLine("mpbkpu backup --source /home/user/ --dest /mnt/backup/");
     }
 
     public static int Main(string[] args)
