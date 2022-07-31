@@ -1,6 +1,8 @@
 ﻿using System.Reflection;
 using Azure;
 using CmdLineArgsParser;
+using Microsoft.Identity.Client;
+using Mpbkpu.Actions;
 
 namespace Mpbkpu;
 
@@ -39,6 +41,22 @@ public static class Program
             PrintHelp();
             return -1;
         }
+
+        IAction? action = null;
+        switch (pArgs.Action) {
+            case Arguments.Actions.List:
+                action = new ListAction();
+                break;
+        }
+
+        if (action != null) {
+            try {
+                action.Run(pArgs).Wait();
+            } finally {
+                Console.ResetColor();
+            }
+        } else
+            return -1;
 
         return 0;
     }
