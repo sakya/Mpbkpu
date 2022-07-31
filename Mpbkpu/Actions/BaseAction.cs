@@ -12,6 +12,9 @@ public abstract class BaseAction : IAction
     protected async Task<BackupFile>? OpenBackup(string backupPath)
     {
         var sourceFm = FileManagerFactory.GetFileManager(backupPath, out var newPath);
+        if (!await sourceFm.DirectoryExists(backupPath))
+            throw new Exception($"Directory {backupPath} does not exists");
+
         var backupDbPath = sourceFm.CombinePath(newPath, BackupFile.DefaultDatabaseFileName);
         if (await sourceFm.FileExists(backupDbPath)) {
             if (sourceFm.CanOpenDatabase()) {
@@ -36,7 +39,7 @@ public abstract class BaseAction : IAction
                 return backupFile;
             }
         } else {
-            throw new Exception("Database file not found");
+            throw new Exception($"Database file not found in {backupPath}");
         }
     }
 }
