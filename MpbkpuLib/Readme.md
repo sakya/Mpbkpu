@@ -1,6 +1,6 @@
 # Backup structure
 A backup is composed by
-- A database file containing information about the backups
+- A database file (mpbkpu.db) containing information about the backups
 - One folder named with a GUID for each backup
 - The backup folder contains folders named with a GUID each containing 1000 files
 
