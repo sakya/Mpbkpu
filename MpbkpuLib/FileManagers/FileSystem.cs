@@ -13,16 +13,16 @@ namespace MpbkpuLib.FileManagers
         {
             return true;
         }
-        
+
         public string CombinePath(string? part1, string part2)
         {
             if (string.IsNullOrEmpty(part1))
                 throw new ArgumentNullException(nameof(part1));
             if (string.IsNullOrEmpty(part2))
-                throw new ArgumentNullException(nameof(part2));               
+                throw new ArgumentNullException(nameof(part2));
             return Path.Combine(part1, part2);
         }
-        
+
         public string CombinePath(string? part1, string part2, string part3)
         {
             if (string.IsNullOrEmpty(part1))
@@ -141,7 +141,7 @@ namespace MpbkpuLib.FileManagers
         public Task<Stream> OpenFile(string? filePath, bool write = false, long? size = null)
         {
             if (string.IsNullOrEmpty(filePath))
-                throw new ArgumentNullException(filePath);            
+                throw new ArgumentNullException(filePath);
             Stream? res = null;
             if (!write)
                 res = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
