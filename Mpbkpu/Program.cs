@@ -1,7 +1,5 @@
 ﻿using System.Reflection;
-using Azure;
 using CmdLineArgsParser;
-using Microsoft.Identity.Client;
 using Mpbkpu.Actions;
 
 namespace Mpbkpu;
@@ -55,6 +53,9 @@ public static class Program
                 break;
             case Arguments.Actions.Restore:
                 action = new RestoreAction();
+                break;
+            case Arguments.Actions.Verify:
+                action = new VerifyAction();
                 break;
         }
 

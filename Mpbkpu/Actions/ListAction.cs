@@ -15,14 +15,24 @@ public class ListAction : BaseAction
                 return false;
 
             var backupFile = backupDb.BackupFile;
+
+            Console.WriteLine();
             Console.ForegroundColor = HighlightColor;
-            Console.WriteLine($"{"Guid",-32} {"Type",-12} {"Result",-20} {"Started",-19} {"Completed",-19}");
+            Console.WriteLine($"{"Guid",-32} {"Type",-12} {"Result",-20} {"Started",-19} {"Completed",-19} Size");
 
             Console.ForegroundColor = DefaultColor;
-            foreach (var bkp in backupFile.Backups.OrderBy(b => b.Id)) {
-                Console.Write($"{bkp.Guid,-32} {bkp.Type,-12}");
+            var backups = backupFile.Backups.OrderBy(b => b.Id)
+                .Select(b => new
+                {
+                    Backup = b,
+                    Files = b.Items.Count(),
+                    Bytes = b.Items.Sum(i => i.OriginalSize)
+                });
 
-                switch (bkp.Result) {
+            foreach (var bkp in backups.OrderBy(b => b.Backup.Id)) {
+                Console.Write($"{bkp.Backup.Guid,-32} {bkp.Backup.Type,-12}");
+
+                switch (bkp.Backup.Result) {
                     case Backup.Results.Completed:
                         Console.ForegroundColor = SuccessColor;
                         break;
@@ -34,15 +44,16 @@ public class ListAction : BaseAction
                         break;
                 }
 
-                Console.Write($" {bkp.Result,-20}");
+                Console.Write($" {bkp.Backup.Result,-20}");
                 Console.ForegroundColor = DefaultColor;
                 Console.Write(
-                    $" {$"{bkp.StartedAt!.Value.ToLocalTime().ToShortDateString()} {bkp.StartedAt!.Value.ToLocalTime().ToShortTimeString()}",-19}");
-                if (bkp.CompletedAt.HasValue)
+                    $" {$"{bkp.Backup.StartedAt!.Value.ToLocalTime().ToShortDateString()} {bkp.Backup.StartedAt!.Value.ToLocalTime().ToShortTimeString()}",-19}");
+                if (bkp.Backup.CompletedAt.HasValue)
                     Console.Write(
-                        $" {$"{bkp.CompletedAt!.Value.ToLocalTime().ToShortDateString()} {bkp.CompletedAt!.Value.ToLocalTime().ToShortTimeString()}",-19}");
+                        $" {$"{bkp.Backup.CompletedAt!.Value.ToLocalTime().ToShortDateString()} {bkp.Backup.CompletedAt!.Value.ToLocalTime().ToShortTimeString()}",-19}");
                 else
                     Console.Write($"{"",-19}");
+                Console.Write($" {Utility.String.BytesToString(bkp.Bytes)}");
                 Console.WriteLine();
             }
         }

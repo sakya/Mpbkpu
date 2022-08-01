@@ -13,6 +13,14 @@ namespace MpbkpuLib
     /// </summary>
     public class BackupJob : BaseJob
     {
+        public enum Steps
+        {
+            OpenDatabase,
+            ReadSource,
+            CalculateFilesToBackup,
+            BackupFiles
+        }
+
         #region classes
 
         public class LastUsedVolume
@@ -36,6 +44,10 @@ namespace MpbkpuLib
         }
         public delegate Task<bool> ConfirmHandler(object sender, ConfirmArgs e);
         public event ConfirmHandler? ConfirmBackup;
+
+        public delegate void StepHandler(object sender, Steps step);
+
+        public event StepHandler? Step;
 
         public delegate void ProgressHandler(object sender, int file, int totalFiles, long bytes, long totalBytes);
 
@@ -72,6 +84,7 @@ namespace MpbkpuLib
             LogInfo("Starting with settings:");
             LogInfo(JsonConvert.SerializeObject(Settings, Formatting.Indented));
 
+            Step?.Invoke(this, Steps.OpenDatabase);
             var dbFilePath = await CheckDestination();
             LogDebug($"Using db file: {dbFilePath}");
             using (var backupFile = new BackupFile()) {
@@ -127,18 +140,12 @@ namespace MpbkpuLib
                 StartedAt = DateTime.UtcNow,
             };
 
-            // Create the backup folder
-            var destFm = FileManagerFactory.GetFileManager(Settings.Destination, out string destPath);
-            var backupDirectory = destFm.CombinePath(destPath, _backup.Guid);
-            if (await destFm.DirectoryExists(backupDirectory))
-                throw new Exception($"The backup destination {backupDirectory} exist");
-            await destFm.CreateDirectory(backupDirectory);
-
             backupFile.Backups.Add(_backup);
             await backupFile.SaveChangesAsync();
             backupFile.Detach(_backup);
 
             // Read source
+            Step?.Invoke(this, Steps.ReadSource);
             LogInfo($"Reading source {Settings.Source}");
             if (!ReadPathContent(backupFile, Settings.Source, Settings.Source).Result) {
                 LogError("Failed to read source");
@@ -156,6 +163,7 @@ namespace MpbkpuLib
 
             // Compute files to backup (only if not a full backup)
             // Read last backup items
+            Step?.Invoke(this, Steps.CalculateFilesToBackup);
             if (lastBackup != null && _backup.Type != BackupJobSettings.BackupTypes.Full) {
                 await foreach (var item in backupFile.GetBackupItems(lastBackup.Id)) {
                     if (item.Action == BackupItem.Actions.Deleted)
@@ -210,7 +218,15 @@ namespace MpbkpuLib
                 }
             }
 
+            // Create the backup folder
+            var destFm = FileManagerFactory.GetFileManager(Settings.Destination, out string destPath);
+            var backupDirectory = destFm.CombinePath(destPath, _backup.Guid);
+            if (await destFm.DirectoryExists(backupDirectory))
+                throw new Exception($"The backup destination {backupDirectory} exist");
+            await destFm.CreateDirectory(backupDirectory);
+
             // Backup files
+            Step?.Invoke(this, Steps.BackupFiles);
             Utility.EncryptDecrypt? encryptor = null;
             if (!string.IsNullOrEmpty(Settings.EncryptPassword)) {
                 encryptor = new Utility.EncryptDecrypt(Settings.EncryptPassword);

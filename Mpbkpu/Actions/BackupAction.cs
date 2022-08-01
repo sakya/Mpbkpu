@@ -20,14 +20,18 @@ public class BackupAction : BaseAction
             EncryptPassword = pArgs.Password,
             Compress = pArgs.Compress,
             LogToConsole = false,
+            LogFile = pArgs.LogFile
         };
 
         Console.WriteLine($"Type      : { pArgs.BackupType }");
-        Console.WriteLine($"Compress  : { (pArgs.Compress ? "Enabled" : "Disabled") }");
-        Console.WriteLine($"Encryption: { (!string.IsNullOrEmpty(pArgs.Password) ? "Enabled" : "Disabled") }");
+        Console.Write("Compress  : ");
+        ShowEnabled(pArgs.Compress);
+        Console.Write("Encryption: ");
+        ShowEnabled(!string.IsNullOrEmpty(pArgs.Password));
         Console.WriteLine();
 
         var backupJob = new BackupJob(settings);
+        backupJob.Step += OnStep;
         backupJob.ConfirmBackup += OnConfirm;
         backupJob.LogEmitted += OnLog;
         backupJob.FileProgress += OnFileProgress;
@@ -50,6 +54,21 @@ public class BackupAction : BaseAction
         }
 
         return true;
+    }
+
+    private void OnStep(object sender, BackupJob.Steps step)
+    {
+        switch (step) {
+            case BackupJob.Steps.OpenDatabase:
+                Console.WriteLine("Opening database");
+                break;
+            case BackupJob.Steps.ReadSource:
+                Console.WriteLine("Reading source files");
+                break;
+            case BackupJob.Steps.CalculateFilesToBackup:
+                Console.WriteLine("Calculating files to backup");
+                break;
+        }
     }
 
     private Task<bool> OnConfirm(object sender, BackupJob.ConfirmArgs e)

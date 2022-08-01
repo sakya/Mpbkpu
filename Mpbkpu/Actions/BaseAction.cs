@@ -43,6 +43,7 @@ public abstract class BaseAction : IAction
         if (string.IsNullOrEmpty(backupPath))
             throw new ArgumentException($"{nameof(backupPath)} cannot be empty", nameof(backupPath));
 
+        Console.WriteLine("Opening database");
         BackupDatabase? backupFile;
         try {
             backupFile = await OpenBackupPrimitive(backupPath);
@@ -53,6 +54,14 @@ public abstract class BaseAction : IAction
         }
 
         return backupFile;
+    }
+
+    protected void ShowEnabled(bool enabled)
+    {
+        if (enabled)
+            Console.ForegroundColor = SuccessColor;
+        Console.WriteLine(enabled ? "Enabled" : "Disabled");
+        Console.ForegroundColor = DefaultColor;
     }
 
     private async Task<BackupDatabase?> OpenBackupPrimitive(string backupPath)

@@ -28,7 +28,7 @@ namespace MpbkpuLib.DataModel
         public string Guid { get; set; }
 
         public BackupJobSettings.BackupTypes Type { get; set; }
-        
+
         [MaxLength(4096)]
         public string? Settings { get; set; }
         public Results Result { get; set; }
@@ -45,7 +45,7 @@ namespace MpbkpuLib.DataModel
             }
         }
 
-        public ICollection<BackupWarning>? Warnings { get; set; }
-        public ICollection<BackupItem>? Items { get; set; }
+        public ICollection<BackupWarning> Warnings { get; set; }
+        public ICollection<BackupItem> Items { get; set; }
     }
 }

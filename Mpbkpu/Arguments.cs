@@ -1,6 +1,5 @@
 using CmdLineArgsParser;
 using CmdLineArgsParser.Attributes;
-using Mpbkpu.Actions;
 using MpbkpuLib;
 using MpbkpuLib.Abstracts;
 
@@ -17,7 +16,9 @@ public class Arguments : IOptions
         [Description("List backups")]
         List,
         [Description("Delete a backup")]
-        Delete
+        Delete,
+        [Description("Verify a backup")]
+        Verify
     }
 
     [Option("action", Verb = true, Required = true)]
@@ -65,6 +66,10 @@ public class Arguments : IOptions
     [Option("loglevel", 'l',
         Description = "The log level")]
     public BaseSettings.LogLevels LogLevel { get; set; } = BaseSettings.LogLevels.Warning;
+
+    [Option("log",
+        Description = "Path of the logfile")]
+    public string? LogFile { get; set; }
 
     [Option("type", 't',
         Required = true,
