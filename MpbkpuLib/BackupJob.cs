@@ -36,14 +36,14 @@ namespace MpbkpuLib
         }
         public delegate Task<bool> ConfirmHandler(object sender, ConfirmArgs e);
         public event ConfirmHandler? ConfirmBackup;
-        
+
         public delegate void ProgressHandler(object sender, int file, int totalFiles, long bytes, long totalBytes);
 
         public event ProgressHandler? Progress;
-        
+
         public delegate void FileProgressHandler(object sender, long bytes, long total);
 
-        public event FileProgressHandler? FileProgress;        
+        public event FileProgressHandler? FileProgress;
         #endregion
 
         public BackupJob(BackupJobSettings? settings) :
@@ -57,7 +57,7 @@ namespace MpbkpuLib
             get { return (base.Settings as BackupJobSettings)!; }
         }
         #endregion
-        
+
         #region public operations
         /// <summary>
         /// Run the backp using the given <see cref="Settings"/>
@@ -71,7 +71,7 @@ namespace MpbkpuLib
 
             LogInfo("Starting with settings:");
             LogInfo(JsonConvert.SerializeObject(Settings, Formatting.Indented));
-            
+
             var dbFilePath = await CheckDestination();
             LogDebug($"Using db file: {dbFilePath}");
             using (var backupFile = new BackupFile()) {
@@ -86,7 +86,7 @@ namespace MpbkpuLib
                     await transaction.RollbackAsync();
                     LogError(ex);
                     throw;
-                } 
+                }
             }
 
             return true;
@@ -99,7 +99,7 @@ namespace MpbkpuLib
         /// </summary>
         /// <param name="backupFile">The <see cref="BackupFile"/> to use</param>
         /// <returns>True on success</returns>
-        public async Task<bool> RunPrimitive(BackupFile backupFile)
+        private async Task<bool> RunPrimitive(BackupFile backupFile)
         {
             _lastUsedVolume = null;
             Backup? lastBackup = await backupFile.LastBackup();
@@ -118,7 +118,7 @@ namespace MpbkpuLib
                     LogWarning($"Changed backup source from {lastBackupSettings!.Source} to {Settings.Source}");
                 }
             }
-            
+
             _backup = new Backup()
             {
                 Name = Settings.Name,
@@ -215,7 +215,7 @@ namespace MpbkpuLib
             if (!string.IsNullOrEmpty(Settings.EncryptPassword)) {
                 encryptor = new Utility.EncryptDecrypt(Settings.EncryptPassword);
             }
-            
+
             int fileIdx = 0;
             long bytes = 0;
             var filesToBackup = backupFile.Files.AsNoTracking()
@@ -246,7 +246,7 @@ namespace MpbkpuLib
             LogInfo("Completed");
             return true;
         }
-        
+
         /// <summary>
         /// Validate the <see cref="BackupJobSettings"/>
         /// </summary>
@@ -262,7 +262,7 @@ namespace MpbkpuLib
 
             if (Settings.Source == Settings.Destination)
                 throw new ArgumentException("Source and Destination cannot be the same");
-            
+
             if (Settings.Destination.StartsWith(Settings.Source))
                 throw new ArgumentException("Destination cannot be a subdirectory of Source");
 
@@ -292,7 +292,7 @@ namespace MpbkpuLib
 
             return dbFilePath;
         }
-        
+
         /// <summary>
         /// Backup a <see cref="DataModel.File"/>
         /// </summary>
@@ -304,7 +304,7 @@ namespace MpbkpuLib
         private async Task<bool> BackupFileFromSource(BackupFile? backupFile, File? sourceFile, Utility.EncryptDecrypt? encryptor)
         {
             if (backupFile == null)
-                throw new ArgumentNullException(nameof(backupFile));            
+                throw new ArgumentNullException(nameof(backupFile));
             if (sourceFile == null)
                 throw new ArgumentNullException(nameof(sourceFile));
 
@@ -320,7 +320,7 @@ namespace MpbkpuLib
             backupItem.OriginalPath = sourceFile.FullPath;
             backupItem.OriginalSize = sourceFile.Size;
             backupFile.BackupItems.Add(backupItem);
-            
+
             string? destPath;
             var destFm = FileManagerFactory.GetFileManager(Settings.Destination, out destPath);
             var destFilePath = destFm.CombinePath(destPath, _backup.Guid, backupItem.Volume!.Name!, backupItem.Name!);
@@ -354,7 +354,7 @@ namespace MpbkpuLib
                                             await compressorStream.WriteAsync(buffer, 0, read);
                                             copied += read;
                                             FileProgress?.Invoke(this, copied, sourceFile.Size);
-                                        }                                             
+                                        }
                                     }
                                 } else {
                                     // Normal copy
@@ -365,7 +365,7 @@ namespace MpbkpuLib
                                         await destStream.WriteAsync(buffer, 0, read);
                                         copied += read;
                                         FileProgress?.Invoke(this, copied, sourceFile.Size);
-                                    }                                    
+                                    }
                                 }
                             }
                         }
@@ -379,10 +379,10 @@ namespace MpbkpuLib
         private async Task<bool> DeleteItem(BackupFile? backupFile, File? sourceFile)
         {
             if (backupFile == null)
-                throw new ArgumentNullException(nameof(backupFile));            
+                throw new ArgumentNullException(nameof(backupFile));
             if (sourceFile == null)
                 throw new ArgumentNullException(nameof(sourceFile));
-            
+
             var item = new BackupItem()
             {
                 BackupId = _backup!.Id,
@@ -411,7 +411,7 @@ namespace MpbkpuLib
         private async Task<BackupItem> GetNextBackupItem(BackupFile backupFile)
         {
             int? volumeId;
-            string? volumeName; 
+            string? volumeName;
             if (_lastUsedVolume?.ItemsCount < Settings.MaxFilesPerDirectory) {
                 volumeId = _lastUsedVolume.Id;
                 volumeName = _lastUsedVolume.Name;
@@ -439,7 +439,7 @@ namespace MpbkpuLib
                     ItemsCount = volume.Items?.Count() ?? 1
                 };
             }
-            string? destPath; 
+            string? destPath;
             var destFm = FileManagerFactory.GetFileManager(Settings.Destination, out destPath);
 
             var res = new BackupItem()
@@ -452,7 +452,7 @@ namespace MpbkpuLib
                 await destFm.CreateDirectory(volumePath);
             return res;
         }
-        
+
         private async Task<bool> ReadPathContent(BackupFile? bkpFile, string? rootPath, string? path)
         {
             if (bkpFile == null)

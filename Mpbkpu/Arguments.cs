@@ -1,5 +1,8 @@
 using CmdLineArgsParser;
 using CmdLineArgsParser.Attributes;
+using Mpbkpu.Actions;
+using MpbkpuLib;
+using MpbkpuLib.Abstracts;
 
 namespace Mpbkpu;
 
@@ -58,4 +61,14 @@ public class Arguments : IOptions
         Description = "The backup GUID",
         OnlyForVerbs = "Delete;Restore")]
     public string? BackupGuid { get; set; }
+
+    [Option("loglevel", 'l',
+        Description = "The log level")]
+    public BaseSettings.LogLevels LogLevel { get; set; } = BaseSettings.LogLevels.Warning;
+
+    [Option("type", 't',
+        Required = true,
+        OnlyForVerbs = "Backup",
+        Description = "The type of backup to execute")]
+    public BackupJobSettings.BackupTypes? BackupType { get; set; }
 }
