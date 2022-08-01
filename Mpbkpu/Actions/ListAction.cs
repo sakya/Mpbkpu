@@ -10,14 +10,9 @@ public class ListAction : BaseAction
 {
     public override async Task<bool> Run(Arguments pArgs)
     {
-        BackupFile? backupFile;
-        try {
-            backupFile = await OpenBackup(pArgs.BackupPath);
-        } catch (Exception ex) {
-            Console.ForegroundColor = ErrorColor;
-            Console.WriteLine($"ERROR: {ex.Message}");
+        BackupFile? backupFile = await OpenBackup(pArgs.BackupPath);
+        if (backupFile == null)
             return false;
-        }
 
         Console.ForegroundColor = HighlightColor;
         Console.WriteLine($"{"Guid",-32} {"Type",-12} {"Result",-20} {"Started", -19} {"Completed", -19}");

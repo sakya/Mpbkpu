@@ -7,14 +7,9 @@ public class DeleteAction : BaseAction
 {
     public override async Task<bool> Run(Arguments pArgs)
     {
-        BackupFile? backupFile;
-        try {
-            backupFile = await OpenBackup(pArgs.BackupPath);
-        } catch (Exception ex) {
-            Console.ForegroundColor = ErrorColor;
-            Console.WriteLine($"ERROR: {ex.Message}");
+        BackupFile? backupFile = await OpenBackup(pArgs.BackupPath);
+        if (backupFile == null)
             return false;
-        }
 
         var bkp = await backupFile.Backups.AsNoTracking()
             .Where(b => b.Guid == pArgs.BackupGuid)

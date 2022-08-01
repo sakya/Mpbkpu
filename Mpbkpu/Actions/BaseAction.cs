@@ -16,7 +16,24 @@ public abstract class BaseAction : IAction
 
     public abstract Task<bool> Run(Arguments pArgs);
 
-    protected async Task<BackupFile>? OpenBackup(string backupPath)
+    protected async Task<BackupFile?> OpenBackup(string? backupPath)
+    {
+        if (string.IsNullOrEmpty(backupPath))
+            throw new ArgumentException($"{nameof(backupPath)} cannot be empty", nameof(backupPath));
+
+        BackupFile? backupFile;
+        try {
+            backupFile = await OpenBackupPrimitive(backupPath);
+        } catch (Exception ex) {
+            Console.ForegroundColor = ErrorColor;
+            Console.WriteLine($"ERROR: {ex.Message}");
+            return null;
+        }
+
+        return backupFile;
+    }
+
+    private async Task<BackupFile?> OpenBackupPrimitive(string backupPath)
     {
         var sourceFm = FileManagerFactory.GetFileManager(backupPath, out var newPath);
         if (!await sourceFm.DirectoryExists(backupPath))
