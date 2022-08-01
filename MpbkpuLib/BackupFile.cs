@@ -39,7 +39,7 @@ public class BackupFile : IDisposable
             return _context!.BackupItems;
         }
     }
-    
+
     public DbSet<BackupVolume> BackupVolumes
     {
         get
@@ -48,7 +48,7 @@ public class BackupFile : IDisposable
             return _context!.BackupVolumes;
         }
     }
-    
+
     public DbSet<BackupWarning> BackupWarnings
     {
         get
@@ -57,21 +57,22 @@ public class BackupFile : IDisposable
             return _context!.BackupWarnings;
         }
     }
-    
+
     public void Dispose()
     {
         _context?.Dispose();
     }
-    
+
     public async Task<bool> Open(string? path)
     {
         if (string.IsNullOrEmpty(path))
             throw new ArgumentNullException(nameof(path));
-        
-        var sqliteBuilder = new DbContextOptionsBuilder().UseSqlite($"Data Source={path}");
+
+        // Pooling=false is required to delete the file after close
+        var sqliteBuilder = new DbContextOptionsBuilder().UseSqlite($"Data Source={path};Pooling=false");
         _context = new Context.BackupContext(sqliteBuilder.Options);
         await _context!.Database.EnsureCreatedAsync();
-        
+
         return true;
     }
 
@@ -80,13 +81,13 @@ public class BackupFile : IDisposable
         EnsureDbOpen();
         return _context!.Database.BeginTransaction();
     }
-    
+
     public void Detach(object entity)
     {
         EnsureDbOpen();
         _context!.Entry(entity).State = EntityState.Detached;
     }
-    
+
     public async Task<Backup?> LastBackup()
     {
         EnsureDbOpen();
@@ -101,7 +102,7 @@ public class BackupFile : IDisposable
         await _context!.Database.ExecuteSqlRawAsync("DELETE FROM Files");
         return true;
     }
-    
+
     public async Task<int> SaveChangesAsync()
     {
         EnsureDbOpen();
@@ -151,7 +152,7 @@ public class BackupFile : IDisposable
                 } else {
                     yield return item;
                 }
-            }            
+            }
         } else if (bkp.Type == BackupJobSettings.BackupTypes.Differential) {
             var fullBkp = await _context!.Backups.AsNoTracking()
                 .Where(b => b.Type == BackupJobSettings.BackupTypes.Full && b.Id < bkp.Id)
@@ -159,7 +160,7 @@ public class BackupFile : IDisposable
                 .FirstOrDefaultAsync();
             if (fullBkp == null)
                 throw new Exception($"Full backup not found");
-                
+
             var items = _context!.BackupItems.AsNoTracking()
                 .Where(i => i.BackupId == fullBkp.Id);
             foreach (var item in items) {
@@ -176,7 +177,7 @@ public class BackupFile : IDisposable
     public async Task<bool> Verify()
     {
         EnsureDbOpen();
-        
+
         // Verify backup folders
         var backups = _context!.Backups.AsNoTracking()
             .OrderBy(b => b.Id);
@@ -186,7 +187,7 @@ public class BackupFile : IDisposable
                 .Where(i => i.BackupId == backup.Id)
                 .OrderBy(i => i.Id);
             foreach (var item in items) {
-                
+
             }
         }
         return true;
@@ -197,7 +198,7 @@ public class BackupFile : IDisposable
     private void EnsureDbOpen()
     {
         if (_context == null)
-            throw new Exception("The database il closed");        
+            throw new Exception("The database il closed");
     }
     #endregion
 }

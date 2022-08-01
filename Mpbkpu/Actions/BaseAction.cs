@@ -28,6 +28,7 @@ public abstract class BaseAction : IAction
 
         public void Dispose()
         {
+            BackupFile.Dispose();
             if (!string.IsNullOrEmpty(_tempFile)) {
                 var fm = new MpbkpuLib.FileManagers.FileSystem();
                 fm.DeleteFile(_tempFile).Wait();
