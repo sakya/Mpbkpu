@@ -85,16 +85,28 @@ namespace MpbkpuLib
             LogInfo(JsonConvert.SerializeObject(Settings, Formatting.Indented));
 
             Step?.Invoke(this, Steps.OpenDatabase);
-            var dbFilePath = await CheckDestination();
-            LogDebug($"Using db file: {dbFilePath}");
-            using (var backupFile = new BackupFile()) {
-                await backupFile.Open(dbFilePath);
+            await CheckDestination();
+            using (var openRes = await BackupFile.OpenBackupFile(Settings.Destination!)) {
+                var backupFile = openRes.BackupFile;
                 await backupFile.EmptyFiles();
                 var transaction = backupFile.BeginTransaction();
 
                 try {
                     await RunPrimitive(backupFile);
                     await transaction.CommitAsync();
+
+                    backupFile.Close();
+                    // Copy temporary database file to destination
+                    if (!string.IsNullOrEmpty(openRes.TempFilePath)) {
+                        var sourceFm = FileManagerFactory.GetFileManager(openRes.TempFilePath, out _);
+                        var destFm = FileManagerFactory.GetFileManager(Settings.Destination, out var destPath);
+
+                        using (var sourceStream = await sourceFm.OpenFile(openRes.TempFilePath)) {
+                            using (var destStream = await destFm.OpenFile(openRes.BackupFilePath, true)) {
+                                await Utility.Files.Copy(sourceStream, destStream);
+                            }
+                        }
+                    }
                 } catch (Exception ex) {
                     await transaction.RollbackAsync();
                     LogError(ex);
@@ -291,22 +303,13 @@ namespace MpbkpuLib
         /// Search for an existing backup.
         /// </summary>
         /// <returns>The path of the database file to use for this backup</returns>
-        private async Task<string> CheckDestination()
+        private async Task<bool> CheckDestination()
         {
-            string? path;
-            var fm = FileManagerFactory.GetFileManager(Settings.Destination, out path);
-            var dbFilePath = fm.CombinePath(path, BackupFile.DefaultDatabaseFileName);
-            if (!await fm.DirectoryExists(Settings.Destination)) {
+            var fm = FileManagerFactory.GetFileManager(Settings.Destination, out _);
+            if (!await fm.DirectoryExists(Settings.Destination))
                 await fm.CreateDirectory(Settings.Destination);
-                return dbFilePath;
-            }
 
-            if (await fm.FileExists(dbFilePath)) {
-                LogDebug($"Found existing db file {dbFilePath}");
-                return dbFilePath;
-            }
-
-            return dbFilePath;
+            return true;
         }
 
         /// <summary>

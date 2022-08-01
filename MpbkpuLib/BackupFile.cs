@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using MpbkpuLib.DataModel;
+using MpbkpuLib.FileManagers;
+using MpbkpuLib.Utility;
 
 namespace MpbkpuLib;
 
@@ -10,6 +12,30 @@ namespace MpbkpuLib;
 public class BackupFile : IDisposable
 {
     public const string DefaultDatabaseFileName = "mpbkpu.db";
+
+    #region classes
+    public class OpenResult : IDisposable
+    {
+        public OpenResult(BackupFile backup, string? backupFilePath, string? tempFilePath = null)
+        {
+            BackupFile = backup;
+            BackupFilePath = backupFilePath;
+            TempFilePath = tempFilePath;
+        }
+
+        public BackupFile BackupFile { get; private set; }
+        public string? BackupFilePath { get; private set; }
+        public string? TempFilePath { get; private set; }
+        public void Dispose()
+        {
+            BackupFile.Dispose();
+            if (!string.IsNullOrEmpty(TempFilePath)) {
+                var fm = new MpbkpuLib.FileManagers.FileSystem();
+                fm.DeleteFile(TempFilePath).Wait();
+            }
+        }
+    }
+    #endregion
 
     private Context.BackupContext? _context;
 
@@ -63,7 +89,35 @@ public class BackupFile : IDisposable
         _context?.Dispose();
     }
 
-    public async Task<bool> Open(string? path)
+    public static async Task<OpenResult> OpenBackupFile(string backupPath)
+    {
+        var sourceFm = FileManagerFactory.GetFileManager(backupPath, out var newPath);
+        if (!await sourceFm.DirectoryExists(backupPath))
+            throw new Exception($"Directory {backupPath} does not exists");
+
+        var backupDbPath = sourceFm.CombinePath(newPath, BackupFile.DefaultDatabaseFileName);
+        string? tempDbPath = null;
+        if (await sourceFm.FileExists(backupDbPath)) {
+            if (!sourceFm.CanOpenDatabase()) {
+                // Copy database to temp file
+                tempDbPath = TempFile.GetTempFileName();
+                var tempFm = FileManagerFactory.GetFileManager(tempDbPath, out _);
+                using (var sourceStream = await sourceFm.OpenFile(backupDbPath)) {
+                    using (var tempStream = await tempFm.OpenFile(tempDbPath, true)) {
+                        await Utility.Files.Copy(sourceStream, tempStream);
+                    }
+                }
+            }
+        } else {
+            throw new Exception($"Database file not found in {backupPath}");
+        }
+
+        var backupFile = new BackupFile();
+        await backupFile.Open(string.IsNullOrEmpty(tempDbPath) ? backupDbPath : tempDbPath);
+        return new OpenResult(backupFile, backupDbPath, tempDbPath);
+    }
+
+    private async Task<bool> Open(string? path)
     {
         if (string.IsNullOrEmpty(path))
             throw new ArgumentNullException(nameof(path));
@@ -74,6 +128,12 @@ public class BackupFile : IDisposable
         await _context!.Database.EnsureCreatedAsync();
 
         return true;
+    }
+
+    public void Close()
+    {
+        _context?.Dispose();
+        _context = null;
     }
 
     public IDbContextTransaction BeginTransaction()

@@ -25,9 +25,9 @@ public class BackupAction : BaseAction
 
         Console.WriteLine($"Type      : { pArgs.BackupType }");
         Console.Write("Compress  : ");
-        ShowEnabled(pArgs.Compress);
+        WriteEnabled(pArgs.Compress);
         Console.Write("Encryption: ");
-        ShowEnabled(!string.IsNullOrEmpty(pArgs.Password));
+        WriteEnabled(!string.IsNullOrEmpty(pArgs.Password));
         Console.WriteLine();
 
         var backupJob = new BackupJob(settings);
@@ -58,6 +58,7 @@ public class BackupAction : BaseAction
 
     private void OnStep(object sender, BackupJob.Steps step)
     {
+        Console.ForegroundColor = InfoColor;
         switch (step) {
             case BackupJob.Steps.OpenDatabase:
                 Console.WriteLine("Opening database");
@@ -69,6 +70,8 @@ public class BackupAction : BaseAction
                 Console.WriteLine("Calculating files to backup");
                 break;
         }
+
+        Console.ForegroundColor = DefaultColor;
     }
 
     private Task<bool> OnConfirm(object sender, BackupJob.ConfirmArgs e)

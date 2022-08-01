@@ -10,7 +10,7 @@ public class ListAction : BaseAction
 {
     public override async Task<bool> Run(Arguments pArgs)
     {
-        using (BackupDatabase? backupDb = await OpenBackup(pArgs.BackupPath)) {
+        using (var backupDb = await OpenBackup(pArgs.BackupPath)) {
             if (backupDb == null)
                 return false;
 

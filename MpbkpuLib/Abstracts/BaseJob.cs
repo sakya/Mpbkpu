@@ -9,7 +9,7 @@ public abstract class BaseJob
     public delegate void LogHandler(object sender, BaseSettings.LogLevels level, string message);
     public event LogHandler? LogEmitted;
     #endregion
-    
+
     public BaseJob(BaseSettings? settings)
     {
         if (settings == null)
@@ -21,13 +21,13 @@ public abstract class BaseJob
             _logWriter = new StreamWriter(Settings.LogFile, false, System.Text.Encoding.UTF8);
         }
     }
-    
+
     #region properties
     public BaseSettings Settings { get; private set; }
     #endregion
 
     public abstract Task<bool> Run(CancellationToken cancellationToken);
-    
+
     protected void LogDebug(string message)
     {
         Log(BaseSettings.LogLevels.Debug, message);
@@ -57,8 +57,8 @@ public abstract class BaseJob
                 LogError(ex.StackTrace);
             ex = ex.InnerException;
         }
-    }        
-    
+    }
+
     protected  void Log(BaseSettings.LogLevels level, string message)
     {
         if (level < Settings.LogLevel)
@@ -78,7 +78,7 @@ public abstract class BaseJob
                 break;
             case BaseSettings.LogLevels.Warning:
                 levelStr = "WRN";
-                color = ConsoleColor.DarkYellow;
+                color = ConsoleColor.Yellow;
                 break;
             case BaseSettings.LogLevels.Error:
                 levelStr = "ERR";

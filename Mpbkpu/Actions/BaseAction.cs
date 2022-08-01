@@ -2,6 +2,7 @@ using Microsoft.Graph;
 using MpbkpuLib;
 using MpbkpuLib.FileManagers;
 using MpbkpuLib.Utility;
+using SMBLibrary.SMB1;
 
 namespace Mpbkpu.Actions;
 
@@ -15,82 +16,36 @@ public abstract class BaseAction : IAction
     protected const ConsoleColor WarningColor = ConsoleColor.Yellow;
     protected const ConsoleColor ErrorColor = ConsoleColor.Red;
 
-    protected class BackupDatabase : IDisposable
-    {
-        private readonly string? _tempFile;
-        public BackupDatabase(BackupFile backup, string? tempFile = null)
-        {
-            BackupFile = backup;
-            _tempFile = tempFile;
-        }
-
-        public BackupFile BackupFile { get; private set; }
-
-        public void Dispose()
-        {
-            BackupFile.Dispose();
-            if (!string.IsNullOrEmpty(_tempFile)) {
-                var fm = new MpbkpuLib.FileManagers.FileSystem();
-                fm.DeleteFile(_tempFile).Wait();
-            }
-        }
-    }
-
     public abstract Task<bool> Run(Arguments pArgs);
 
-    protected async Task<BackupDatabase?> OpenBackup(string? backupPath)
+    protected async Task<BackupFile.OpenResult?> OpenBackup(string? backupPath)
     {
         if (string.IsNullOrEmpty(backupPath))
             throw new ArgumentException($"{nameof(backupPath)} cannot be empty", nameof(backupPath));
 
+        Console.ForegroundColor = InfoColor;
         Console.WriteLine("Opening database");
-        BackupDatabase? backupFile;
+        Console.ForegroundColor = DefaultColor;
+        BackupFile.OpenResult? backupFile;
         try {
-            backupFile = await OpenBackupPrimitive(backupPath);
+            backupFile = await BackupFile.OpenBackupFile(backupPath);
         } catch (Exception ex) {
             Console.ForegroundColor = ErrorColor;
             Console.WriteLine($"ERROR: {ex.Message}");
+            if (!string.IsNullOrEmpty(ex.StackTrace)) {
+                Console.WriteLine(ex.StackTrace);
+            }
             return null;
         }
 
         return backupFile;
     }
 
-    protected void ShowEnabled(bool enabled)
+    protected void WriteEnabled(bool enabled)
     {
         if (enabled)
             Console.ForegroundColor = SuccessColor;
         Console.WriteLine(enabled ? "Enabled" : "Disabled");
         Console.ForegroundColor = DefaultColor;
-    }
-
-    private async Task<BackupDatabase?> OpenBackupPrimitive(string backupPath)
-    {
-        var sourceFm = FileManagerFactory.GetFileManager(backupPath, out var newPath);
-        if (!await sourceFm.DirectoryExists(backupPath))
-            throw new Exception($"Directory {backupPath} does not exists");
-
-        var backupDbPath = sourceFm.CombinePath(newPath, BackupFile.DefaultDatabaseFileName);
-        if (await sourceFm.FileExists(backupDbPath)) {
-            if (sourceFm.CanOpenDatabase()) {
-                var backupFile = new BackupFile();
-                await backupFile.Open(backupDbPath);
-                return new BackupDatabase(backupFile);
-            } else {
-                // Copy database to temp file
-                var tempDbFile = TempFile.GetTempFileName();
-                var tempFm = FileManagerFactory.GetFileManager(tempDbFile, out _);
-                using (var sourceStream = await sourceFm.OpenFile(backupDbPath)) {
-                    using (var tempStream = await tempFm.OpenFile(tempDbFile, true)) {
-                        await Files.Copy(sourceStream, tempStream);
-                    }
-                }
-                var backupFile = new BackupFile();
-                await backupFile.Open(tempDbFile);
-                return new BackupDatabase(backupFile, tempDbFile);
-            }
-        }
-
-        throw new Exception($"Database file not found in {backupPath}");
     }
 }
