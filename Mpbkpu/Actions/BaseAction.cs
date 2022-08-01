@@ -10,18 +10,39 @@ public abstract class BaseAction : IAction
     protected const ConsoleColor DefaultColor = ConsoleColor.Gray;
     protected const ConsoleColor HighlightColor = ConsoleColor.White;
 
+    protected const ConsoleColor InfoColor = ConsoleColor.Blue;
     protected const ConsoleColor SuccessColor = ConsoleColor.Green;
     protected const ConsoleColor WarningColor = ConsoleColor.Yellow;
     protected const ConsoleColor ErrorColor = ConsoleColor.Red;
 
+    protected class BackupDatabase : IDisposable
+    {
+        private readonly string? _tempFile;
+        public BackupDatabase(BackupFile backup, string? tempFile = null)
+        {
+            BackupFile = backup;
+            _tempFile = tempFile;
+        }
+
+        public BackupFile BackupFile { get; private set; }
+
+        public void Dispose()
+        {
+            if (!string.IsNullOrEmpty(_tempFile)) {
+                var fm = new MpbkpuLib.FileManagers.FileSystem();
+                fm.DeleteFile(_tempFile).Wait();
+            }
+        }
+    }
+
     public abstract Task<bool> Run(Arguments pArgs);
 
-    protected async Task<BackupFile?> OpenBackup(string? backupPath)
+    protected async Task<BackupDatabase?> OpenBackup(string? backupPath)
     {
         if (string.IsNullOrEmpty(backupPath))
             throw new ArgumentException($"{nameof(backupPath)} cannot be empty", nameof(backupPath));
 
-        BackupFile? backupFile;
+        BackupDatabase? backupFile;
         try {
             backupFile = await OpenBackupPrimitive(backupPath);
         } catch (Exception ex) {
@@ -33,7 +54,7 @@ public abstract class BaseAction : IAction
         return backupFile;
     }
 
-    private async Task<BackupFile?> OpenBackupPrimitive(string backupPath)
+    private async Task<BackupDatabase?> OpenBackupPrimitive(string backupPath)
     {
         var sourceFm = FileManagerFactory.GetFileManager(backupPath, out var newPath);
         if (!await sourceFm.DirectoryExists(backupPath))
@@ -44,7 +65,7 @@ public abstract class BaseAction : IAction
             if (sourceFm.CanOpenDatabase()) {
                 var backupFile = new BackupFile();
                 await backupFile.Open(backupDbPath);
-                return backupFile;
+                return new BackupDatabase(backupFile);
             } else {
                 // Copy database to temp file
                 var tempDbFile = TempFile.GetTempFileName();
@@ -56,10 +77,10 @@ public abstract class BaseAction : IAction
                 }
                 var backupFile = new BackupFile();
                 await backupFile.Open(tempDbFile);
-                return backupFile;
+                return new BackupDatabase(backupFile, tempDbFile);
             }
-        } else {
-            throw new Exception($"Database file not found in {backupPath}");
         }
+
+        throw new Exception($"Database file not found in {backupPath}");
     }
 }
