@@ -44,8 +44,17 @@ public static class Program
 
         IAction? action = null;
         switch (pArgs.Action) {
+            case Arguments.Actions.Backup:
+                action = new BackupAction();
+                break;
+            case Arguments.Actions.Delete:
+                action = new DeleteAction();
+                break;
             case Arguments.Actions.List:
                 action = new ListAction();
+                break;
+            case Arguments.Actions.Restore:
+                action = new RestoreAction();
                 break;
         }
 
@@ -55,8 +64,9 @@ public static class Program
             } finally {
                 Console.ResetColor();
             }
-        } else
-            return -1;
+        } else {
+            throw new Exception("Action non initialized");
+        }
 
         return 0;
     }

@@ -52,4 +52,10 @@ public class Arguments : IOptions
         Description = "The path to restore a backup",
         OnlyForVerbs = "Restore")]
     public string? Restore { get; set; }
+
+    [Option("guid", ShortName = 'g',
+        Required = true,
+        Description = "The backup GUID",
+        OnlyForVerbs = "Delete;Restore")]
+    public string? BackupGuid { get; set; }
 }

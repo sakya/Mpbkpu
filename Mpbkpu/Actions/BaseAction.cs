@@ -7,6 +7,13 @@ namespace Mpbkpu.Actions;
 
 public abstract class BaseAction : IAction
 {
+    protected const ConsoleColor DefaultColor = ConsoleColor.Gray;
+    protected const ConsoleColor HighlightColor = ConsoleColor.White;
+
+    protected const ConsoleColor SuccessColor = ConsoleColor.Green;
+    protected const ConsoleColor WarningColor = ConsoleColor.Yellow;
+    protected const ConsoleColor ErrorColor = ConsoleColor.Red;
+
     public abstract Task<bool> Run(Arguments pArgs);
 
     protected async Task<BackupFile>? OpenBackup(string backupPath)
@@ -23,15 +30,11 @@ public abstract class BaseAction : IAction
                 return backupFile;
             } else {
                 // Copy database to temp file
-                var tempDbFile = TempFile.GetTempFileName(String.Empty);
+                var tempDbFile = TempFile.GetTempFileName();
                 var tempFm = FileManagerFactory.GetFileManager(tempDbFile, out _);
                 using (var sourceStream = await sourceFm.OpenFile(backupDbPath)) {
                     using (var tempStream = await tempFm.OpenFile(tempDbFile, true)) {
-                        byte[] buffer = new byte[4096];
-                        int read;
-                        while ((read = await sourceStream.ReadAsync(buffer, 0, buffer.Length)) > 0) {
-                            await tempStream.WriteAsync(buffer, 0, read);
-                        }
+                        await Files.Copy(sourceStream, tempStream);
                     }
                 }
                 var backupFile = new BackupFile();

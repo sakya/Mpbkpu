@@ -2,9 +2,12 @@ namespace MpbkpuLib.Utility;
 
 public static class TempFile
 {
-    public static string? GetTempFileName(string? extension)
+    public static string? GetTempFileName(string? extension = null)
     {
         string? res = null;
+        if (!string.IsNullOrEmpty(extension) && !extension.StartsWith("."))
+            extension = $".{extension}";
+
         var tempFolder = Path.GetTempPath();
         while (res == null) {
             res = Path.Combine(tempFolder, $"{Guid.NewGuid().ToString("N")}{extension}");
@@ -14,7 +17,7 @@ public static class TempFile
                     }
                     return res;
                 } catch {
-                    res = null;    
+                    res = null;
                 }
             } else {
                 res = null;
