@@ -2,9 +2,16 @@
 
 public static class Console
 {
-    public static bool Confirm(string message)
+    public static bool Confirm(string message, bool? defaultValue = null)
     {
-        System.Console.Write($"{message} [Y/N] ");
+        if (defaultValue == true)
+            message = $"{message} [Y/n] ";
+        else if (defaultValue == false)
+            message = $"{message} [y/N] ";
+        else
+            message = $"{message} [y/n] ";
+
+        System.Console.Write(message);
         bool? res = null;
         while (res == null) {
             var key = System.Console.ReadKey(true);
@@ -15,17 +22,21 @@ public static class Console
                 case ConsoleKey.N:
                     res = false;
                     break;
+                case ConsoleKey.Enter:
+                    if (defaultValue.HasValue)
+                        res = defaultValue.Value;
+                    break;
             }
-            if (res.HasValue)
-                System.Console.WriteLine(key.KeyChar);
+
+            if (res.HasValue) {
+                if (key.Key != ConsoleKey.Enter)
+                    System.Console.WriteLine(key.KeyChar);
+                else
+                    System.Console.WriteLine(res == true ? "Y" : "N");
+
+            }
         }
 
         return res.Value;
-    }
-
-    public static void ShowProgressbar(int length, double perc)
-    {
-        System.Console.CursorLeft = 0;
-
     }
 }

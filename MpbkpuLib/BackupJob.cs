@@ -41,7 +41,7 @@ namespace MpbkpuLib
 
         public event ProgressHandler? Progress;
 
-        public delegate void FileProgressHandler(object sender, long bytes, long total);
+        public delegate void FileProgressHandler(object sender, string filePath, long bytes, long totalBytes);
 
         public event FileProgressHandler? FileProgress;
         #endregion
@@ -233,7 +233,7 @@ namespace MpbkpuLib
                         bytes += fileToBackup.Size;
                         Progress?.Invoke(this, ++fileIdx, cArgs.FilesToBackup, bytes, cArgs.BytesToBackup);
                     } else {
-                        LogWarning($"Failed to backup {fileToBackup.FullPath}");
+                        LogError($"Failed to backup {fileToBackup.FullPath}");
                     }
                 } else {
                     await DeleteItem(backupFile, fileToBackup);
@@ -334,13 +334,17 @@ namespace MpbkpuLib
                     var sourceFm = FileManagerFactory.GetFileManager(sourceFile.FullPath, out _);
                     LogDebug($"Backing up {sourceFile.FullPath} to {destFilePath}");
 
+                    DateTime? lastFileProgress = null;
                     using (var sourceStream = await sourceFm.OpenFile(sourceFile.FullPath)) {
                         using (var destStream = await destFm.OpenFile(destFilePath, true)) {
                             if (encryptor != null) {
                                 // Encrypt file
                                 var progressAction = new Action<long>((copied) =>
                                 {
-                                    FileProgress?.Invoke(this, copied, sourceFile.Size);
+                                    if (lastFileProgress == null || copied == sourceFile.Size || (DateTime.UtcNow - lastFileProgress.Value).TotalMilliseconds >= 500) {
+                                        FileProgress?.Invoke(this, sourceFile.FullPath!, copied, sourceFile.Size);
+                                        lastFileProgress = DateTime.UtcNow;
+                                    }
                                 });
 
                                 await encryptor.Encrypt(sourceStream, destStream, Settings.Compress, progressAction);
@@ -353,7 +357,10 @@ namespace MpbkpuLib
                                             int read = await sourceStream.ReadAsync(buffer, 0, buffer.Length);
                                             await compressorStream.WriteAsync(buffer, 0, read);
                                             copied += read;
-                                            FileProgress?.Invoke(this, copied, sourceFile.Size);
+                                            if (lastFileProgress == null || copied == sourceFile.Size || (DateTime.UtcNow - lastFileProgress.Value).TotalMilliseconds >= 500) {
+                                                FileProgress?.Invoke(this, sourceFile.FullPath!, copied, sourceFile.Size);
+                                                lastFileProgress = DateTime.UtcNow;
+                                            }
                                         }
                                     }
                                 } else {
@@ -364,7 +371,10 @@ namespace MpbkpuLib
                                         int read = await sourceStream.ReadAsync(buffer, 0, buffer.Length);
                                         await destStream.WriteAsync(buffer, 0, read);
                                         copied += read;
-                                        FileProgress?.Invoke(this, copied, sourceFile.Size);
+                                        if (lastFileProgress == null || copied == sourceFile.Size || (DateTime.UtcNow - lastFileProgress.Value).TotalMilliseconds >= 500) {
+                                            FileProgress?.Invoke(this, sourceFile.FullPath!, copied, sourceFile.Size);
+                                            lastFileProgress = DateTime.UtcNow;
+                                        }
                                     }
                                 }
                             }

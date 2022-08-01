@@ -7,6 +7,7 @@ using MpbkpuLib;
 using Avalonia.Threading;
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace MpbkpuGUI.Views
 {
@@ -40,7 +41,7 @@ namespace MpbkpuGUI.Views
             var fileProgress = this.FindControl<ProgressBar>("_fileProgress");
             progress.Value = 0;
             fileProgress.Value = 0;
-            
+
             var settings = new BackupJobSettings()
             {
                 Name = "Test",
@@ -53,21 +54,21 @@ namespace MpbkpuGUI.Views
                 LogToConsole = true,
             };
             var bkp = new BackupJob(settings);
-            bkp.FileProgress += async (sender, bytes, totalBytes) =>
+            bkp.FileProgress += async (s, filePath, bytes, totalBytes) =>
             {
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     fileProgress.Value = (double)bytes / (double)totalBytes * 100.0;
                 }, DispatcherPriority.Background);
             };
-            bkp.Progress += async (sender, fileIdx, totalFiles, bytes, totalBytes) =>
+            bkp.Progress += async (s, fileIdx, totalFiles, bytes, totalBytes) =>
             {
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     progress.Value = (double)bytes / (double)totalBytes * 100.0;
                 }, DispatcherPriority.Background);
             };
-            
+
             bkp.LogEmitted += async (s, level, message) =>
             {
                 while (_log.Count >= 100) {
@@ -91,7 +92,7 @@ namespace MpbkpuGUI.Views
                 _backupTask = Task.Run(() => bkp.Run(_cts.Token));
                 await _backupTask;
             } catch (Exception) {
-                
+
             } finally {
                 if (_cts != null) {
                     _cts.Dispose();
@@ -99,7 +100,7 @@ namespace MpbkpuGUI.Views
                 }
             }
             this.FindControl<Button>("_startBtn").IsEnabled = true;
-            this.FindControl<Button>("_stopBtn").IsEnabled = false;            
+            this.FindControl<Button>("_stopBtn").IsEnabled = false;
         }
 
 

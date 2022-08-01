@@ -71,4 +71,8 @@ public class Arguments : IOptions
         OnlyForVerbs = "Backup",
         Description = "The type of backup to execute")]
     public BackupJobSettings.BackupTypes? BackupType { get; set; }
+
+    [Option("yes", 'y',
+        Description = "Auto reply YES to any question")]
+    public bool? AlwaysYes { get; set; }
 }
