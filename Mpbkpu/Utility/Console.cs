@@ -26,10 +26,13 @@ public static class Console
                     if (defaultValue.HasValue)
                         res = defaultValue.Value;
                     break;
+                case ConsoleKey.Escape:
+                    res = false;
+                    break;
             }
 
             if (res.HasValue) {
-                if (key.Key != ConsoleKey.Enter)
+                if (key.Key != ConsoleKey.Enter && key.Key != ConsoleKey.Escape)
                     System.Console.WriteLine(key.KeyChar);
                 else
                     System.Console.WriteLine(res == true ? "Y" : "N");

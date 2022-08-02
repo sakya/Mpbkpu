@@ -1,5 +1,6 @@
 using Microsoft.Graph;
 using MpbkpuLib;
+using MpbkpuLib.Abstracts;
 using MpbkpuLib.FileManagers;
 using MpbkpuLib.Utility;
 using SMBLibrary.SMB1;
@@ -39,6 +40,26 @@ public abstract class BaseAction : IAction
         }
 
         return backupFile;
+    }
+
+    protected void WriteLog(BaseSettings.LogLevels level, string message)
+    {
+        switch (level) {
+            case BaseSettings.LogLevels.Debug:
+                Console.ForegroundColor = ConsoleColor.DarkGray;
+                break;
+            case BaseSettings.LogLevels.Info:
+                Console.ForegroundColor = ConsoleColor.White;
+                break;
+            case BaseSettings.LogLevels.Warning:
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                break;
+            case BaseSettings.LogLevels.Error:
+                Console.ForegroundColor = ConsoleColor.Red;
+                break;
+        }
+        Console.WriteLine(message);
+        Console.ForegroundColor = DefaultColor;
     }
 
     protected void WriteEnabled(bool enabled)

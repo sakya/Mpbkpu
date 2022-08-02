@@ -141,7 +141,8 @@ public class DeleteJob : BaseJob
 
         // Delete backup folder
         var bkpPath = fm.CombinePath(newPath, bkp.Guid);
-        await fm.DeleteDirectory(bkpPath);
+        if (await fm.DirectoryExists(bkpPath))
+            await fm.DeleteDirectory(bkpPath);
 
         return true;
     }

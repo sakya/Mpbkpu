@@ -100,6 +100,6 @@ public abstract class BaseJob
             Console.ResetColor();
         }
 
-        LogEmitted?.Invoke(this, level, logLine);
+        LogEmitted?.Invoke(this, level, message);
     }
 }

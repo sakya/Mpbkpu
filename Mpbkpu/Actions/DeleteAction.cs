@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MpbkpuLib;
+using MpbkpuLib.Abstracts;
 
 namespace Mpbkpu.Actions;
 
@@ -12,12 +13,14 @@ public class DeleteAction : BaseAction
         _pArgs = pArgs;
         var settings = new DeleteJobSettings()
         {
+            LogLevel = pArgs.LogLevel,
             BackupPath = pArgs.BackupPath,
             BackupGuid = pArgs.BackupGuid
         };
         var job = new DeleteJob(settings);
         job.Step += OnStep;
         job.ConfirmDelete += OnConfirm;
+        job.LogEmitted += OnLog;
 
         var cts = new CancellationTokenSource();
         try {
@@ -60,5 +63,10 @@ public class DeleteAction : BaseAction
         var res = Utility.Console.Confirm($"Delete backup with GUID {e.Guid} containing {e.FilesToDelete} files ({Utility.String.BytesToString(e.BytesToDelete)})?", false);
         Console.CursorVisible = false;
         return Task.FromResult(res);
+    }
+
+    private void OnLog(object sender, BaseSettings.LogLevels level, string message)
+    {
+        WriteLog(level, message);
     }
 }

@@ -102,6 +102,6 @@ public class BackupAction : BaseAction
 
     private void OnLog(object sender, BaseSettings.LogLevels level, string message)
     {
-
+        WriteLog(level, message);
     }
 }
