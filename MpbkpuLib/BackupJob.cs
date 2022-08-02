@@ -59,7 +59,7 @@ namespace MpbkpuLib
         #endregion
 
         public BackupJob(BackupJobSettings? settings) :
-            base((settings))
+            base(settings)
         {
         }
 
@@ -72,7 +72,7 @@ namespace MpbkpuLib
 
         #region public operations
         /// <summary>
-        /// Run the backp using the given <see cref="Settings"/>
+        /// Run the job using the given <see cref="Settings"/>
         /// </summary>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/></param>
         /// <returns>True on success</returns>
