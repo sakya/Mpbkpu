@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Identity.Client;
 using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
 using MpbkpuLib.Utility;
+using Newtonsoft.Json;
 
 namespace MpbkpuLib;
 
@@ -258,12 +260,26 @@ public class BackupFile : IDisposable
         var backups = _context!.Backups.AsNoTracking()
             .OrderBy(b => b.Id);
         foreach (var backup in backups) {
+            var settings = JsonConvert.DeserializeObject<BackupJobSettings>(backup.Settings!);
+            if (settings == null)
+                throw new Exception($"Cannot read settings of backup with GUID { backup.Guid }");
+            var fm = FileManagerFactory.GetFileManager(settings.Destination, out var newPath);
+
+            // Verify backup folder
+            if (!await fm.DirectoryExists(fm.CombinePath(newPath, backup.Guid))) {
+
+            }
+
             // Verify backup items
             var items = _context!.BackupItems.AsNoTracking()
+                .Include(i => i.Volume)
                 .Where(i => i.BackupId == backup.Id)
                 .OrderBy(i => i.Id);
-            foreach (var item in items) {
 
+            foreach (var item in items) {
+                if (!await fm.FileExists(fm.CombinePath(newPath, backup.Guid, item.Volume!.Name!, item.Name!))) {
+
+                }
             }
         }
         return true;

@@ -45,7 +45,7 @@ namespace MpbkpuLib.DataModel
             }
         }
 
-        public ICollection<BackupWarning> Warnings { get; set; }
-        public ICollection<BackupItem> Items { get; set; }
+        public ICollection<BackupWarning> Warnings { get; set; } = null!;
+        public ICollection<BackupItem> Items { get; set; } = null!;
     }
 }
