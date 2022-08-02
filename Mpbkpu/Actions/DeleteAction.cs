@@ -40,6 +40,7 @@ public class DeleteAction : BaseAction
         return true;
     }
 
+    #region private operations
     private void OnStep(object sender, DeleteJob.Steps step)
     {
         Console.ForegroundColor = InfoColor;
@@ -69,4 +70,5 @@ public class DeleteAction : BaseAction
     {
         WriteLog(level, message);
     }
+    #endregion
 }

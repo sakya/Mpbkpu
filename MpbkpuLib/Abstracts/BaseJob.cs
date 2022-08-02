@@ -7,6 +7,10 @@ public abstract class BaseJob
     #endregion
     #region delegates
     public delegate void LogHandler(object sender, BaseSettings.LogLevels level, string message);
+
+    /// <summary>
+    /// Emitted when a log message is added to the log
+    /// </summary>
     public event LogHandler? LogEmitted;
     #endregion
 
@@ -26,8 +30,16 @@ public abstract class BaseJob
     public BaseSettings Settings { get; private set; }
     #endregion
 
+    /// <summary>
+    /// Run the job
+    /// </summary>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/></param>
+    /// <returns>True on success</returns>
     public abstract Task<bool> Run(CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Validate the job settings
+    /// </summary>
     protected abstract void ValidateSettings();
 
     protected void LogDebug(string message)
@@ -61,6 +73,11 @@ public abstract class BaseJob
         }
     }
 
+    /// <summary>
+    /// Log a message
+    /// </summary>
+    /// <param name="level">The <see cref="BaseSettings.LogLevels"/></param>
+    /// <param name="message">The message to log</param>
     protected  void Log(BaseSettings.LogLevels level, string message)
     {
         if (level < Settings.LogLevel)

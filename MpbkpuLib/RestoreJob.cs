@@ -32,7 +32,6 @@ public class RestoreJob : BaseJob
     #endregion
 
     #region private operations
-
     /// <summary>
     /// Validate the <see cref="RestoreJobSettings"/>
     /// </summary>

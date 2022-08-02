@@ -56,6 +56,7 @@ public class BackupAction : BaseAction
         return true;
     }
 
+    #region private operations
     private void OnStep(object sender, BackupJob.Steps step)
     {
         Console.ForegroundColor = InfoColor;
@@ -104,4 +105,5 @@ public class BackupAction : BaseAction
     {
         WriteLog(level, message);
     }
+    #endregion
 }

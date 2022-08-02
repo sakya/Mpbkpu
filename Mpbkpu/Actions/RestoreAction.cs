@@ -6,4 +6,8 @@ public class RestoreAction : BaseAction
     {
         throw new NotImplementedException();
     }
+
+    #region private operations
+
+    #endregion
 }
