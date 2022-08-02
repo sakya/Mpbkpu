@@ -1,4 +1,5 @@
-﻿using MpbkpuLib.Abstracts;
+﻿using Microsoft.EntityFrameworkCore;
+using MpbkpuLib.Abstracts;
 using MpbkpuLib.FileManagers;
 using Newtonsoft.Json;
 
@@ -99,7 +100,50 @@ public class DeleteJob : BaseJob
     /// <returns>True on success</returns>
     private async Task<bool> RunPrimitive(BackupFile backupFile)
     {
-        throw new NotImplementedException();
+        var bkp = await backupFile.Backups.AsNoTracking()
+            .Where(b => b.Guid == Settings.BackupGuid)
+            .FirstOrDefaultAsync();
+        if (bkp == null)
+            throw new Exception($"Backup with GUID { Settings.BackupGuid } not found");
+
+        var cArgs = new ConfirmArgs()
+        {
+            Guid = Settings.BackupGuid,
+            FilesToDelete = await backupFile.BackupItems.AsNoTracking()
+                .Where(i => i.BackupId == bkp.Id)
+                .CountAsync(),
+            BytesToDelete = await backupFile.BackupItems.AsNoTracking()
+                .Where(i => i.BackupId == bkp.Id)
+                .Select(i => i.OriginalSize)
+                .SumAsync(),
+        };
+        if (ConfirmDelete != null) {
+            if (!await ConfirmDelete.Invoke(this, cArgs)) {
+                LogInfo("Cancelled by user");
+                return false;
+            }
+        }
+
+        // Delete files
+        Step?.Invoke(this, DeleteJob.Steps.DeleteFiles);
+
+        var fm = FileManagerFactory.GetFileManager(Settings.BackupPath, out var newPath);
+        var items = backupFile.BackupItems.AsNoTracking()
+            .Include(i => i.Volume)
+            .Where(i => i.BackupId == bkp.Id);
+        foreach (var item in items) {
+            var filePath = fm.CombinePath(newPath, bkp.Guid, item.Volume!.Name!, item.Name!);
+            await fm.DeleteFile(filePath);
+        }
+
+        // Delete data
+        await backupFile.DeleteBackup(bkp.Id);
+
+        // Delete backup folder
+        var bkpPath = fm.CombinePath(newPath, bkp.Guid);
+        await fm.DeleteDirectory(bkpPath);
+
+        return true;
     }
 
     /// <summary>

@@ -210,7 +210,6 @@ namespace MpbkpuLib
                 await backupFile.SaveChangesAsync();
             }
 
-            // Confirm backup
             var cArgs = new ConfirmArgs()
             {
                 FilesToBackup = await backupFile.Files.AsNoTracking()

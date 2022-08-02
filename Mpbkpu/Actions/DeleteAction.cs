@@ -16,6 +16,7 @@ public class DeleteAction : BaseAction
             BackupGuid = pArgs.BackupGuid
         };
         var job = new DeleteJob(settings);
+        job.Step += OnStep;
         job.ConfirmDelete += OnConfirm;
 
         var cts = new CancellationTokenSource();
@@ -34,6 +35,21 @@ public class DeleteAction : BaseAction
             cts.Dispose();
         }
         return true;
+    }
+
+    private void OnStep(object sender, DeleteJob.Steps step)
+    {
+        Console.ForegroundColor = InfoColor;
+        switch (step) {
+            case DeleteJob.Steps.OpenDatabase:
+                Console.WriteLine("Opening database");
+                break;
+            case DeleteJob.Steps.DeleteFiles:
+                Console.WriteLine("Deleting files");
+                break;
+        }
+
+        Console.ForegroundColor = DefaultColor;
     }
 
     private Task<bool> OnConfirm(object sender, DeleteJob.ConfirmArgs e)

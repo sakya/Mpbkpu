@@ -156,10 +156,26 @@ public class BackupFile : IDisposable
             .FirstOrDefaultAsync();
     }
 
+    /// <summary>
+    /// Delete all data from the Files table
+    /// </summary>
+    /// <returns>True on success</returns>
     public async Task<bool> EmptyFiles()
     {
         EnsureDbOpen();
         await _context!.Database.ExecuteSqlRawAsync("DELETE FROM Files");
+        return true;
+    }
+
+    /// <summary>
+    /// Delete all data of a backup
+    /// </summary>
+    /// <param name="id">The backup id</param>
+    /// <returns>True on success</returns>
+    public async Task<bool> DeleteBackup(int id)
+    {
+        EnsureDbOpen();
+        await _context!.Database.ExecuteSqlRawAsync($"DELETE FROM Backups where id={id}");
         return true;
     }
 
