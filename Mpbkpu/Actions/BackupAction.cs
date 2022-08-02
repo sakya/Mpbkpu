@@ -5,8 +5,8 @@ namespace Mpbkpu.Actions;
 
 public class BackupAction : BaseAction
 {
-    private Arguments? _pArgs = null;
-    private double _totalPerc = 0;
+    private Arguments? _pArgs;
+    private double _totalPerc;
 
     public override async Task<bool> Run(Arguments pArgs)
     {
@@ -87,7 +87,7 @@ public class BackupAction : BaseAction
 
     private void OnFileProgress(object sender, string filePath, long bytes, long totalBytes)
     {
-        var perc = (double)bytes / (double)totalBytes * 100.0;
+        var perc = bytes / (double)totalBytes * 100.0;
         var progress = $"[{_totalPerc.ToString("0.0").PadLeft(5)}%][{perc.ToString("0.0").PadLeft(5)}%]";
         if (filePath.Length > Console.WindowWidth - progress.Length - 1)
             filePath = $"...{ filePath.Substring(filePath.Length - (Console.WindowWidth - progress.Length) + 4) }";
@@ -98,7 +98,7 @@ public class BackupAction : BaseAction
 
     private void OnProgress(object sender, int file, int totalFiles, long bytes, long totalBytes)
     {
-        _totalPerc = (double)file / (double)totalFiles * 100.0;
+        _totalPerc = file / (double)totalFiles * 100.0;
     }
 
     private void OnLog(object sender, BaseSettings.LogLevels level, string message)

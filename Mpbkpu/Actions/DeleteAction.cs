@@ -1,12 +1,11 @@
-﻿using Microsoft.EntityFrameworkCore;
-using MpbkpuLib;
+﻿using MpbkpuLib;
 using MpbkpuLib.Abstracts;
 
 namespace Mpbkpu.Actions;
 
 public class DeleteAction : BaseAction
 {
-    private Arguments? _pArgs = null;
+    private Arguments? _pArgs;
 
     public override async Task<bool> Run(Arguments pArgs)
     {
