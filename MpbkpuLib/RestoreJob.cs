@@ -33,5 +33,14 @@ public class RestoreJob : BaseJob
 
     #region private operations
 
+    /// <summary>
+    /// Validate the <see cref="RestoreJobSettings"/>
+    /// </summary>
+    /// <exception cref="ArgumentNullException"></exception>
+    /// <exception cref="ArgumentException"></exception>
+    protected override void ValidateSettings()
+    {
+    }
+
     #endregion
 }

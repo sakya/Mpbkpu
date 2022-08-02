@@ -28,6 +28,8 @@ public abstract class BaseJob
 
     public abstract Task<bool> Run(CancellationToken cancellationToken);
 
+    protected abstract void ValidateSettings();
+
     protected void LogDebug(string message)
     {
         Log(BaseSettings.LogLevels.Debug, message);

@@ -120,7 +120,7 @@ namespace MpbkpuLib
 
         #region private operations
         /// <summary>
-        /// Run the backp using the given <see cref="Settings"/>
+        /// Run the job using the given <see cref="Settings"/>
         /// </summary>
         /// <param name="backupFile">The <see cref="BackupFile"/> to use</param>
         /// <returns>True on success</returns>
@@ -280,7 +280,7 @@ namespace MpbkpuLib
         /// </summary>
         /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="ArgumentException"></exception>
-        private void ValidateSettings()
+        protected  override void ValidateSettings()
         {
             if (string.IsNullOrEmpty(Settings.Source))
                 throw new ArgumentNullException(nameof(Settings.Source), "Source cannot be empty");

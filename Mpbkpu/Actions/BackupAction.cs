@@ -30,18 +30,18 @@ public class BackupAction : BaseAction
         WriteEnabled(!string.IsNullOrEmpty(pArgs.Password));
         Console.WriteLine();
 
-        var backupJob = new BackupJob(settings);
-        backupJob.Step += OnStep;
-        backupJob.ConfirmBackup += OnConfirm;
-        backupJob.LogEmitted += OnLog;
-        backupJob.FileProgress += OnFileProgress;
-        backupJob.Progress += OnProgress;
+        var job = new BackupJob(settings);
+        job.Step += OnStep;
+        job.ConfirmBackup += OnConfirm;
+        job.LogEmitted += OnLog;
+        job.FileProgress += OnFileProgress;
+        job.Progress += OnProgress;
 
         var cts = new CancellationTokenSource();
         try {
             Console.CursorVisible = false;
-            var backupTask = Task.Run(() => backupJob.Run(cts.Token));
-            await backupTask;
+            var task = Task.Run(() => job.Run(cts.Token));
+            await task;
             Console.WriteLine();
         } catch (Exception ex) {
             Console.ForegroundColor = ErrorColor;
