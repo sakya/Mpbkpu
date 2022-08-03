@@ -98,7 +98,7 @@ public class BackupFile : IDisposable
         if (!await sourceFm.DirectoryExists(backupPath))
             throw new Exception($"Directory {backupPath} does not exists");
 
-        var backupDbPath = sourceFm.CombinePath(newPath, BackupFile.DefaultDatabaseFileName);
+        var backupDbPath = sourceFm.CombinePath(newPath, DefaultDatabaseFileName);
         string? tempDbPath = null;
         if (await sourceFm.FileExists(backupDbPath)) {
             if (!sourceFm.CanOpenDatabase()) {

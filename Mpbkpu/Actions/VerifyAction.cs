@@ -41,7 +41,7 @@ public class VerifyAction : BaseAction
     }
 
     #region private operations
-    private void OnStep(object sender, VerifyJob.Steps step)
+    private void OnStep(object sender, VerifyJob.Steps step, string guid)
     {
         Console.ForegroundColor = InfoColor;
         switch (step) {
@@ -49,7 +49,7 @@ public class VerifyAction : BaseAction
                 Console.WriteLine("Opening database");
                 break;
             case VerifyJob.Steps.VerifyFiles:
-                Console.WriteLine("Verifying files");
+                Console.WriteLine($"Verifying files of backup with GUID {guid}");
                 break;
         }
 

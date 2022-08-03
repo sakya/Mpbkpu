@@ -22,7 +22,7 @@ public class VerifyJob: BaseJob
     #endregion
 
     #region delegates
-    public delegate void StepHandler(object sender, Steps step);
+    public delegate void StepHandler(object sender, Steps step, string Guid);
 
     public event StepHandler? Step;
     #endregion
@@ -49,7 +49,7 @@ public class VerifyJob: BaseJob
         LogInfo("Starting with settings:");
         LogInfo(JsonConvert.SerializeObject(Settings, Formatting.Indented));
 
-        Step?.Invoke(this, Steps.OpenDatabase);
+        Step?.Invoke(this, Steps.OpenDatabase, null);
         using (var openRes = await BackupFile.OpenBackupFile(Settings.BackupPath!)) {
             var backupFile = openRes.BackupFile;
             await backupFile.EmptyFiles();
@@ -107,6 +107,7 @@ public class VerifyJob: BaseJob
             }
 
             // Verify backup items
+            Step?.Invoke(this, Steps.VerifyFiles, backup.Guid);
             var items = backupFile.BackupItems.AsNoTracking()
                 .Include(i => i.Volume)
                 .Where(i => i.BackupId == backup.Id)

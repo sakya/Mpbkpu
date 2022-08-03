@@ -49,7 +49,7 @@ public class Arguments : IOptions
     [Option("backup", ShortName = 'b',
         Required = true,
         Description = "The path containing the backup",
-        OnlyForVerbs = "Restore;Delete;List")]
+        OnlyForVerbs = "Restore;Delete;List;Verify")]
     public string? BackupPath { get; set; }
 
     [Option("restore", ShortName = 'r',
