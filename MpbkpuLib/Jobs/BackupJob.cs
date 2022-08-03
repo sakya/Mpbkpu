@@ -1,4 +1,5 @@
 ﻿using System.IO.Compression;
+using System.Security.Cryptography;
 using Newtonsoft.Json;
 using Microsoft.EntityFrameworkCore;
 using MpbkpuLib.Abstracts;
@@ -365,34 +366,52 @@ public class BackupJob : BaseJob
                                 }
                             });
 
-                            await encryptor.Encrypt(sourceStream, destStream, Settings.Compress, progressAction);
+                            await encryptor.Encrypt(backupItem, sourceStream, destStream, Settings.Compress, progressAction);
                         } else {
                             if (Settings.Compress) {
-                                using (var compressorStream = new GZipStream(destStream, CompressionLevel.Optimal)) {
-                                    long copied = 0;
-                                    byte[] buffer = new byte[4096];
-                                    while (copied < sourceFile.Size) {
-                                        int read = await sourceStream.ReadAsync(buffer, 0, buffer.Length);
-                                        await compressorStream.WriteAsync(buffer, 0, read);
-                                        copied += read;
-                                        if (lastFileProgress == null || copied == sourceFile.Size || (DateTime.UtcNow - lastFileProgress.Value).TotalMilliseconds >= 500) {
-                                            FileProgress?.Invoke(this, sourceFile.FullPath!, copied, sourceFile.Size);
-                                            lastFileProgress = DateTime.UtcNow;
+                                using (var hasher = MD5.Create()) {
+                                    using (CryptoStream hashStream = new CryptoStream(destStream, hasher, CryptoStreamMode.Write)) {
+                                        using (var compressorStream = new GZipStream(hashStream, CompressionLevel.Optimal)) {
+                                            long copied = 0;
+                                            byte[] buffer = new byte[4096];
+                                            while (copied < sourceFile.Size) {
+                                                int read = await sourceStream.ReadAsync(buffer, 0, buffer.Length);
+                                                await compressorStream.WriteAsync(buffer, 0, read);
+                                                copied += read;
+                                                if (lastFileProgress == null || copied == sourceFile.Size ||
+                                                    (DateTime.UtcNow - lastFileProgress.Value).TotalMilliseconds >=
+                                                    500) {
+                                                    FileProgress?.Invoke(this, sourceFile.FullPath!, copied,
+                                                        sourceFile.Size);
+                                                    lastFileProgress = DateTime.UtcNow;
+                                                }
+                                            }
                                         }
                                     }
+
+                                    backupItem.MD5 = BitConverter.ToString(hasher.Hash!).Replace("-", "").ToLowerInvariant();
                                 }
                             } else {
                                 // Normal copy
                                 long copied = 0;
                                 byte[] buffer = new byte[4096];
-                                while (copied < sourceFile.Size) {
-                                    int read = await sourceStream.ReadAsync(buffer, 0, buffer.Length);
-                                    await destStream.WriteAsync(buffer, 0, read);
-                                    copied += read;
-                                    if (lastFileProgress == null || copied == sourceFile.Size || (DateTime.UtcNow - lastFileProgress.Value).TotalMilliseconds >= 500) {
-                                        FileProgress?.Invoke(this, sourceFile.FullPath!, copied, sourceFile.Size);
-                                        lastFileProgress = DateTime.UtcNow;
+                                using (var hasher = MD5.Create()) {
+                                    using (CryptoStream hashStream = new CryptoStream(destStream, hasher, CryptoStreamMode.Write)) {
+                                        while (copied < sourceFile.Size) {
+                                            int read = await sourceStream.ReadAsync(buffer, 0, buffer.Length);
+                                            await hashStream.WriteAsync(buffer, 0, read);
+                                            copied += read;
+                                            if (lastFileProgress == null || copied == sourceFile.Size ||
+                                                (DateTime.UtcNow - lastFileProgress.Value).TotalMilliseconds >= 500) {
+                                                FileProgress?.Invoke(this, sourceFile.FullPath!, copied,
+                                                    sourceFile.Size);
+                                                lastFileProgress = DateTime.UtcNow;
+                                            }
+                                        }
                                     }
+
+                                    backupItem.Size = sourceFile.Size;
+                                    backupItem.MD5 = BitConverter.ToString(hasher.Hash!).Replace("-", "").ToLowerInvariant();
                                 }
                             }
                         }

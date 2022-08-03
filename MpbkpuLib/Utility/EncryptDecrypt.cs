@@ -1,6 +1,7 @@
 ﻿using System.IO.Compression;
 using System.Text;
 using System.Security.Cryptography;
+using MpbkpuLib.DataModel;
 
 namespace MpbkpuLib.Utility
 {
@@ -31,7 +32,7 @@ namespace MpbkpuLib.Utility
         /// <returns>True on success</returns>
         /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="Exception"></exception>
-        public async Task<bool> Encrypt(Stream source, Stream destination, bool compress, Action<long>? progressAction = null)
+        public async Task<bool> Encrypt(BackupItem backupItem, Stream source, Stream destination, bool compress, Action<long>? progressAction = null)
         {
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
@@ -43,10 +44,10 @@ namespace MpbkpuLib.Utility
             using (var aesAlg = Aes.Create()) {
                 aesAlg.Mode = CipherMode.CBC;
                 aesAlg.Padding = PaddingMode.PKCS7;
+                long size = 0;
                 using (var hasher = MD5.Create()) {
                     using (var encryptor = aesAlg.CreateEncryptor(_keyBytes, aesAlg.IV)) {
-                        using (CryptoStream hashStream =
-                               new CryptoStream(destination, hasher, CryptoStreamMode.Write)) {
+                        using (CryptoStream hashStream = new CryptoStream(destination, hasher, CryptoStreamMode.Write)) {
                             using (var csEncrypt = new CryptoStream(hashStream, encryptor, CryptoStreamMode.Write)) {
                                 byte[] buffer = new byte[4096];
 
@@ -74,7 +75,8 @@ namespace MpbkpuLib.Utility
                         }
                     }
 
-                    string hash = BitConverter.ToString(hasher.Hash!).Replace("-", "").ToLowerInvariant();
+                    backupItem.Size = size;
+                    backupItem.MD5 = BitConverter.ToString(hasher.Hash!).Replace("-", "").ToLowerInvariant();
                 }
             }
 
