@@ -92,8 +92,9 @@ namespace MpbkpuGUI.Views
             try {
                 _backupTask = Task.Run(() => bkp.Run(_cts.Token));
                 await _backupTask;
-            } catch (Exception) {
-
+            } catch (Exception ex) {
+                var tb = this.FindControl<TextBlock>("_log");
+                tb.Text = $"{tb.Text}\n{ex.Message}";
             } finally {
                 if (_cts != null) {
                     _cts.Dispose();

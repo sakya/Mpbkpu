@@ -92,7 +92,7 @@ public class BackupFile : IDisposable
         _context?.Dispose();
     }
 
-    public static async Task<OpenResult> OpenBackupFile(string backupPath)
+    public static async Task<OpenResult> OpenBackupFile(string backupPath, bool create = false)
     {
         var sourceFm = FileManagerFactory.GetFileManager(backupPath, out var newPath);
         if (!await sourceFm.DirectoryExists(backupPath))
@@ -112,7 +112,11 @@ public class BackupFile : IDisposable
                 }
             }
         } else {
-            throw new Exception($"Database file not found in {backupPath}");
+            if (!create)
+                throw new Exception($"Database file not found in {backupPath}");
+
+            if (!sourceFm.CanOpenDatabase())
+                tempDbPath = TempFile.GetTempFileName();
         }
 
         var backupFile = new BackupFile();

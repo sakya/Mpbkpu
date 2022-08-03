@@ -85,7 +85,7 @@ public class BackupJob : BaseJob
 
         Step?.Invoke(this, Steps.OpenDatabase);
         await CheckDestination();
-        using (var openRes = await BackupFile.OpenBackupFile(Settings.Destination!)) {
+        using (var openRes = await BackupFile.OpenBackupFile(Settings.Destination!, true)) {
             var backupFile = openRes.BackupFile;
             await backupFile.EmptyFiles();
             var transaction = backupFile.BeginTransaction();
@@ -174,6 +174,7 @@ public class BackupJob : BaseJob
 
         // Compute files to backup (only if not a full backup)
         // Read last backup items
+        LogInfo("Checking files to backup");
         Step?.Invoke(this, Steps.CalculateFilesToBackup);
         if (lastBackup != null && _backup.Type != BackupJobSettings.BackupTypes.Full) {
             await foreach (var item in backupFile.GetBackupItems(lastBackup.Id)) {
