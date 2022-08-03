@@ -41,7 +41,7 @@ public class VerifyAction : BaseAction
     }
 
     #region private operations
-    private void OnStep(object sender, VerifyJob.Steps step, string guid)
+    private void OnStep(object sender, VerifyJob.Steps step, string? guid)
     {
         Console.ForegroundColor = InfoColor;
         switch (step) {

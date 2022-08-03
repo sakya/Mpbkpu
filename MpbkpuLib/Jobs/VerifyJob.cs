@@ -22,7 +22,7 @@ public class VerifyJob: BaseJob
     #endregion
 
     #region delegates
-    public delegate void StepHandler(object sender, Steps step, string Guid);
+    public delegate void StepHandler(object sender, Steps step, string? Guid);
 
     public event StepHandler? Step;
     #endregion
@@ -114,8 +114,9 @@ public class VerifyJob: BaseJob
                 .OrderBy(i => i.Id);
 
             foreach (var item in items) {
-                if (!await fm.FileExists(fm.CombinePath(newPath, backup.Guid, item.Volume!.Name!, item.Name!))) {
-
+                var filePath = fm.CombinePath(newPath, backup.Guid, item.Volume!.Name!, item.Name!);
+                if (!await fm.FileExists(filePath)) {
+                    LogWarning($"File {filePath} not found");
                 }
             }
 
