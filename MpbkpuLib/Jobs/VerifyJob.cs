@@ -1,55 +1,46 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using MpbkpuLib.Abstracts;
 using MpbkpuLib.FileManagers;
 using Newtonsoft.Json;
 
-namespace MpbkpuLib;
+namespace MpbkpuLib.Jobs;
 
-public class DeleteJob : BaseJob
+public class VerifyJob: BaseJob
 {
     public enum Steps
     {
         OpenDatabase,
-        DeleteFiles
+        VerifyFiles
     }
+
+    #region classes
+
+    #endregion
 
     #region private members
     private CancellationToken? _cancellationToken;
     #endregion
 
     #region delegates
-    public class ConfirmArgs : EventArgs
-    {
-        public string? Guid { get; set; }
-        public int FilesToDelete { get; set; }
-        public long BytesToDelete { get; set; }
-    }
-    public delegate Task<bool> ConfirmHandler(object sender, ConfirmArgs e);
-    public event ConfirmHandler? ConfirmDelete;
-
     public delegate void StepHandler(object sender, Steps step);
 
     public event StepHandler? Step;
     #endregion
 
-    public DeleteJob(DeleteJobSettings? settings) :
+    public VerifyJob(VerifyJobSettings? settings) :
         base(settings)
     {
     }
 
     #region properties
-    public new DeleteJobSettings Settings
+    public new VerifyJobSettings Settings
     {
-        get { return (base.Settings as DeleteJobSettings)!; }
+        get { return (base.Settings as VerifyJobSettings)!; }
     }
+
     #endregion
 
     #region public operations
-    /// <summary>
-    /// Run the job using the given <see cref="Settings"/>
-    /// </summary>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/></param>
-    /// <returns>True on success</returns>
     public override async Task<bool> Run(CancellationToken cancellationToken)
     {
         _cancellationToken = cancellationToken;
@@ -58,7 +49,7 @@ public class DeleteJob : BaseJob
         LogInfo("Starting with settings:");
         LogInfo(JsonConvert.SerializeObject(Settings, Formatting.Indented));
 
-        Step?.Invoke(this, DeleteJob.Steps.OpenDatabase);
+        Step?.Invoke(this, Steps.OpenDatabase);
         using (var openRes = await BackupFile.OpenBackupFile(Settings.BackupPath!)) {
             var backupFile = openRes.BackupFile;
             await backupFile.EmptyFiles();
@@ -88,6 +79,7 @@ public class DeleteJob : BaseJob
         }
 
         return true;
+
     }
     #endregion
 
@@ -100,55 +92,39 @@ public class DeleteJob : BaseJob
     /// <returns>True on success</returns>
     private async Task<bool> RunPrimitive(BackupFile backupFile)
     {
-        var bkp = await backupFile.Backups.AsNoTracking()
-            .Where(b => b.Guid == Settings.BackupGuid)
-            .FirstOrDefaultAsync();
-        if (bkp == null)
-            throw new Exception($"Backup with GUID { Settings.BackupGuid } not found");
+        // Verify backup folders
+        var backups = backupFile.Backups.AsNoTracking()
+            .OrderBy(b => b.Id);
+        foreach (var backup in backups) {
+            var settings = JsonConvert.DeserializeObject<BackupJobSettings>(backup.Settings!);
+            if (settings == null)
+                throw new Exception($"Cannot read settings of backup with GUID {backup.Guid}");
+            var fm = FileManagerFactory.GetFileManager(settings.Destination, out var newPath);
 
-        var cArgs = new ConfirmArgs()
-        {
-            Guid = Settings.BackupGuid,
-            FilesToDelete = await backupFile.BackupItems.AsNoTracking()
-                .Where(i => i.BackupId == bkp.Id)
-                .CountAsync(),
-            BytesToDelete = await backupFile.BackupItems.AsNoTracking()
-                .Where(i => i.BackupId == bkp.Id)
-                .Select(i => i.OriginalSize)
-                .SumAsync(),
-        };
-        if (ConfirmDelete != null) {
-            if (!await ConfirmDelete.Invoke(this, cArgs)) {
-                LogInfo("Cancelled by user");
-                return false;
+            // Verify backup folder
+            if (!await fm.DirectoryExists(fm.CombinePath(newPath, backup.Guid))) {
+
             }
+
+            // Verify backup items
+            var items = backupFile.BackupItems.AsNoTracking()
+                .Include(i => i.Volume)
+                .Where(i => i.BackupId == backup.Id)
+                .OrderBy(i => i.Id);
+
+            foreach (var item in items) {
+                if (!await fm.FileExists(fm.CombinePath(newPath, backup.Guid, item.Volume!.Name!, item.Name!))) {
+
+                }
+            }
+
         }
-
-        // Delete files
-        Step?.Invoke(this, DeleteJob.Steps.DeleteFiles);
-
-        var fm = FileManagerFactory.GetFileManager(Settings.BackupPath, out var newPath);
-        var items = backupFile.BackupItems.AsNoTracking()
-            .Include(i => i.Volume)
-            .Where(i => i.BackupId == bkp.Id);
-        foreach (var item in items) {
-            var filePath = fm.CombinePath(newPath, bkp.Guid, item.Volume!.Name!, item.Name!);
-            await fm.DeleteFile(filePath);
-        }
-
-        // Delete data
-        await backupFile.DeleteBackup(bkp.Id);
-
-        // Delete backup folder
-        var bkpPath = fm.CombinePath(newPath, bkp.Guid);
-        if (await fm.DirectoryExists(bkpPath))
-            await fm.DeleteDirectory(bkpPath);
 
         return true;
     }
 
     /// <summary>
-    /// Validate the <see cref="DeleteJobSettings"/>
+    /// Validate the <see cref="VerifyJobSettings"/>
     /// </summary>
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="ArgumentException"></exception>
@@ -156,9 +132,6 @@ public class DeleteJob : BaseJob
     {
         if (string.IsNullOrEmpty(Settings.BackupPath))
             throw new ArgumentNullException(nameof(Settings.BackupPath), "Backup path cannot be empty");
-
-        if (string.IsNullOrEmpty(Settings.BackupGuid))
-            throw new ArgumentNullException(nameof(Settings.BackupGuid), "Backup GUID cannot be empty");
     }
 
     #endregion

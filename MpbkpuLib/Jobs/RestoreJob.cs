@@ -1,22 +1,25 @@
 using MpbkpuLib.Abstracts;
 
-namespace MpbkpuLib;
+namespace MpbkpuLib.Jobs;
 
-public class VerifyJob: BaseJob
+/// <summary>
+/// A job to restore files from a backup
+/// </summary>
+public class RestoreJob : BaseJob
 {
     #region classes
 
     #endregion
 
-    public VerifyJob(VerifyJobSettings? settings) :
+    public RestoreJob(RestoreJobSettings? settings) :
         base(settings)
     {
     }
 
     #region properties
-    public new VerifyJobSettings Settings
+    public new RestoreJobSettings Settings
     {
-        get { return (base.Settings as VerifyJobSettings)!; }
+        get { return (base.Settings as RestoreJobSettings)!; }
     }
 
     #endregion
@@ -30,7 +33,7 @@ public class VerifyJob: BaseJob
 
     #region private operations
     /// <summary>
-    /// Validate the <see cref="VerifyJobSettings"/>
+    /// Validate the <see cref="RestoreJobSettings"/>
     /// </summary>
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="ArgumentException"></exception>

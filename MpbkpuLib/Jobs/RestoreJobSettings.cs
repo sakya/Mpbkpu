@@ -1,8 +1,8 @@
 using MpbkpuLib.Abstracts;
 
-namespace MpbkpuLib;
+namespace MpbkpuLib.Jobs;
 
 public class RestoreJobSettings : BaseSettings
 {
-    
+
 }

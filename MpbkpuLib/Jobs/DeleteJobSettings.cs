@@ -1,6 +1,6 @@
 ﻿using MpbkpuLib.Abstracts;
 
-namespace MpbkpuLib;
+namespace MpbkpuLib.Jobs;
 
 public class DeleteJobSettings : BaseSettings
 {

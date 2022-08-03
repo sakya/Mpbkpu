@@ -8,6 +8,7 @@ using Avalonia.Threading;
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using MpbkpuLib.Jobs;
 
 namespace MpbkpuGUI.Views
 {
