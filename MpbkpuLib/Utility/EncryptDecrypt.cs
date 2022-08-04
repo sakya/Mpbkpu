@@ -44,10 +44,9 @@ namespace MpbkpuLib.Utility
             using (var aesAlg = Aes.Create()) {
                 aesAlg.Mode = CipherMode.CBC;
                 aesAlg.Padding = PaddingMode.PKCS7;
-                long size = 0;
                 using (var hasher = MD5.Create()) {
                     using (var encryptor = aesAlg.CreateEncryptor(_keyBytes, aesAlg.IV)) {
-                        using (CryptoStream hashStream = new CryptoStream(destination, hasher, CryptoStreamMode.Write)) {
+                        using (CryptoStream hashStream = new CryptoStream(destination, hasher, CryptoStreamMode.Write, true)) {
                             using (var csEncrypt = new CryptoStream(hashStream, encryptor, CryptoStreamMode.Write)) {
                                 byte[] buffer = new byte[4096];
 
@@ -75,7 +74,7 @@ namespace MpbkpuLib.Utility
                         }
                     }
 
-                    backupItem.Size = size;
+                    backupItem.Size = destination.Position;;
                     backupItem.MD5 = BitConverter.ToString(hasher.Hash!).Replace("-", "").ToLowerInvariant();
                 }
             }

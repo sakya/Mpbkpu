@@ -1,7 +1,11 @@
+using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using MpbkpuLib.Abstracts;
+using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
+using MpbkpuLib.Interfaces;
 using Newtonsoft.Json;
+using File = MpbkpuLib.DataModel.File;
 
 namespace MpbkpuLib.Jobs;
 
@@ -63,7 +67,7 @@ public class VerifyJob: BaseJob
                 // Copy temporary database file to destination
                 if (!string.IsNullOrEmpty(openRes.TempFilePath)) {
                     var sourceFm = FileManagerFactory.GetFileManager(openRes.TempFilePath, out _);
-                    var destFm = FileManagerFactory.GetFileManager(Settings.BackupPath, out var destPath);
+                    var destFm = FileManagerFactory.GetFileManager(Settings.BackupPath, out _);
 
                     using (var sourceStream = await sourceFm.OpenFile(openRes.TempFilePath)) {
                         using (var destStream = await destFm.OpenFile(openRes.BackupFilePath, true)) {
@@ -113,13 +117,10 @@ public class VerifyJob: BaseJob
                 .Where(i => i.BackupId == backup.Id)
                 .OrderBy(i => i.Id);
 
+            var backupRoot = fm.CombinePath(newPath, backup.Guid);
             foreach (var item in items) {
-                var filePath = fm.CombinePath(newPath, backup.Guid, item.Volume!.Name!, item.Name!);
-                if (!await fm.FileExists(filePath)) {
-                    LogWarning($"File {filePath} not found");
-                }
+                await VerifyBackupItem(fm, backupRoot, item);
             }
-
         }
 
         return true;
@@ -134,6 +135,33 @@ public class VerifyJob: BaseJob
     {
         if (string.IsNullOrEmpty(Settings.BackupPath))
             throw new ArgumentNullException(nameof(Settings.BackupPath), "Backup path cannot be empty");
+    }
+
+    private async Task<bool> VerifyBackupItem(IFileManager fm, string backupRoot, BackupItem item)
+    {
+        var filePath = fm.CombinePath(backupRoot, item.Volume!.Name!, item.Name!);
+        if (!await fm.FileExists(filePath)) {
+            LogWarning($"File {filePath} not found");
+        } else {
+            // Check MD5
+            if (item.Type == File.FileTyes.File) {
+                if (string.IsNullOrEmpty(item.MD5))
+                    LogWarning($"Missing MD5 for file {item.OriginalPath}");
+                else {
+                    using (var source = await fm.OpenFile(filePath, false)) {
+                        using (var hasher = MD5.Create()) {
+                            var hash = await hasher.ComputeHashAsync(source);
+                            var md5 = BitConverter.ToString(hasher.Hash!).Replace("-", "").ToLowerInvariant();
+                            if (md5 != item.MD5) {
+                                LogWarning($"MD5 mismatch for file {item.OriginalPath}");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return true;
     }
 
     #endregion

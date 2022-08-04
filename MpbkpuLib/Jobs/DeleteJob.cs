@@ -72,7 +72,7 @@ public class DeleteJob : BaseJob
                 // Copy temporary database file to destination
                 if (!string.IsNullOrEmpty(openRes.TempFilePath)) {
                     var sourceFm = FileManagerFactory.GetFileManager(openRes.TempFilePath, out _);
-                    var destFm = FileManagerFactory.GetFileManager(Settings.BackupPath, out var destPath);
+                    var destFm = FileManagerFactory.GetFileManager(Settings.BackupPath, out _);
 
                     using (var sourceStream = await sourceFm.OpenFile(openRes.TempFilePath)) {
                         using (var destStream = await destFm.OpenFile(openRes.BackupFilePath, true)) {
@@ -131,6 +131,11 @@ public class DeleteJob : BaseJob
             .Include(i => i.Volume)
             .Where(i => i.BackupId == bkp.Id);
         foreach (var item in items) {
+            if (_cancellationToken?.IsCancellationRequested == true) {
+                LogInfo("Cancelled by user");
+                return false;
+            }
+
             var filePath = fm.CombinePath(newPath, bkp.Guid, item.Volume!.Name!, item.Name!);
             await fm.DeleteFile(filePath);
         }
