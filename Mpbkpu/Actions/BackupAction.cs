@@ -93,6 +93,7 @@ public class BackupAction : BaseAction
         if (filePath.Length > Console.WindowWidth - progress.Length - 1)
             filePath = $"...{ filePath.Substring(filePath.Length - (Console.WindowWidth - progress.Length) + 4) }";
         progress = $"{progress}{filePath}";
+
         Console.CursorLeft = 0;
         Console.Write(progress.PadRight(Console.WindowWidth - 1));
     }

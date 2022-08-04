@@ -26,9 +26,13 @@ public class VerifyJob: BaseJob
     #endregion
 
     #region delegates
-    public delegate void StepHandler(object sender, Steps step, string? Guid);
+    public delegate void StepHandler(object sender, Steps step);
 
     public event StepHandler? Step;
+
+    public delegate void ProgressHandler(object sender, int file, int totalFiles);
+
+    public event ProgressHandler? Progress;
     #endregion
 
     public VerifyJob(VerifyJobSettings? settings) :
@@ -53,7 +57,7 @@ public class VerifyJob: BaseJob
         LogInfo("Starting with settings:");
         LogInfo(JsonConvert.SerializeObject(Settings, Formatting.Indented));
 
-        Step?.Invoke(this, Steps.OpenDatabase, null);
+        Step?.Invoke(this, Steps.OpenDatabase);
         using (var openRes = await BackupFile.OpenBackupFile(Settings.BackupPath!)) {
             var backupFile = openRes.BackupFile;
             await backupFile.EmptyFiles();
@@ -62,19 +66,6 @@ public class VerifyJob: BaseJob
             try {
                 await RunPrimitive(backupFile);
                 await transaction.CommitAsync();
-
-                backupFile.Close();
-                // Copy temporary database file to destination
-                if (!string.IsNullOrEmpty(openRes.TempFilePath)) {
-                    var sourceFm = FileManagerFactory.GetFileManager(openRes.TempFilePath, out _);
-                    var destFm = FileManagerFactory.GetFileManager(Settings.BackupPath, out _);
-
-                    using (var sourceStream = await sourceFm.OpenFile(openRes.TempFilePath)) {
-                        using (var destStream = await destFm.OpenFile(openRes.BackupFilePath, true)) {
-                            await Utility.Files.Copy(sourceStream, destStream);
-                        }
-                    }
-                }
             } catch (Exception ex) {
                 await transaction.RollbackAsync();
                 LogError(ex);
@@ -96,31 +87,37 @@ public class VerifyJob: BaseJob
     /// <returns>True on success</returns>
     private async Task<bool> RunPrimitive(BackupFile backupFile)
     {
-        // Verify backup folders
-        var backups = backupFile.Backups.AsNoTracking()
-            .OrderBy(b => b.Id);
-        foreach (var backup in backups) {
-            var settings = JsonConvert.DeserializeObject<BackupJobSettings>(backup.Settings!);
-            if (settings == null)
-                throw new Exception($"Cannot read settings of backup with GUID {backup.Guid}");
-            var fm = FileManagerFactory.GetFileManager(settings.Destination, out var newPath);
+        var bkp = await backupFile.Backups.AsNoTracking()
+            .Where(b => b.Guid == Settings.BackupGuid)
+            .FirstOrDefaultAsync();
+        if (bkp == null)
+            throw new Exception($"Backup with GUID { Settings.BackupGuid } not found");
 
-            // Verify backup folder
-            if (!await fm.DirectoryExists(fm.CombinePath(newPath, backup.Guid))) {
 
-            }
+        // Verify backup folder
+        var settings = JsonConvert.DeserializeObject<BackupJobSettings>(bkp.Settings!);
+        if (settings == null)
+            throw new Exception("Cannot read backup settings");
+        var fm = FileManagerFactory.GetFileManager(settings.Destination, out var newPath);
 
-            // Verify backup items
-            Step?.Invoke(this, Steps.VerifyFiles, backup.Guid);
-            var items = backupFile.BackupItems.AsNoTracking()
-                .Include(i => i.Volume)
-                .Where(i => i.BackupId == backup.Id)
-                .OrderBy(i => i.Id);
+        // Verify backup folder
+        if (!await fm.DirectoryExists(fm.CombinePath(newPath, bkp.Guid))) {
 
-            var backupRoot = fm.CombinePath(newPath, backup.Guid);
-            foreach (var item in items) {
-                await VerifyBackupItem(fm, backupRoot, item);
-            }
+        }
+
+        // Verify backup items
+        Step?.Invoke(this, Steps.VerifyFiles);
+        var items = backupFile.BackupItems.AsNoTracking()
+            .Include(i => i.Volume)
+            .Where(i => i.BackupId == bkp.Id)
+            .OrderBy(i => i.Id);
+
+        var filesCount = await items.CountAsync();
+        int fileIdx = 0;
+        var backupRoot = fm.CombinePath(newPath, bkp.Guid);
+        foreach (var item in items) {
+            await VerifyBackupItem(fm, backupRoot, item);
+            Progress?.Invoke(this, ++fileIdx, filesCount);
         }
 
         return true;
@@ -135,6 +132,8 @@ public class VerifyJob: BaseJob
     {
         if (string.IsNullOrEmpty(Settings.BackupPath))
             throw new ArgumentNullException(nameof(Settings.BackupPath), "Backup path cannot be empty");
+        if (string.IsNullOrEmpty(Settings.BackupGuid))
+            throw new ArgumentNullException(nameof(Settings.BackupGuid), "Backup GUID cannot be empty");
     }
 
     private async Task<bool> VerifyBackupItem(IFileManager fm, string backupRoot, BackupItem item)

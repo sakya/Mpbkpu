@@ -61,7 +61,7 @@ public class Arguments : IOptions
     [Option("guid", ShortName = 'g',
         Required = true,
         Description = "The backup GUID",
-        OnlyForVerbs = "Delete;Restore")]
+        OnlyForVerbs = "Delete;Restore;Verify")]
     public string? BackupGuid { get; set; }
 
     [Option("loglevel", 'l',

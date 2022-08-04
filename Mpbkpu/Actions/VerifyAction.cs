@@ -15,11 +15,13 @@ public class VerifyAction : BaseAction
         {
             LogLevel = pArgs.LogLevel,
             BackupPath = pArgs.BackupPath,
+            BackupGuid = pArgs.BackupGuid
         };
 
         var job = new VerifyJob(settings);
         job.Step += OnStep;
         job.LogEmitted += OnLog;
+        job.Progress += OnProgress;
 
         var cts = new CancellationTokenSource();
         try {
@@ -41,7 +43,7 @@ public class VerifyAction : BaseAction
     }
 
     #region private operations
-    private void OnStep(object sender, VerifyJob.Steps step, string? guid)
+    private void OnStep(object sender, VerifyJob.Steps step)
     {
         Console.ForegroundColor = InfoColor;
         switch (step) {
@@ -49,7 +51,7 @@ public class VerifyAction : BaseAction
                 Console.WriteLine("Opening database");
                 break;
             case VerifyJob.Steps.VerifyFiles:
-                Console.WriteLine($"Verifying files of backup with GUID {guid}");
+                Console.WriteLine("Verifying files");
                 break;
         }
 
@@ -59,6 +61,15 @@ public class VerifyAction : BaseAction
     private void OnLog(object sender, BaseSettings.LogLevels level, string message)
     {
         WriteLog(level, message);
+    }
+
+    private void OnProgress(object sender, int file, int totalFiles)
+    {
+        var perc = file / (double)totalFiles * 100.0;
+        var progress = $"[{perc.ToString("0.0").PadLeft(5)}%]";
+
+        Console.CursorLeft = 0;
+        Console.Write(progress.PadRight(Console.WindowWidth - 1));
     }
     #endregion
 }
