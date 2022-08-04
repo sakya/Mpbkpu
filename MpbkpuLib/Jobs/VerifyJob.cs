@@ -5,6 +5,7 @@ using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
 using MpbkpuLib.Interfaces;
 using Newtonsoft.Json;
+using SMBLibrary.Authentication;
 using File = MpbkpuLib.DataModel.File;
 
 namespace MpbkpuLib.Jobs;
@@ -93,31 +94,39 @@ public class VerifyJob: BaseJob
         if (bkp == null)
             throw new Exception($"Backup with GUID { Settings.BackupGuid } not found");
 
+        if (bkp.Result != Backup.Results.Completed)
+            LogWarning($"Database result is { bkp.Result }");
 
-        // Verify backup folder
-        var settings = JsonConvert.DeserializeObject<BackupJobSettings>(bkp.Settings!);
-        if (settings == null)
-            throw new Exception("Cannot read backup settings");
-        var fm = FileManagerFactory.GetFileManager(settings.Destination, out var newPath);
-
-        // Verify backup folder
-        if (!await fm.DirectoryExists(fm.CombinePath(newPath, bkp.Guid))) {
-
-        }
-
-        // Verify backup items
-        Step?.Invoke(this, Steps.VerifyFiles);
         var items = backupFile.BackupItems.AsNoTracking()
             .Include(i => i.Volume)
             .Where(i => i.BackupId == bkp.Id)
             .OrderBy(i => i.Id);
 
         var filesCount = await items.CountAsync();
-        int fileIdx = 0;
+
+        LogInfo($"Type     : { bkp.Type }");
+        LogInfo($"Started  : { bkp.StartedAt!.Value.ToLocalTime().ToShortDateString() } { bkp.StartedAt!.Value.ToLocalTime().ToShortTimeString() }");
+        if (bkp.CompletedAt.HasValue)
+            LogInfo($"Completed: { bkp.CompletedAt!.Value.ToLocalTime().ToShortDateString() } { bkp.CompletedAt!.Value.ToLocalTime().ToShortTimeString() }");
+        LogInfo($"Size     : { Utility.String.BytesToString(await items.SumAsync(i => i.OriginalSize)) }");
+
+        var settings = JsonConvert.DeserializeObject<BackupJobSettings>(bkp.Settings!);
+        if (settings == null)
+            throw new Exception("Cannot read backup settings");
+        var fm = FileManagerFactory.GetFileManager(settings.Destination, out var newPath);
+
+        // Verify backup folder
         var backupRoot = fm.CombinePath(newPath, bkp.Guid);
-        foreach (var item in items) {
-            await VerifyBackupItem(fm, backupRoot, item);
-            Progress?.Invoke(this, ++fileIdx, filesCount);
+        if (!await fm.DirectoryExists(backupRoot)) {
+            LogWarning("Database folder does not exists");
+        } else {
+            // Verify backup items
+            Step?.Invoke(this, Steps.VerifyFiles);
+            int fileIdx = 0;
+            foreach (var item in items) {
+                await VerifyBackupItem(fm, backupRoot, item);
+                Progress?.Invoke(this, ++fileIdx, filesCount);
+            }
         }
 
         return true;

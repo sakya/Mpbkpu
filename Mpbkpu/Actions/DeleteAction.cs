@@ -61,7 +61,7 @@ public class DeleteAction : BaseAction
         if (_pArgs!.AlwaysYes == true)
             return Task.FromResult(true);
         Console.CursorVisible = true;
-        var res = Utility.Console.Confirm($"Delete backup with GUID {e.Guid} containing {e.FilesToDelete} files ({Utility.String.BytesToString(e.BytesToDelete)})?", false);
+        var res = Utility.Console.Confirm($"Delete backup with GUID {e.Guid} containing {e.FilesToDelete} files ({MpbkpuLib.Utility.String.BytesToString(e.BytesToDelete)})?", false);
         Console.CursorVisible = false;
         return Task.FromResult(res);
     }

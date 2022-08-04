@@ -1,4 +1,4 @@
-namespace Mpbkpu.Utility;
+namespace MpbkpuLib.Utility;
 
 public static class String
 {
