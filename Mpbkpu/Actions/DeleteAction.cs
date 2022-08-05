@@ -15,7 +15,8 @@ public class DeleteAction : BaseAction
         {
             LogLevel = pArgs.LogLevel,
             BackupPath = pArgs.BackupPath,
-            BackupGuid = pArgs.BackupGuid
+            BackupGuid = pArgs.BackupGuid,
+            EncryptPassword = pArgs.Password
         };
         var job = new DeleteJob(settings);
         job.Step += OnStep;

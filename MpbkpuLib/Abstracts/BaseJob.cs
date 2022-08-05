@@ -82,7 +82,7 @@ public abstract class BaseJob
 
     protected  void LogError(string message)
     {
-        Log(BaseSettings.LogLevels.Warning, message);
+        Log(BaseSettings.LogLevels.Error, message);
     }
 
     protected void LogError(Exception exception)
