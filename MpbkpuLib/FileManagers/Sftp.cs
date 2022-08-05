@@ -1,15 +1,14 @@
 using MpbkpuLib.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Net;
+using Renci.SshNet;
+using File = MpbkpuLib.DataModel.File;
 
 namespace MpbkpuLib.FileManagers
 {
     public class Sftp : IFileManager
     {
+        private SftpClient? _client;
+
         public string? Host { get; set; }
         public int Port { get; set; }
         public NetworkCredential? Credentials { get; set; }
@@ -73,39 +72,147 @@ namespace MpbkpuLib.FileManagers
             return $"{part1}{part2}{part3}{part4}";
         }
 
-        public IAsyncEnumerable<DataModel.File> GetDirectoryContent(string? path, bool includeHidden = true)
+        public async IAsyncEnumerable<File> GetDirectoryContent(string? path, bool includeHidden = true)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentNullException(path);
+
+            path = GetPath(path);
+            var client = GetClient();
+            foreach (var f in await Task.Run(() => client.ListDirectory(path))) {
+                var fInfo = new File()
+                {
+                    FullPath = $"sftp://{Host}{f.FullName}",
+                    Name = f.Name,
+                    Size = f.Length,
+                    LastModified = f.Attributes.LastWriteTime
+                };
+
+                if (f.Attributes.IsDirectory) {
+                    fInfo.Type = File.FileTyes.Directory;
+                } else if (f.Attributes.IsRegularFile) {
+                    fInfo.Type = File.FileTyes.File;
+                } else {
+                    continue;
+                }
+                yield return fInfo;
+            }
         }
 
-        public Task<bool> CreateDirectory(string? path)
+        public async Task<bool> CreateDirectory(string? path)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentNullException(path);
+
+            path = GetPath(path);
+            var client = GetClient();
+            if (await DirectoryExists(path))
+                throw new Exception($"Cannot create '{path}' because a directory with the same name already exists");
+            await Task.Run( () => client.CreateDirectory(path));
+            return true;
         }
 
-        public Task<bool> DeleteDirectory(string? path)
+        public async Task<bool> DeleteDirectory(string? path)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentNullException(path);
+
+            path = GetPath(path);
+            var client = GetClient();
+            var fi = await Task.Run( () => client.Get(path));
+            if (fi.Attributes.IsDirectory)
+                await Task.Run( () => client.DeleteDirectory(path));
+            else
+                return false;
+
+            return true;
         }
 
-        public Task<bool> DeleteFile(string? path)
+        public async Task<bool> DeleteFile(string? path)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentNullException(path);
+
+            path = GetPath(path);
+            var client = GetClient();
+            var fi = await Task.Run( () => client.Get(path));
+            if (fi.Attributes.IsRegularFile)
+                await Task.Run( () => client.DeleteFile(path));
+            else
+                return false;
+
+            return true;
         }
 
-        public Task<bool> DirectoryExists(string? path)
+        public async Task<bool> DirectoryExists(string? path)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentNullException(path);
+
+            path = GetPath(path);
+            var client = GetClient();
+            try {
+                var fi = await Task.Run(() => client.Get(path));
+                return fi.Attributes.IsDirectory;
+            } catch {
+                return false;
+            }
         }
 
-        public Task<bool> FileExists(string? path)
+        public async Task<bool> FileExists(string? path)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentNullException(path);
+
+            path = GetPath(path);
+            var client = GetClient();
+            try {
+                var fi = await Task.Run(() => client.Get(path));
+                return fi.Attributes.IsRegularFile;
+            } catch {
+                return false;
+            }
         }
 
-        public Task<Stream> OpenFile(string? filePath, bool write = false, long? size = null)
+        public async Task<Stream> OpenFile(string? filePath, bool write = false, long? size = null)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrEmpty(filePath))
+                throw new ArgumentNullException(filePath);
+
+            filePath = GetPath(filePath);
+            var client = GetClient();
+            if (write)
+                return await Task.Run( ()  => client.Open(filePath, FileMode.Create, FileAccess.Write));
+            return await Task.Run(() => client.Open(filePath, FileMode.Open, FileAccess.Read));
         }
+
+        #region private operations
+        private SftpClient GetClient()
+        {
+            if (_client == null) {
+                if (Credentials == null)
+                    throw new Exception($"Credentials cannot be null");
+
+                if (!string.IsNullOrEmpty(PrivateKeyFile)) {
+                    PrivateKeyFile[] pks = { new (PrivateKeyFile) };
+                    _client = new SftpClient(Host, Port, Credentials.UserName, pks);
+                } else {
+                    _client = new SftpClient(Host, Port, Credentials.UserName, Credentials.Password);
+                }
+            }
+
+            if (!_client.IsConnected)
+                _client.Connect();
+            return _client;
+        }
+
+        private string GetPath(string position)
+        {
+            if (position.StartsWith($"sftp://{Host}")) {
+                return position.Remove(0, $"sftp://{Host}".Length);
+            }
+            return position;
+        }
+        #endregion
     }
 }
