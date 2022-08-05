@@ -58,7 +58,7 @@ public class VerifyJob: BaseJob
         LogInfo(JsonConvert.SerializeObject(Settings, Formatting.Indented));
 
         Step?.Invoke(this, Steps.OpenDatabase);
-        using (var openRes = await BackupFile.OpenBackupFile(Settings.BackupPath!)) {
+        using (var openRes = await BackupFile.OpenBackupFile(Settings.BackupPath!, Settings.EncryptPassword)) {
             var backupFile = openRes.BackupFile;
             await backupFile.EmptyFiles();
             var transaction = backupFile.BeginTransaction();

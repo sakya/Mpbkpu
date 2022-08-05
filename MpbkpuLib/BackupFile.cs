@@ -1,11 +1,11 @@
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
-using Microsoft.Identity.Client;
 using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
 using MpbkpuLib.Jobs;
 using MpbkpuLib.Utility;
-using Newtonsoft.Json;
+using File = MpbkpuLib.DataModel.File;
 
 namespace MpbkpuLib;
 
@@ -33,7 +33,7 @@ public class BackupFile : IDisposable
         {
             BackupFile.Dispose();
             if (!string.IsNullOrEmpty(TempFilePath)) {
-                var fm = new MpbkpuLib.FileManagers.FileSystem();
+                var fm = new FileSystem();
                 fm.DeleteFile(TempFilePath).Wait();
             }
         }
@@ -92,7 +92,7 @@ public class BackupFile : IDisposable
         _context?.Dispose();
     }
 
-    public static async Task<OpenResult> OpenBackupFile(string backupPath, bool create = false)
+    public static async Task<OpenResult> OpenBackupFile(string backupPath, string? password = null, bool create = false)
     {
         var sourceFm = FileManagerFactory.GetFileManager(backupPath, out var newPath);
         if (!await sourceFm.DirectoryExists(backupPath))
@@ -101,13 +101,18 @@ public class BackupFile : IDisposable
         var backupDbPath = sourceFm.CombinePath(newPath, DefaultDatabaseFileName);
         string? tempDbPath = null;
         if (await sourceFm.FileExists(backupDbPath)) {
-            if (!sourceFm.CanOpenDatabase()) {
+            if (!string.IsNullOrEmpty(password) || !sourceFm.CanOpenDatabase()) {
                 // Copy database to temp file
                 tempDbPath = TempFile.GetTempFileName();
                 var tempFm = FileManagerFactory.GetFileManager(tempDbPath, out _);
                 using (var sourceStream = await sourceFm.OpenFile(backupDbPath)) {
                     using (var tempStream = await tempFm.OpenFile(tempDbPath, true)) {
-                        await Utility.Files.Copy(sourceStream, tempStream);
+                        if (string.IsNullOrEmpty(password))
+                            await Utility.Files.Copy(sourceStream, tempStream);
+                        else {
+                            var decrypt = new EncryptDecrypt(password);
+                            await decrypt.Decrypt(sourceStream, tempStream, true);
+                        }
                     }
                 }
             }
@@ -115,12 +120,18 @@ public class BackupFile : IDisposable
             if (!create)
                 throw new Exception($"Database file not found in {backupPath}");
 
-            if (!sourceFm.CanOpenDatabase())
+            if (!string.IsNullOrEmpty(password) || !sourceFm.CanOpenDatabase())
                 tempDbPath = TempFile.GetTempFileName();
         }
 
         var backupFile = new BackupFile();
-        await backupFile.Open(string.IsNullOrEmpty(tempDbPath) ? backupDbPath : tempDbPath);
+        try {
+            await backupFile.Open(string.IsNullOrEmpty(tempDbPath) ? backupDbPath : tempDbPath);
+        } catch (SqliteException) {
+            if (!string.IsNullOrEmpty(tempDbPath))
+                System.IO.File.Delete(tempDbPath);
+            throw new Exception("Failed to open the database (wrong password?)");
+        }
         return new OpenResult(backupFile, backupDbPath, tempDbPath);
     }
 

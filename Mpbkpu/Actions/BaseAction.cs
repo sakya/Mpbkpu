@@ -19,7 +19,7 @@ public abstract class BaseAction : IAction
 
     public abstract Task<bool> Run(Arguments pArgs);
 
-    protected async Task<BackupFile.OpenResult?> OpenBackup(string? backupPath)
+    protected async Task<BackupFile.OpenResult?> OpenBackup(string? backupPath, string? password)
     {
         if (string.IsNullOrEmpty(backupPath))
             throw new ArgumentException($"{nameof(backupPath)} cannot be empty", nameof(backupPath));
@@ -29,7 +29,7 @@ public abstract class BaseAction : IAction
         Console.ForegroundColor = DefaultColor;
         BackupFile.OpenResult? backupFile;
         try {
-            backupFile = await BackupFile.OpenBackupFile(backupPath);
+            backupFile = await BackupFile.OpenBackupFile(backupPath, password);
         } catch (Exception ex) {
             Console.ForegroundColor = ErrorColor;
             Console.WriteLine($"ERROR: {ex.Message}");

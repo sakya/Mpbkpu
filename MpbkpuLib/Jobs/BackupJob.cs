@@ -86,7 +86,7 @@ public class BackupJob : BaseJob
 
         Step?.Invoke(this, Steps.OpenDatabase);
         await CheckDestination();
-        using (var openRes = await BackupFile.OpenBackupFile(Settings.Destination!, true)) {
+        using (var openRes = await BackupFile.OpenBackupFile(Settings.Destination!, Settings.EncryptPassword, true)) {
             var backupFile = openRes.BackupFile;
             await backupFile.EmptyFiles();
             var transaction = backupFile.BeginTransaction();
@@ -97,16 +97,8 @@ public class BackupJob : BaseJob
 
                 backupFile.Close();
                 // Copy temporary database file to destination
-                if (!string.IsNullOrEmpty(openRes.TempFilePath)) {
-                    var sourceFm = FileManagerFactory.GetFileManager(openRes.TempFilePath, out _);
-                    var destFm = FileManagerFactory.GetFileManager(Settings.Destination, out _);
-
-                    using (var sourceStream = await sourceFm.OpenFile(openRes.TempFilePath)) {
-                        using (var destStream = await destFm.OpenFile(openRes.BackupFilePath, true)) {
-                            await Utility.Files.Copy(sourceStream, destStream);
-                        }
-                    }
-                }
+                if (!string.IsNullOrEmpty(openRes.TempFilePath))
+                    await CopyDatabaseToDestination(openRes, Settings.Destination, Settings.EncryptPassword);
             } catch (Exception ex) {
                 await transaction.RollbackAsync();
                 LogError(ex);

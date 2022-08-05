@@ -49,15 +49,6 @@ public class BackupJobSettings : BaseSettings
     public bool IncludeHiddenFiles { get; set; }
 
     /// <summary>
-    /// The password used to encrypt/decrypt the files
-    /// </summary>
-    public string? EncryptPassword { get; set; }
-    public bool ShouldSerializeEncryptPassword()
-    {
-        return false;
-    }
-
-    /// <summary>
     /// If set to true files are compressed during backup
     /// </summary>
     /// <value></value>

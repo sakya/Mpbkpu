@@ -59,7 +59,7 @@ public class DeleteJob : BaseJob
         LogInfo(JsonConvert.SerializeObject(Settings, Formatting.Indented));
 
         Step?.Invoke(this, Steps.OpenDatabase);
-        using (var openRes = await BackupFile.OpenBackupFile(Settings.BackupPath!)) {
+        using (var openRes = await BackupFile.OpenBackupFile(Settings.BackupPath!, Settings.EncryptPassword)) {
             var backupFile = openRes.BackupFile;
             await backupFile.EmptyFiles();
             var transaction = backupFile.BeginTransaction();
@@ -70,16 +70,8 @@ public class DeleteJob : BaseJob
 
                 backupFile.Close();
                 // Copy temporary database file to destination
-                if (!string.IsNullOrEmpty(openRes.TempFilePath)) {
-                    var sourceFm = FileManagerFactory.GetFileManager(openRes.TempFilePath, out _);
-                    var destFm = FileManagerFactory.GetFileManager(Settings.BackupPath, out _);
-
-                    using (var sourceStream = await sourceFm.OpenFile(openRes.TempFilePath)) {
-                        using (var destStream = await destFm.OpenFile(openRes.BackupFilePath, true)) {
-                            await Utility.Files.Copy(sourceStream, destStream);
-                        }
-                    }
-                }
+                if (!string.IsNullOrEmpty(openRes.TempFilePath))
+                    await CopyDatabaseToDestination(openRes, Settings.BackupPath, Settings.EncryptPassword);
             } catch (Exception ex) {
                 await transaction.RollbackAsync();
                 LogError(ex);

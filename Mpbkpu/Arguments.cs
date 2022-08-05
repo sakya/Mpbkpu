@@ -38,7 +38,7 @@ public class Arguments : IOptions
     public string? DestinationPath { get; set; }
 
     [Option("password", ShortName = 'p',
-        Description = "Password to encrypt/decrypt a backup/restore/delete/list")]
+        Description = "Password to encrypt/decrypt a backup")]
     public string? Password { get; set; }
 
     [Option("compress", ShortName = 'c',

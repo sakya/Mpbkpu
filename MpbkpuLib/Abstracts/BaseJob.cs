@@ -1,4 +1,7 @@
-﻿namespace MpbkpuLib.Abstracts;
+﻿using MpbkpuLib.FileManagers;
+using MpbkpuLib.Utility;
+
+namespace MpbkpuLib.Abstracts;
 
 public abstract class BaseJob
 {
@@ -41,6 +44,28 @@ public abstract class BaseJob
     /// Validate the job settings
     /// </summary>
     protected abstract void ValidateSettings();
+
+    protected async Task<bool> CopyDatabaseToDestination(BackupFile.OpenResult openRes, string? destination, string? password)
+    {
+        if (string.IsNullOrEmpty(destination))
+            throw new ArgumentNullException(nameof(destination));
+
+        var sourceFm = FileManagerFactory.GetFileManager(openRes.TempFilePath, out _);
+        var destFm = FileManagerFactory.GetFileManager(destination, out _);
+
+        using (var sourceStream = await sourceFm.OpenFile(openRes.TempFilePath)) {
+            using (var destStream = await destFm.OpenFile(openRes.BackupFilePath, true)) {
+                if (string.IsNullOrEmpty(password))
+                    await Files.Copy(sourceStream, destStream);
+                else {
+                    var encrypt = new EncryptDecrypt(password);
+                    await encrypt.Encrypt(sourceStream, destStream, true);
+                }
+            }
+        }
+
+        return true;
+    }
 
     protected void LogDebug(string message)
     {
