@@ -14,6 +14,11 @@ namespace MpbkpuLib.FileManagers
         private string? _accessToken = null;
         private string? _refreshToken = null;
 
+        public void Dispose()
+        {
+
+        }
+
         public bool CanOpenDatabase()
         {
             return false;
@@ -73,7 +78,7 @@ namespace MpbkpuLib.FileManagers
             return $"{part1}{part2}{part3}{part4}";
         }
 
-        public IAsyncEnumerable<DataModel.File> GetDirectoryContent(string? position, bool includeHidden = true)
+        public IAsyncEnumerable<DataModel.File> GetDirectoryContent(string? path, bool includeHidden = true)
         {
             throw new NotImplementedException();
         }

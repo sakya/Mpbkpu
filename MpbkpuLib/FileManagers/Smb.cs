@@ -14,6 +14,11 @@ namespace MpbkpuLib.FileManagers
         private string? _password = null;
         private string? _host = null;
 
+        public void Dispose()
+        {
+
+        }
+
         public Smb(string domainName, string username, string password, string host)
         {
             _domainName = domainName;
@@ -26,7 +31,7 @@ namespace MpbkpuLib.FileManagers
         {
             return false;
         }
-        
+
         public string CombinePath(string? part1, string part2)
         {
             if (string.IsNullOrEmpty(part1))
@@ -38,7 +43,7 @@ namespace MpbkpuLib.FileManagers
                 part1 = $"{part1}/";
             return $"{part1}{part2}";
         }
-        
+
         public string CombinePath(string? part1, string part2, string part3)
         {
             if (string.IsNullOrEmpty(part1))
@@ -51,7 +56,7 @@ namespace MpbkpuLib.FileManagers
             if (!part1.EndsWith("/"))
                 part1 = $"{part1}/";
             if (!part2.EndsWith("/"))
-                part2 = $"{part2}/";            
+                part2 = $"{part2}/";
             return $"{part1}{part2}{part3}";
         }
 
@@ -80,7 +85,7 @@ namespace MpbkpuLib.FileManagers
             get { return _host; }
         }
 
-        public IAsyncEnumerable<DataModel.File> GetDirectoryContent(string? position, bool includeHidden = true)
+        public IAsyncEnumerable<DataModel.File> GetDirectoryContent(string? path, bool includeHidden = true)
         {
             throw new NotImplementedException();
         }

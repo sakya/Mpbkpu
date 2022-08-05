@@ -226,7 +226,7 @@ public class BackupJob : BaseJob
         }
 
         // Create the backup folder
-        var destFm = FileManagerFactory.GetFileManager(Settings.Destination, out string destPath);
+        using var destFm = FileManagerFactory.GetFileManager(Settings.Destination, out string destPath);
         var backupDirectory = destFm.CombinePath(destPath, _backup.Guid);
         if (await destFm.DirectoryExists(backupDirectory))
             throw new Exception($"The backup destination {backupDirectory} exist");
@@ -300,7 +300,7 @@ public class BackupJob : BaseJob
     /// <returns>The path of the database file to use for this backup</returns>
     private async Task<bool> CheckDestination()
     {
-        var fm = FileManagerFactory.GetFileManager(Settings.Destination, out _);
+        using var fm = FileManagerFactory.GetFileManager(Settings.Destination, out _);
         if (!await fm.DirectoryExists(Settings.Destination))
             await fm.CreateDirectory(Settings.Destination);
 
@@ -336,7 +336,7 @@ public class BackupJob : BaseJob
         backupFile.BackupItems.Add(backupItem);
 
         string? destPath;
-        var destFm = FileManagerFactory.GetFileManager(Settings.Destination, out destPath);
+        using var destFm = FileManagerFactory.GetFileManager(Settings.Destination, out destPath);
         var destFilePath = destFm.CombinePath(destPath, _backup.Guid, backupItem.Volume!.Name!, backupItem.Name!);
         switch (sourceFile.Type) {
             case File.FileTyes.Directory:
@@ -345,26 +345,29 @@ public class BackupJob : BaseJob
                 }
                 break;
             case File.FileTyes.File:
-                var sourceFm = FileManagerFactory.GetFileManager(sourceFile.FullPath, out _);
-                LogDebug($"Backing up {sourceFile.FullPath} to {destFilePath}");
+                using (var sourceFm = FileManagerFactory.GetFileManager(sourceFile.FullPath, out _)) {
+                    LogDebug($"Backing up {sourceFile.FullPath} to {destFilePath}");
 
-                DateTime? lastFileProgress = null;
-                using (var sourceStream = await sourceFm.OpenFile(sourceFile.FullPath)) {
-                    using (var destStream = await destFm.OpenFile(destFilePath, true)) {
-                        var progressAction = new Action<long>((copied) =>
-                        {
-                            if (lastFileProgress == null || copied == sourceFile.Size || (DateTime.UtcNow - lastFileProgress.Value).TotalMilliseconds >= 500) {
-                                FileProgress?.Invoke(this, sourceFile.FullPath!, copied, sourceFile.Size);
-                                lastFileProgress = DateTime.UtcNow;
-                            }
-                        });
+                    DateTime? lastFileProgress = null;
+                    using (var sourceStream = await sourceFm.OpenFile(sourceFile.FullPath)) {
+                        using (var destStream = await destFm.OpenFile(destFilePath, true)) {
+                            var progressAction = new Action<long>((copied) =>
+                            {
+                                if (lastFileProgress == null || copied == sourceFile.Size ||
+                                    (DateTime.UtcNow - lastFileProgress.Value).TotalMilliseconds >= 500) {
+                                    FileProgress?.Invoke(this, sourceFile.FullPath!, copied, sourceFile.Size);
+                                    lastFileProgress = DateTime.UtcNow;
+                                }
+                            });
 
-                        if (encryptor != null)
-                            await encryptor.Encrypt(backupItem, sourceStream, destStream, Settings.Compress, progressAction);
-                        else if (Settings.Compress)
-                            await BackupFileFromSourceCompress(backupItem, sourceStream, destStream, progressAction);
-                        else
-                            await BackupFileFromSourceCopy(backupItem, sourceStream, destStream, progressAction);
+                            if (encryptor != null)
+                                await encryptor.Encrypt(backupItem, sourceStream, destStream, Settings.Compress,
+                                    progressAction);
+                            else if (Settings.Compress)
+                                await BackupFileFromSourceCompress(backupItem, sourceStream, destStream, progressAction);
+                            else
+                                await BackupFileFromSourceCopy(backupItem, sourceStream, destStream, progressAction);
+                        }
                     }
                 }
                 break;
@@ -481,7 +484,7 @@ public class BackupJob : BaseJob
             };
         }
         string? destPath;
-        var destFm = FileManagerFactory.GetFileManager(Settings.Destination, out destPath);
+        using var destFm = FileManagerFactory.GetFileManager(Settings.Destination, out destPath);
 
         var res = new BackupItem()
         {
@@ -507,7 +510,7 @@ public class BackupJob : BaseJob
             return true;
 
         LogDebug($"  {path}");
-        var fm = FileManagerFactory.GetFileManager(path, out string newPath);
+        using var fm = FileManagerFactory.GetFileManager(path, out string newPath);
         if (fm == null)
             throw new Exception($"Cannot create FileManager for path {path}");
 

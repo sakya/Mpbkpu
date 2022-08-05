@@ -50,18 +50,16 @@ public abstract class BaseJob
         if (string.IsNullOrEmpty(destination))
             throw new ArgumentNullException(nameof(destination));
 
-        var sourceFm = FileManagerFactory.GetFileManager(openRes.TempFilePath, out _);
-        var destFm = FileManagerFactory.GetFileManager(destination, out _);
+        using var sourceFm = FileManagerFactory.GetFileManager(openRes.TempFilePath, out _);
+        using var destFm = FileManagerFactory.GetFileManager(destination, out _);
+        await using var sourceStream = await sourceFm.OpenFile(openRes.TempFilePath);
+        await using var destStream = await destFm.OpenFile(openRes.BackupFilePath, true);
 
-        using (var sourceStream = await sourceFm.OpenFile(openRes.TempFilePath)) {
-            using (var destStream = await destFm.OpenFile(openRes.BackupFilePath, true)) {
-                if (string.IsNullOrEmpty(password))
-                    await Files.Copy(sourceStream, destStream);
-                else {
-                    var encrypt = new EncryptDecrypt(password);
-                    await encrypt.Encrypt(sourceStream, destStream, true);
-                }
-            }
+        if (string.IsNullOrEmpty(password))
+            await Files.Copy(sourceStream, destStream);
+        else {
+            var encrypt = new EncryptDecrypt(password);
+            await encrypt.Encrypt(sourceStream, destStream, true);
         }
 
         return true;

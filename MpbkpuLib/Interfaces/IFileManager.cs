@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace MpbkpuLib.Interfaces
 {
-    public interface IFileManager
+    public interface IFileManager : IDisposable
     {
         /// <summary>
         /// Return if the database can b directly opend in this file system
@@ -21,7 +21,7 @@ namespace MpbkpuLib.Interfaces
         public Task<bool> DeleteFile(string? path);
         public Task<bool> DirectoryExists(string? path);
         public Task<bool> FileExists(string? path);
-        public IAsyncEnumerable<DataModel.File> GetDirectoryContent(string? position, bool includeHidden = true);
+        public IAsyncEnumerable<DataModel.File> GetDirectoryContent(string? path, bool includeHidden = true);
         public Task<Stream> OpenFile(string? filePath, bool write = false, long? size = null);
 
     }

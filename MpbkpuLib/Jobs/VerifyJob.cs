@@ -112,7 +112,7 @@ public class VerifyJob: BaseJob
         var settings = JsonConvert.DeserializeObject<BackupJobSettings>(bkp.Settings!);
         if (settings == null)
             throw new Exception("Cannot read backup settings");
-        var fm = FileManagerFactory.GetFileManager(settings.Destination, out var newPath);
+        using var fm = FileManagerFactory.GetFileManager(settings.Destination, out var newPath);
 
         // Verify backup folder
         var backupRoot = fm.CombinePath(newPath, bkp.Guid);

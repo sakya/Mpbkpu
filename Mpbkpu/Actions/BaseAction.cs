@@ -28,6 +28,7 @@ public abstract class BaseAction : IAction
         Console.WriteLine("Opening database");
         Console.ForegroundColor = DefaultColor;
         BackupFile.OpenResult? backupFile;
+
         try {
             backupFile = await BackupFile.OpenBackupFile(backupPath, password);
         } catch (Exception ex) {

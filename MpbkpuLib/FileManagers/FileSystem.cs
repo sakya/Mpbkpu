@@ -9,6 +9,11 @@ namespace MpbkpuLib.FileManagers
 {
     public class FileSystem : IFileManager
     {
+        public void Dispose()
+        {
+
+        }
+
         public bool CanOpenDatabase()
         {
             return true;

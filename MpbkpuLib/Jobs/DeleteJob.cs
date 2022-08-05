@@ -121,7 +121,7 @@ public class DeleteJob : BaseJob
         // Delete files
         Step?.Invoke(this, Steps.DeleteFiles);
 
-        var fm = FileManagerFactory.GetFileManager(Settings.BackupPath, out var newPath);
+        using var fm = FileManagerFactory.GetFileManager(Settings.BackupPath, out var newPath);
         var items = backupFile.BackupItems.AsNoTracking()
             .Include(i => i.Volume)
             .Where(i => i.BackupId == bkp.Id);

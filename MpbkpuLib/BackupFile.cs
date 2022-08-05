@@ -94,9 +94,9 @@ public class BackupFile : IDisposable
 
     public static async Task<OpenResult> OpenBackupFile(string backupPath, string? password = null, bool create = false)
     {
-        var sourceFm = FileManagerFactory.GetFileManager(backupPath, out var newPath);
-        if (!await sourceFm.DirectoryExists(backupPath))
-            throw new Exception($"Directory {backupPath} does not exists");
+        using var sourceFm = FileManagerFactory.GetFileManager(backupPath, out var newPath);
+        if (!await sourceFm.DirectoryExists(newPath))
+            throw new Exception($"Directory {newPath} does not exists");
 
         var backupDbPath = sourceFm.CombinePath(newPath, DefaultDatabaseFileName);
         string? tempDbPath = null;
@@ -104,7 +104,7 @@ public class BackupFile : IDisposable
             if (!string.IsNullOrEmpty(password) || !sourceFm.CanOpenDatabase()) {
                 // Copy database to temp file
                 tempDbPath = TempFile.GetTempFileName();
-                var tempFm = FileManagerFactory.GetFileManager(tempDbPath, out _);
+                using var tempFm = FileManagerFactory.GetFileManager(tempDbPath, out _);
                 using (var sourceStream = await sourceFm.OpenFile(backupDbPath)) {
                     using (var tempStream = await tempFm.OpenFile(tempDbPath, true)) {
                         if (string.IsNullOrEmpty(password))
