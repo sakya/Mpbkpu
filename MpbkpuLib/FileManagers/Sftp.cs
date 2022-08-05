@@ -1,6 +1,7 @@
 using MpbkpuLib.Interfaces;
 using System.Net;
 using Renci.SshNet;
+using Renci.SshNet.Sftp;
 using File = MpbkpuLib.DataModel.File;
 
 namespace MpbkpuLib.FileManagers
@@ -79,7 +80,7 @@ namespace MpbkpuLib.FileManagers
 
             path = GetPath(path);
             var client = GetClient();
-            foreach (var f in await Task.Run(() => client.ListDirectory(path))) {
+            foreach (var f in await ListDirectoriesAsync(client, path)) {
                 var fInfo = new File()
                 {
                     FullPath = $"sftp://{Host}{f.FullName}",
@@ -212,6 +213,11 @@ namespace MpbkpuLib.FileManagers
                 return position.Remove(0, $"sftp://{Host}".Length);
             }
             return position;
+        }
+
+        private async Task<IEnumerable<SftpFile>> ListDirectoriesAsync(SftpClient client, string path)
+        {
+            return await Task.Factory.FromAsync<IEnumerable<SftpFile>>((callback, obj) => client.BeginListDirectory(path, callback, obj), client.EndListDirectory, null);
         }
         #endregion
     }

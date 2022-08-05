@@ -24,10 +24,10 @@ public class BackupAction : BaseAction
             LogFile = pArgs.LogFile
         };
 
-        Console.WriteLine($"Type      : { pArgs.BackupType }");
-        Console.Write("Compress  : ");
+        Console.WriteLine($"Type       : { pArgs.BackupType }");
+        Console.Write("Compression: ");
         WriteEnabled(pArgs.Compress);
-        Console.Write("Encryption: ");
+        Console.Write("Encryption : ");
         WriteEnabled(!string.IsNullOrEmpty(pArgs.Password));
         Console.WriteLine();
 
