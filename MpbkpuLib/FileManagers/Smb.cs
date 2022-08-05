@@ -1,18 +1,15 @@
+using EzSmb;
 using MpbkpuLib.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using File = MpbkpuLib.DataModel.File;
 
 namespace MpbkpuLib.FileManagers
 {
     public class Smb : IFileManager
     {
-        private string? _domainName = null;
-        private string? _username = null;
-        private string? _password = null;
-        private string? _host = null;
+        private readonly string? _domainName;
+        private readonly string? _username;
+        private readonly string? _password;
+        private readonly string? _host;
 
         public void Dispose()
         {
@@ -32,52 +29,20 @@ namespace MpbkpuLib.FileManagers
             return false;
         }
 
-        public string CombinePath(string? part1, string part2)
+        public string CombinePath(params string[] paths)
         {
-            if (string.IsNullOrEmpty(part1))
-                throw new ArgumentNullException(nameof(part1));
-            if (string.IsNullOrEmpty(part2))
-                throw new ArgumentNullException(nameof(part2));
+            string res = string.Empty;
+            foreach (var p in paths) {
+                if (string.IsNullOrEmpty(p))
+                    throw new Exception("Path cannot be empty");
 
-            if (!part1.EndsWith("/"))
-                part1 = $"{part1}/";
-            return $"{part1}{part2}";
-        }
+                var part = p;
+                if (!part.EndsWith("/"))
+                    part = $"{part}/";
+                res = $"{res}{part}";
+            }
 
-        public string CombinePath(string? part1, string part2, string part3)
-        {
-            if (string.IsNullOrEmpty(part1))
-                throw new ArgumentNullException(nameof(part1));
-            if (string.IsNullOrEmpty(part2))
-                throw new ArgumentNullException(nameof(part2));
-            if (string.IsNullOrEmpty(part3))
-                throw new ArgumentNullException(nameof(part3));
-
-            if (!part1.EndsWith("/"))
-                part1 = $"{part1}/";
-            if (!part2.EndsWith("/"))
-                part2 = $"{part2}/";
-            return $"{part1}{part2}{part3}";
-        }
-
-        public string CombinePath(string? part1, string part2, string part3, string part4)
-        {
-            if (string.IsNullOrEmpty(part1))
-                throw new ArgumentNullException(nameof(part1));
-            if (string.IsNullOrEmpty(part2))
-                throw new ArgumentNullException(nameof(part2));
-            if (string.IsNullOrEmpty(part3))
-                throw new ArgumentNullException(nameof(part3));
-            if (string.IsNullOrEmpty(part4))
-                throw new ArgumentNullException(nameof(part4));
-
-            if (!part1.EndsWith("/"))
-                part1 = $"{part1}/";
-            if (!part2.EndsWith("/"))
-                part2 = $"{part2}/";
-            if (!part3.EndsWith("/"))
-                part3 = $"{part3}/";
-            return $"{part1}{part2}{part3}{part4}";
+            return res;
         }
 
         public string? Host
@@ -85,34 +50,89 @@ namespace MpbkpuLib.FileManagers
             get { return _host; }
         }
 
-        public IAsyncEnumerable<DataModel.File> GetDirectoryContent(string? path, bool includeHidden = true)
+        public async IAsyncEnumerable<DataModel.File> GetDirectoryContent(string? path, bool includeHidden = true)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentNullException(path);
+
+            var dir = await Node.GetNode(GetPath(path), GetParamSet());
+            foreach (var node in await dir.GetList()) {
+                if (node.Name == ".." || node.Name == "." || node.Type != NodeType.Folder)
+                    continue;
+
+                var fInfo = new DataModel.File()
+                {
+                    FullPath = $"smb://{node.FullPath.Replace("\\", "/")}",
+                    Name = node.Name,
+                    Size = node.Size ?? 0,
+
+                    Created = node.Created,
+                    LastModified = node.Updated,
+                };
+
+                if (node.Type == NodeType.Folder) {
+                    fInfo.Type = File.FileTyes.Directory;
+                } else if (node.Type == NodeType.File) {
+                    fInfo.Type = File.FileTyes.File;
+                } else {
+                    continue;
+                }
+                yield return fInfo;
+            }
         }
 
-        public Task<bool> CreateDirectory(string? path)
+        public async Task<bool> CreateDirectory(string? path)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentNullException(path);
+
+            var node = await Node.GetNode(GetPath(path), GetParamSet());
+            if (node?.Type == NodeType.Folder)
+                throw new Exception($"Cannot create '{path}' because a directory with the same name already exists");
+
+            node =await Node.GetNode(GetParent(path), GetParamSet());
+            await node.CreateFolder(GetDirectoryName(path));
+            return true;
         }
 
-        public Task<bool> DeleteDirectory(string? path)
+        public async Task<bool> DeleteDirectory(string? path)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentNullException(path);
+
+            using var node = await Node.GetNode(GetPath(path), GetParamSet());
+            if (node.Type == NodeType.Folder)
+                return await node.Delete();
+            return false;
         }
 
-        public Task<bool> DeleteFile(string? path)
+        public async Task<bool> DeleteFile(string? path)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentNullException(path);
+
+            using var node = await Node.GetNode(GetPath(path), GetParamSet());
+            if (node.Type == NodeType.File)
+                return await node.Delete();
+            return false;
         }
 
-        public Task<bool> DirectoryExists(string? path)
+        public async Task<bool> DirectoryExists(string? path)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentNullException(path);
+
+            using var node = await Node.GetNode(GetPath(path), GetParamSet());
+            return node?.Type == NodeType.Folder;
         }
 
-        public Task<bool> FileExists(string? path)
+        public async Task<bool> FileExists(string? path)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentNullException(path);
+
+            using var node = await Node.GetNode(GetPath(path), GetParamSet());
+            return node?.Type == NodeType.File;
         }
 
         public Task<Stream> OpenFile(string? filePath, bool write = false, long? size = null)
@@ -138,6 +158,25 @@ namespace MpbkpuLib.FileManagers
                 return position.Remove(0, 6);
             return position;
         }
+
+        private string GetParent(string position)
+        {
+            position = GetPath(position);
+            int idx = position.LastIndexOf("/", StringComparison.InvariantCultureIgnoreCase);
+            if (idx > 0)
+                return position.Substring(0, idx);
+            throw new Exception($"Cannot get parent of {position}");
+        }
+
+        private string GetDirectoryName(string position)
+        {
+            position = GetPath(position);
+            int idx = position.LastIndexOf("/", StringComparison.InvariantCultureIgnoreCase);
+            if (idx > 0)
+                return position.Substring(idx);
+            throw new Exception($"Cannot get directory name of {position}");
+        }
+
         #endregion
     }
 }

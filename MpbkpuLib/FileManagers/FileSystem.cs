@@ -4,6 +4,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Graph;
+using Directory = System.IO.Directory;
+using File = System.IO.File;
 
 namespace MpbkpuLib.FileManagers
 {
@@ -19,38 +22,17 @@ namespace MpbkpuLib.FileManagers
             return true;
         }
 
-        public string CombinePath(string? part1, string part2)
+        public string CombinePath(params string[] paths)
         {
-            if (string.IsNullOrEmpty(part1))
-                throw new ArgumentNullException(nameof(part1));
-            if (string.IsNullOrEmpty(part2))
-                throw new ArgumentNullException(nameof(part2));
-            return Path.Combine(part1, part2);
-        }
+            string res = string.Empty;
+            foreach (var p in paths) {
+                if (string.IsNullOrEmpty(p))
+                    throw new Exception("Path cannot be empty");
 
-        public string CombinePath(string? part1, string part2, string part3)
-        {
-            if (string.IsNullOrEmpty(part1))
-                throw new ArgumentNullException(nameof(part1));
-            if (string.IsNullOrEmpty(part2))
-                throw new ArgumentNullException(nameof(part2));
-            if (string.IsNullOrEmpty(part3))
-                throw new ArgumentNullException(nameof(part3));
-            return Path.Combine(part1, part2, part3);
-        }
+                res = Path.Combine(res, p);
+            }
 
-        public string CombinePath(string? part1, string part2, string part3, string part4)
-        {
-            if (string.IsNullOrEmpty(part1))
-                throw new ArgumentNullException(nameof(part1));
-            if (string.IsNullOrEmpty(part2))
-                throw new ArgumentNullException(nameof(part2));
-            if (string.IsNullOrEmpty(part3))
-                throw new ArgumentNullException(nameof(part3));
-            if (string.IsNullOrEmpty(part4))
-                throw new ArgumentNullException(nameof(part4));
-
-            return Path.Combine(part1, part2, part3, part4);
+            return res;
         }
 
         public Task<bool> CreateDirectory(string? path)

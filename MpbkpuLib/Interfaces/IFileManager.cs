@@ -13,9 +13,7 @@ namespace MpbkpuLib.Interfaces
         /// </summary>
         /// <returns>True/False</returns>
         public bool CanOpenDatabase();
-        public string CombinePath(string? part1, string part2);
-        public string CombinePath(string? part1, string part2, string part3);
-        public string CombinePath(string? part1, string part2, string part3, string part4);
+        public string CombinePath(params string[] paths);
         public Task<bool> CreateDirectory(string? path);
         public Task<bool> DeleteDirectory(string? path);
         public Task<bool> DeleteFile(string? path);
