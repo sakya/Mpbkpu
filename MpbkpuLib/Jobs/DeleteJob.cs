@@ -10,7 +10,8 @@ public class DeleteJob : BaseJob
     public enum Steps
     {
         OpenDatabase,
-        DeleteFiles
+        DeleteFiles,
+        CopyDatabase
     }
 
     #region private members
@@ -70,8 +71,10 @@ public class DeleteJob : BaseJob
 
                 backupFile.Close();
                 // Copy temporary database file to destination
-                if (!string.IsNullOrEmpty(openRes.TempFilePath))
+                if (!string.IsNullOrEmpty(openRes.TempFilePath)) {
+                    Step?.Invoke(this, Steps.CopyDatabase);
                     await CopyDatabaseToDestination(openRes, Settings.BackupPath, Settings.EncryptPassword);
+                }
             } catch (Exception ex) {
                 await transaction.RollbackAsync();
                 LogError(ex);

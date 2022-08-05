@@ -18,7 +18,8 @@ public class BackupJob : BaseJob
         OpenDatabase,
         ReadSource,
         CalculateFilesToBackup,
-        BackupFiles
+        BackupFiles,
+        CopyDatabase
     }
 
     #region classes
@@ -97,8 +98,10 @@ public class BackupJob : BaseJob
 
                 backupFile.Close();
                 // Copy temporary database file to destination
-                if (!string.IsNullOrEmpty(openRes.TempFilePath))
+                if (!string.IsNullOrEmpty(openRes.TempFilePath)) {
+                    Step?.Invoke(this, Steps.CopyDatabase);
                     await CopyDatabaseToDestination(openRes, Settings.Destination, Settings.EncryptPassword);
+                }
             } catch (Exception ex) {
                 await transaction.RollbackAsync();
                 LogError(ex);

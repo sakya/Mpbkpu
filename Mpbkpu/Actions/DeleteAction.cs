@@ -51,6 +51,9 @@ public class DeleteAction : BaseAction
             case DeleteJob.Steps.DeleteFiles:
                 Console.WriteLine("Deleting files");
                 break;
+            case DeleteJob.Steps.CopyDatabase:
+                Console.WriteLine("Copying database file");
+                break;
         }
 
         Console.ForegroundColor = DefaultColor;

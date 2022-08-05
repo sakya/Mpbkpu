@@ -71,6 +71,12 @@ public class BackupAction : BaseAction
             case BackupJob.Steps.CalculateFilesToBackup:
                 Console.WriteLine("Calculating files to backup");
                 break;
+            case BackupJob.Steps.BackupFiles:
+                Console.WriteLine("Backing up files");
+                break;
+            case BackupJob.Steps.CopyDatabase:
+                Console.WriteLine("Copying database file");
+                break;
         }
 
         Console.ForegroundColor = DefaultColor;
