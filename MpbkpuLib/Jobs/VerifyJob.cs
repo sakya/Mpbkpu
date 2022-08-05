@@ -5,7 +5,6 @@ using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
 using MpbkpuLib.Interfaces;
 using Newtonsoft.Json;
-using SMBLibrary.Authentication;
 using File = MpbkpuLib.DataModel.File;
 
 namespace MpbkpuLib.Jobs;
@@ -121,12 +120,22 @@ public class VerifyJob: BaseJob
             LogWarning("Database folder does not exists");
         } else {
             // Verify backup items
+            int filesError = 0;
             Step?.Invoke(this, Steps.VerifyFiles);
             int fileIdx = 0;
             foreach (var item in items) {
-                await VerifyBackupItem(fm, backupRoot, item);
+                if (_cancellationToken?.IsCancellationRequested == true) {
+                    LogInfo("Cancelled by user");
+                    return false;
+                }
+
+                if (!await VerifyBackupItem(fm, backupRoot, item))
+                    filesError++;
                 Progress?.Invoke(this, ++fileIdx, filesCount);
             }
+
+            if (filesError > 0)
+                LogWarning($"Errors: {filesError}");
         }
 
         return true;
@@ -150,19 +159,22 @@ public class VerifyJob: BaseJob
         var filePath = fm.CombinePath(backupRoot, item.Volume!.Name!, item.Name!);
         if (!await fm.FileExists(filePath)) {
             LogWarning($"File {filePath} not found");
-        } else {
-            // Check MD5
-            if (item.Type == File.FileTyes.File) {
-                if (string.IsNullOrEmpty(item.MD5))
-                    LogWarning($"Missing MD5 for file {item.OriginalPath}");
-                else {
-                    using (var source = await fm.OpenFile(filePath, false)) {
-                        using (var hasher = MD5.Create()) {
-                            var hash = await hasher.ComputeHashAsync(source);
-                            var md5 = BitConverter.ToString(hasher.Hash!).Replace("-", "").ToLowerInvariant();
-                            if (md5 != item.MD5) {
-                                LogWarning($"MD5 mismatch for file {item.OriginalPath}");
-                            }
+            return false;
+        }
+
+        // Check MD5
+        if (item.Type == File.FileTyes.File) {
+            if (string.IsNullOrEmpty(item.MD5)) {
+                LogWarning($"Missing MD5 for file {item.OriginalPath}");
+                return false;
+            } else {
+                using (var source = await fm.OpenFile(filePath)) {
+                    using (var hasher = MD5.Create()) {
+                        var hash = await hasher.ComputeHashAsync(source);
+                        var md5 = BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+                        if (md5 != item.MD5) {
+                            LogWarning($"MD5 mismatch for file {item.OriginalPath}");
+                            return false;
                         }
                     }
                 }
