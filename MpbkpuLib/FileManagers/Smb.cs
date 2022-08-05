@@ -119,5 +119,25 @@ namespace MpbkpuLib.FileManagers
         {
             throw new NotImplementedException();
         }
+
+        #region private operations
+        private EzSmb.Params.ParamSet GetParamSet()
+        {
+            return new EzSmb.Params.ParamSet()
+            {
+                DomainName = _domainName,
+                UserName = _username,
+                Password = _password,
+                SmbType = EzSmb.Params.Enums.SmbType.Smb2
+            };
+        }
+
+        private string GetPath(string position)
+        {
+            if (position.StartsWith("smb://"))
+                return position.Remove(0, 6);
+            return position;
+        }
+        #endregion
     }
 }
