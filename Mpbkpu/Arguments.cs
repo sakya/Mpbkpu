@@ -38,8 +38,13 @@ public class Arguments : IOptions
     public string? DestinationPath { get; set; }
 
     [Option("password", ShortName = 'p',
+        MutuallyExclusive = "password",
         Description = "Password to encrypt/decrypt a backup")]
     public string? Password { get; set; }
+    [Option("interactive", ShortName = 'i',
+        MutuallyExclusive = "password",
+        Description = "Ask for password")]
+    public bool? InteractivePassword { get; set; }
 
     [Option("compress", ShortName = 'c',
         Description = "If set the files are compressed during backup",

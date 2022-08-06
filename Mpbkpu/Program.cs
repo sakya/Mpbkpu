@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using CmdLineArgsParser;
+using Microsoft.Graph;
 using Mpbkpu.Actions;
 using MpbkpuLib.Utility;
 
@@ -39,6 +40,12 @@ public static class Program
             Console.WriteLine();
             PrintHelp();
             return -1;
+        }
+
+        // Ask for password
+        if (pArgs.InteractivePassword == true) {
+            Console.Write(("Password: "));
+            pArgs.Password = Utility.Console.AskPassword();
         }
 
         IAction? action = null;

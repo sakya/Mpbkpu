@@ -42,4 +42,28 @@ public static class Console
 
         return res.Value;
     }
+
+    public static string? AskPassword()
+    {
+        string? password = null;
+        bool done = false;
+        while (!done) {
+            var key = System.Console.ReadKey(true);
+            switch (key.Key) {
+                case ConsoleKey.Enter:
+                    done = true;
+                    break;
+                case ConsoleKey.Backspace:
+                    if (password?.Length > 0)
+                        password = password.Remove(password.Length - 1, 1);
+                    break;
+                default:
+                    if (key.KeyChar != '\0')
+                        password = $"{password}{key.KeyChar}";
+                    break;
+            }
+        }
+
+        return password;
+    }
 }
