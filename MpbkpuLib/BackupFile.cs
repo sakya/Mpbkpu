@@ -105,15 +105,13 @@ public class BackupFile : IDisposable
                 // Copy database to temp file
                 tempDbPath = TempFile.GetTempFileName();
                 using var tempFm = FileManagerFactory.GetFileManager(tempDbPath, out _);
-                using (var sourceStream = await sourceFm.OpenFile(backupDbPath)) {
-                    using (var tempStream = await tempFm.OpenFile(tempDbPath, true)) {
-                        if (string.IsNullOrEmpty(password))
-                            await Utility.Files.Copy(sourceStream, tempStream);
-                        else {
-                            var decrypt = new EncryptDecrypt(password);
-                            await decrypt.Decrypt(sourceStream, tempStream, true);
-                        }
-                    }
+                await using var sourceStream = await sourceFm.OpenFile(backupDbPath);
+                await using var tempStream = await tempFm.OpenFile(tempDbPath, true);
+                if (string.IsNullOrEmpty(password))
+                    await Utility.Files.Copy(sourceStream, tempStream);
+                else {
+                    var decrypt = new EncryptDecrypt(password);
+                    await decrypt.Decrypt(sourceStream, tempStream, true);
                 }
             }
         } else {

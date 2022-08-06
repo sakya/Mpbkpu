@@ -76,7 +76,12 @@ namespace MpbkpuLib.FileManagers
             throw new NotImplementedException();
         }
 
-        public Task<Stream> OpenFile(string? filePath, bool write = false, long? size = null)
+        public Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<bool> CloseFile(Stream stream)
         {
             throw new NotImplementedException();
         }

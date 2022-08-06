@@ -143,7 +143,7 @@ namespace MpbkpuLib.FileManagers
             }
         }
 
-        public async Task<Stream> OpenFile(string? filePath, bool write = false, long? size = null)
+        public async Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null)
         {
             if (string.IsNullOrEmpty(filePath))
                 throw new ArgumentNullException(filePath);
@@ -151,8 +151,14 @@ namespace MpbkpuLib.FileManagers
             filePath = GetPath(filePath);
             var client = GetClient();
             if (write)
-                return await Task.Run( ()  => client.Open(filePath, FileMode.Create, FileAccess.Write));
-            return await Task.Run(() => client.Open(filePath, FileMode.Open, FileAccess.Read));
+                return await Task.Run( ()  => new FileSystemStream(this, client.Open(filePath, FileMode.Create, FileAccess.Write)));
+            return await Task.Run(() => new FileSystemStream(this, client.Open(filePath, FileMode.Open, FileAccess.Read)));
+        }
+
+        public Task<bool> CloseFile(Stream stream)
+        {
+            stream.Close();
+            return Task.FromResult(true);
         }
 
         #region private operations

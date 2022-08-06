@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MpbkpuLib.FileManagers;
 
 namespace MpbkpuLib.Interfaces
 {
@@ -20,7 +21,8 @@ namespace MpbkpuLib.Interfaces
         public Task<bool> DirectoryExists(string? path);
         public Task<bool> FileExists(string? path);
         public IAsyncEnumerable<DataModel.File> GetDirectoryContent(string? path, bool includeHidden = true);
-        public Task<Stream> OpenFile(string? filePath, bool write = false, long? size = null);
+        public Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null);
+        public Task<bool> CloseFile(Stream stream);
 
     }
 }

@@ -135,9 +135,15 @@ namespace MpbkpuLib.FileManagers
             return node?.Type == NodeType.File;
         }
 
-        public Task<Stream> OpenFile(string? filePath, bool write = false, long? size = null)
+        public Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null)
         {
             throw new NotImplementedException();
+        }
+
+        public Task<bool> CloseFile(Stream stream)
+        {
+            stream.Close();
+            return Task.FromResult(true);
         }
 
         #region private operations

@@ -125,7 +125,7 @@ namespace MpbkpuLib.FileManagers
             return Task.FromResult(File.Exists(path));
         }
 
-        public Task<Stream> OpenFile(string? filePath, bool write = false, long? size = null)
+        public Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null)
         {
             if (string.IsNullOrEmpty(filePath))
                 throw new ArgumentNullException(filePath);
@@ -134,7 +134,13 @@ namespace MpbkpuLib.FileManagers
                 res = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             else
                 res = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
-            return Task.FromResult(res);
+            return Task.FromResult(new FileSystemStream(this, res));
         } // OpenFile
+
+        public Task<bool> CloseFile(Stream stream)
+        {
+            stream.Close();
+            return Task.FromResult(true);
+        }
     }
 }

@@ -133,7 +133,7 @@ namespace MpbkpuLib.FileManagers
             return await client.FileExistsAsync(path);
         }
 
-        public async Task<Stream> OpenFile(string? filePath, bool write = false, long? size = null)
+        public async Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null)
         {
             if (string.IsNullOrEmpty(filePath))
                 throw new ArgumentNullException(filePath);
@@ -146,7 +146,18 @@ namespace MpbkpuLib.FileManagers
             else
                 res = await client.OpenWriteAsync(filePath);
 
-            return res;
+            return new FileSystemStream(this, res);
+        }
+
+        public async Task<bool> CloseFile(Stream stream)
+        {
+            stream.Close();
+            if (stream.CanWrite) {
+                var client = GetClient();
+                await client.GetReplyAsync(default);
+            }
+
+            return true;
         }
 
         #region private operations

@@ -372,6 +372,7 @@ public class BackupJob : BaseJob
                 }
                 break;
         }
+
         await backupFile.SaveChangesAsync();
         return true;
     }
