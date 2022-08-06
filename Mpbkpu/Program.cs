@@ -1,8 +1,6 @@
 ﻿using System.Reflection;
 using CmdLineArgsParser;
-using Microsoft.Graph;
 using Mpbkpu.Actions;
-using MpbkpuLib.Utility;
 
 namespace Mpbkpu;
 
@@ -10,7 +8,10 @@ public static class Program
 {
     private static void PrintInfo()
     {
-        Console.WriteLine($"Multi Platform Backup Utility v{Assembly.GetExecutingAssembly().GetName().Version?.ToString()}");
+        var ea = Assembly.GetExecutingAssembly();
+        Console.WriteLine($"Multi Platform Backup Utility v{ea.GetName().Version?.ToString()}");
+        if (ea.GetCustomAttribute(typeof(AssemblyCopyrightAttribute)) is AssemblyCopyrightAttribute ca)
+            Console.WriteLine(ca.Copyright);
         Console.WriteLine();
     }
 
@@ -21,7 +22,7 @@ public static class Program
 
         Console.WriteLine();
         Console.WriteLine("Examples:");
-        Console.WriteLine("mpbkpu backup --source /home/user/ --dest /mnt/backup/");
+        Console.WriteLine("mpbkpu backup --source /home/user/ --destination /mnt/backup/");
     }
 
     public static int Main(string[] args)
@@ -48,24 +49,15 @@ public static class Program
             pArgs.Password = Utility.Console.AskPassword();
         }
 
-        IAction? action = null;
-        switch (pArgs.Action) {
-            case Arguments.Actions.Backup:
-                action = new BackupAction();
-                break;
-            case Arguments.Actions.Delete:
-                action = new DeleteAction();
-                break;
-            case Arguments.Actions.List:
-                action = new ListAction();
-                break;
-            case Arguments.Actions.Restore:
-                action = new RestoreAction();
-                break;
-            case Arguments.Actions.Verify:
-                action = new VerifyAction();
-                break;
-        }
+        IAction? action = pArgs.Action switch
+        {
+            Arguments.Actions.Backup => new BackupAction(),
+            Arguments.Actions.Delete => new DeleteAction(),
+            Arguments.Actions.List => new ListAction(),
+            Arguments.Actions.Restore => new RestoreAction(),
+            Arguments.Actions.Verify => new VerifyAction(),
+            _ => null
+        };
 
         if (action != null) {
             try {
@@ -74,7 +66,7 @@ public static class Program
                 Console.ResetColor();
             }
         } else {
-            throw new Exception("Action non initialized");
+            throw new Exception("Action not initialized");
         }
 
         return 0;

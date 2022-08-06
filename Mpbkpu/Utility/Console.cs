@@ -64,6 +64,7 @@ public static class Console
             }
         }
 
+        System.Console.WriteLine();
         return password;
     }
 }

@@ -12,7 +12,7 @@ public class Arguments : IOptions
     {
         [Description("Backup files")]
         Backup,
-        [Description("Restore files")]
+        [Description("Restore files from a backup")]
         Restore,
         [Description("List backups")]
         List,
