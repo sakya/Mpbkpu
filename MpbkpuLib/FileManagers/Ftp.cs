@@ -151,8 +151,10 @@ namespace MpbkpuLib.FileManagers
 
         public async Task<bool> CloseFile(Stream stream)
         {
+            bool canWrite = stream.CanWrite;
             stream.Close();
-            if (stream.CanWrite) {
+
+            if (canWrite) {
                 var client = GetClient();
                 await client.GetReplyAsync(default);
             }
