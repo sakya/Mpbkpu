@@ -92,7 +92,7 @@ public class DeleteJob : BaseJob
     /// </summary>
     /// <param name="backupFile">The <see cref="BackupFile"/> to use</param>
     /// <returns>True on success</returns>
-    private async Task<bool> RunPrimitive(BackupFile backupFile)
+    private async Task RunPrimitive(BackupFile backupFile)
     {
         var bkp = await backupFile.Backups.AsNoTracking()
             .Where(b => b.Guid == Settings.BackupGuid)
@@ -114,7 +114,7 @@ public class DeleteJob : BaseJob
         if (ConfirmDelete != null) {
             if (!await ConfirmDelete.Invoke(this, cArgs)) {
                 LogInfo("Cancelled by user");
-                return false;
+                return;
             }
         }
 
@@ -128,7 +128,7 @@ public class DeleteJob : BaseJob
         foreach (var item in items) {
             if (_cancellationToken?.IsCancellationRequested == true) {
                 LogInfo("Cancelled by user");
-                return false;
+                return;
             }
 
             var filePath = fm.CombinePath(newPath, bkp.Guid, item.Volume!.Name!, item.Name!);
@@ -142,8 +142,6 @@ public class DeleteJob : BaseJob
         var bkpPath = fm.CombinePath(newPath, bkp.Guid);
         if (await fm.DirectoryExists(bkpPath))
             await fm.DeleteDirectory(bkpPath);
-
-        return true;
     }
 
     /// <summary>

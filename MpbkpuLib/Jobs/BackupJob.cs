@@ -13,6 +13,8 @@ namespace MpbkpuLib.Jobs;
 /// </summary>
 public class BackupJob : BaseJob
 {
+    private bool _userCancelled;
+
     public enum Steps
     {
         OpenDatabase,
@@ -97,10 +99,13 @@ public class BackupJob : BaseJob
                 await transaction.CommitAsync();
 
                 backupFile.Close();
-                // Copy temporary database file to destination
-                if (!string.IsNullOrEmpty(openRes.TempFilePath)) {
-                    Step?.Invoke(this, Steps.CopyDatabase);
-                    await CopyDatabaseToDestination(openRes, Settings.Destination, Settings.EncryptPassword);
+
+                if (!_userCancelled) {
+                    // Copy temporary database file to destination
+                    if (!string.IsNullOrEmpty(openRes.TempFilePath)) {
+                        Step?.Invoke(this, Steps.CopyDatabase);
+                        await CopyDatabaseToDestination(openRes, Settings.Destination, Settings.EncryptPassword);
+                    }
                 }
             } catch (Exception ex) {
                 await transaction.RollbackAsync();
@@ -119,7 +124,7 @@ public class BackupJob : BaseJob
     /// </summary>
     /// <param name="backupFile">The <see cref="BackupFile"/> to use</param>
     /// <returns>True on success</returns>
-    private async Task<bool> RunPrimitive(BackupFile backupFile)
+    private async Task RunPrimitive(BackupFile backupFile)
     {
         _lastUsedVolume = null;
         Backup? lastBackup = await backupFile.LastBackup();
@@ -158,13 +163,13 @@ public class BackupJob : BaseJob
             LogError("Failed to read source");
             if (!await SetBackupResult(backupFile, Backup.Results.Error))
                 LogWarning("Cannot set backup result");
-            return false;
+            return;
         }
         if (_cancellationToken?.IsCancellationRequested == true) {
             LogInfo("Cancelled by user");
             if (!await SetBackupResult(backupFile, Backup.Results.Cancelled))
                 LogWarning("Cannot set backup result");
-            return false;
+            return;
         }
         await backupFile.SaveChangesAsync();
 
@@ -218,10 +223,11 @@ public class BackupJob : BaseJob
         };
         if (ConfirmBackup != null) {
             if (!await ConfirmBackup.Invoke(this, cArgs)) {
+                _userCancelled = true;
                 LogInfo("Cancelled by user");
                 if (!await SetBackupResult(backupFile, Backup.Results.Cancelled))
                     LogWarning("Cannot set backup result");
-                return false;
+                return;
             }
         }
 
@@ -248,7 +254,7 @@ public class BackupJob : BaseJob
                 LogInfo("Cancelled by user");
                 if (!await SetBackupResult(backupFile, Backup.Results.Cancelled))
                     LogWarning("Cannot set backup result");
-                return false;
+                return;
             }
 
             if (fileToBackup.FileAction == File.FileActions.Backup) {
@@ -267,7 +273,6 @@ public class BackupJob : BaseJob
         await backupFile.SaveChangesAsync();
         await backupFile.EmptyFiles();
         LogInfo("Completed");
-        return true;
     }
 
     /// <summary>
@@ -298,13 +303,11 @@ public class BackupJob : BaseJob
     /// Search for an existing backup.
     /// </summary>
     /// <returns>The path of the database file to use for this backup</returns>
-    private async Task<bool> CheckDestination()
+    private async Task CheckDestination()
     {
         using var fm = FileManagerFactory.GetFileManager(Settings.Destination, out _);
         if (!await fm.DirectoryExists(Settings.Destination))
             await fm.CreateDirectory(Settings.Destination);
-
-        return true;
     }
 
     /// <summary>
@@ -377,7 +380,7 @@ public class BackupJob : BaseJob
         return true;
     }
 
-    private async Task<bool> BackupFileFromSourceCopy(BackupItem backupItem, Stream sourceStream, Stream destStream, Action<long>? progressAction = null)
+    private async Task BackupFileFromSourceCopy(BackupItem backupItem, Stream sourceStream, Stream destStream, Action<long>? progressAction = null)
     {
         using (var hasher = MD5.Create()) {
             using (CryptoStream hashStream = new CryptoStream(destStream, hasher, CryptoStreamMode.Write, true)) {
@@ -394,11 +397,9 @@ public class BackupJob : BaseJob
             backupItem.Size = destStream.Position;
             backupItem.MD5 = BitConverter.ToString(hasher.Hash!).Replace("-", "").ToLowerInvariant();
         }
-
-        return true;
     }
 
-    private async Task<bool> BackupFileFromSourceCompress(BackupItem backupItem, Stream sourceStream, Stream destStream, Action<long>? progressAction = null)
+    private async Task BackupFileFromSourceCompress(BackupItem backupItem, Stream sourceStream, Stream destStream, Action<long>? progressAction = null)
     {
         using (var hasher = MD5.Create()) {
             using (CryptoStream hashStream = new CryptoStream(destStream, hasher, CryptoStreamMode.Write, true)) {
@@ -417,11 +418,9 @@ public class BackupJob : BaseJob
             backupItem.Size = destStream.Position;
             backupItem.MD5 = BitConverter.ToString(hasher.Hash!).Replace("-", "").ToLowerInvariant();
         }
-
-        return true;
     }
 
-    private async Task<bool> DeleteItem(BackupFile? backupFile, File? sourceFile)
+    private async Task DeleteItem(BackupFile? backupFile, File? sourceFile)
     {
         if (backupFile == null)
             throw new ArgumentNullException(nameof(backupFile));
@@ -444,7 +443,6 @@ public class BackupJob : BaseJob
         };
         backupFile.BackupItems.Add(item);
         await backupFile.SaveChangesAsync();
-        return true;
     }
 
     /// <summary>
