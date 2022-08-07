@@ -11,7 +11,7 @@ namespace MpbkpuLib.Utility
     /// </summary>
     internal class EncryptDecrypt
     {
-        private const string Header = "MPBKPU_ENCRYPTED";
+        public const string Header = "MPBKPU_ENCRYPTED";
         private static byte[]? _keyBytes;
 
         public EncryptDecrypt(string? key)

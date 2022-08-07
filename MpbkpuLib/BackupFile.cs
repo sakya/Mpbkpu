@@ -1,3 +1,4 @@
+using System.Text;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -99,7 +100,21 @@ public class BackupFile : IDisposable
 
         var backupDbPath = sourceFm.CombinePath(newPath, DefaultDatabaseFileName);
         string? tempDbPath = null;
+        bool encrypted = false;
         if (await sourceFm.FileExists(backupDbPath)) {
+            // Check header
+            using (var sourceStream = await sourceFm.OpenFile(backupDbPath)) {
+                var header = new byte[EncryptDecrypt.Header.Length];
+                await sourceStream.ReadAsync(header);
+                encrypted = Encoding.ASCII.GetString(header) == EncryptDecrypt.Header;
+                switch (encrypted) {
+                    case true when string.IsNullOrEmpty(password):
+                        throw new Exception("This backup is encrypted");
+                    case false when !string.IsNullOrEmpty(password):
+                        throw new Exception("This backup is not encrypted");
+                }
+            }
+
             if (!string.IsNullOrEmpty(password) || !sourceFm.CanOpenDatabase()) {
                 // Copy database to temp file
                 tempDbPath = TempFile.GetTempFileName();
@@ -127,7 +142,9 @@ public class BackupFile : IDisposable
         } catch (SqliteException) {
             if (!string.IsNullOrEmpty(tempDbPath))
                 System.IO.File.Delete(tempDbPath);
-            throw new Exception("Failed to open the database (wrong password?)");
+            if (encrypted)
+                throw new Exception("Failed to open the database (wrong password)");
+            throw new Exception("Failed to open the database");
         }
         return new OpenResult(backupFile, backupDbPath, tempDbPath);
     }
