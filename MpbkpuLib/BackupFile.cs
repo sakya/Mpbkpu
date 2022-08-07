@@ -1,6 +1,8 @@
 using System.Text;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage;
 using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
@@ -157,13 +159,24 @@ public class BackupFile : IDisposable
         // Pooling=false is required to delete the file after close
         var sqliteBuilder = new DbContextOptionsBuilder().UseSqlite($"Data Source={path};Pooling=false");
         _context = new Context.BackupContext(sqliteBuilder.Options);
-        await _context!.Database.EnsureCreatedAsync();
+        await MigrateIfNeeded();
     }
 
     public void Close()
     {
         _context?.Dispose();
         _context = null;
+    }
+
+    private async Task MigrateIfNeeded()
+    {
+        _context!.Database.SetCommandTimeout(1800000);
+        var needMigration = _context.Database.GetPendingMigrations().Any();
+        if (needMigration) {
+            await _context.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = OFF;");
+            await _context.Database.MigrateAsync();
+            await _context.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = ON;");
+        }
     }
 
     public IDbContextTransaction BeginTransaction()
