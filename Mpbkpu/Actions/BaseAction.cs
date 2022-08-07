@@ -25,7 +25,7 @@ public abstract class BaseAction : IAction
             throw new ArgumentException($"{nameof(backupPath)} cannot be empty", nameof(backupPath));
 
         Console.ForegroundColor = InfoColor;
-        Console.WriteLine("Opening database");
+        Console.WriteLine("Opening backup");
         Console.ForegroundColor = DefaultColor;
         BackupFile.OpenResult? backupFile;
 
@@ -45,20 +45,14 @@ public abstract class BaseAction : IAction
 
     protected void WriteLog(BaseSettings.LogLevels level, string message)
     {
-        switch (level) {
-            case BaseSettings.LogLevels.Debug:
-                Console.ForegroundColor = ConsoleColor.DarkGray;
-                break;
-            case BaseSettings.LogLevels.Info:
-                Console.ForegroundColor = ConsoleColor.White;
-                break;
-            case BaseSettings.LogLevels.Warning:
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                break;
-            case BaseSettings.LogLevels.Error:
-                Console.ForegroundColor = ConsoleColor.Red;
-                break;
-        }
+        Console.ForegroundColor = level switch
+        {
+            BaseSettings.LogLevels.Debug => ConsoleColor.DarkGray,
+            BaseSettings.LogLevels.Info => ConsoleColor.White,
+            BaseSettings.LogLevels.Warning => ConsoleColor.Yellow,
+            BaseSettings.LogLevels.Error => ConsoleColor.Red,
+            _ => Console.ForegroundColor
+        };
         Console.WriteLine(message);
         Console.ForegroundColor = DefaultColor;
     }

@@ -67,9 +67,9 @@ namespace MpbkpuLib.FileManagers
                 _bufferSema.Wait();
                 int readCount = 0;
                 for (int i = 0; i < count; i++) {
-                    if (this._buffer.Count > 0) {
-                        buffer[offset + i] = this._buffer[0];
-                        this._buffer.RemoveAt(0);
+                    if (_buffer.Count > 0) {
+                        buffer[offset + i] = _buffer[0];
+                        _buffer.RemoveAt(0);
 
                         _pos++;
                         readCount++;
@@ -109,12 +109,12 @@ namespace MpbkpuLib.FileManagers
                 if (_writeTask == null)
                     _writeTask = _node.Write(this, _fileName);
 
-                while(this._buffer.Count >= _cacheSize)
+                while(_buffer.Count >= _cacheSize)
                     Thread.Sleep(10);
 
                 _bufferSema.Wait();
                 for (int i = 0; i < count; i++) {
-                    this._buffer.Add(buffer[offset + i]);
+                    _buffer.Add(buffer[offset + i]);
                 }
                 _writtenBytes += count;
                 _bufferSema.Release();

@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using System.Text;
 using CmdLineArgsParser;
 using Mpbkpu.Actions;
 
@@ -27,6 +28,7 @@ public static class Program
 
     public static int Main(string[] args)
     {
+        Console.OutputEncoding = Encoding.UTF8;
         PrintInfo();
         if (args.Length == 0) {
             PrintHelp();
@@ -46,7 +48,7 @@ public static class Program
         // Ask for password
         if (pArgs.InteractivePassword == true) {
             Console.Write(("Password: "));
-            pArgs.Password = Utility.Console.AskPassword();
+            pArgs.Password = Utility.Console.AskPassword(true);
         }
 
         IAction? action = pArgs.Action switch

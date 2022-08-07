@@ -59,10 +59,11 @@ public class BackupAction : BaseAction
     #region private operations
     private void OnStep(object sender, BackupJob.Steps step)
     {
+        Utility.Console.ClearLine();
         Console.ForegroundColor = InfoColor;
         switch (step) {
             case BackupJob.Steps.OpenDatabase:
-                Console.WriteLine("Opening database");
+                Console.WriteLine("Opening backup");
                 break;
             case BackupJob.Steps.ReadSource:
                 Console.WriteLine("Reading source files");
@@ -86,7 +87,7 @@ public class BackupAction : BaseAction
         if (_pArgs!.AlwaysYes == true)
             return Task.FromResult(true);
         Console.CursorVisible = true;
-        var res = Utility.Console.Confirm($"Backup {e.FilesToBackup} files ({MpbkpuLib.Utility.String.BytesToString(e.BytesToBackup)})?", true);
+        var res = Utility.Console.Confirm($"Backup {e.FilesToBackup} files ({MpbkpuLib.Utility.String.BytesToString(e.BytesToBackup)})?", true, true);
         Console.CursorVisible = false;
         return Task.FromResult(res);
     }
@@ -94,7 +95,7 @@ public class BackupAction : BaseAction
     private void OnFileProgress(object sender, string filePath, long bytes, long totalBytes)
     {
         var perc = bytes / (double)totalBytes * 100.0;
-        var progress = $"[{_totalPerc.ToString("0.0").PadLeft(5)}%][{perc.ToString("0.0").PadLeft(5)}%]";
+        var progress = $"[{_totalPerc,5:0.0}%][{perc,5:0.0}%]";
         if (filePath.Length > Console.WindowWidth - progress.Length - 1)
             filePath = $"...{ filePath.Substring(filePath.Length - (Console.WindowWidth - progress.Length) + 4) }";
         progress = $"{progress}{filePath}";
@@ -106,10 +107,13 @@ public class BackupAction : BaseAction
     private void OnProgress(object sender, int file, int totalFiles, long bytes, long totalBytes)
     {
         _totalPerc = file / (double)totalFiles * 100.0;
+        Console.CursorLeft = 0;
+        Console.Write($"[{_totalPerc,5:0.0}%]");
     }
 
     private void OnLog(object sender, BaseSettings.LogLevels level, string message)
     {
+        Utility.Console.ClearLine();
         WriteLog(level, message);
     }
     #endregion

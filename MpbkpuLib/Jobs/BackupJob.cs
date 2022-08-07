@@ -221,6 +221,12 @@ public class BackupJob : BaseJob
                 .Select(f => f.Size)
                 .SumAsync(),
         };
+        if (cArgs.FilesToBackup == 0) {
+            LogInfo("No files to backup");
+            _userCancelled = true;
+            return;
+        }
+
         if (ConfirmBackup != null) {
             if (!await ConfirmBackup.Invoke(this, cArgs)) {
                 _userCancelled = true;

@@ -48,7 +48,7 @@ public class VerifyAction : BaseAction
         Console.ForegroundColor = InfoColor;
         switch (step) {
             case VerifyJob.Steps.OpenDatabase:
-                Console.WriteLine("Opening database");
+                Console.WriteLine("Opening backup");
                 break;
             case VerifyJob.Steps.VerifyFiles:
                 Console.WriteLine("Verifying files");

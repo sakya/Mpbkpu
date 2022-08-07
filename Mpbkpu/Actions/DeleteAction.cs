@@ -46,7 +46,7 @@ public class DeleteAction : BaseAction
         Console.ForegroundColor = InfoColor;
         switch (step) {
             case DeleteJob.Steps.OpenDatabase:
-                Console.WriteLine("Opening database");
+                Console.WriteLine("Opening backup");
                 break;
             case DeleteJob.Steps.DeleteFiles:
                 Console.WriteLine("Deleting files");
@@ -64,7 +64,7 @@ public class DeleteAction : BaseAction
         if (_pArgs!.AlwaysYes == true)
             return Task.FromResult(true);
         Console.CursorVisible = true;
-        var res = Utility.Console.Confirm($"Delete backup with GUID {e.Guid} containing {e.FilesToDelete} files ({MpbkpuLib.Utility.String.BytesToString(e.BytesToDelete)})?", false);
+        var res = Utility.Console.Confirm($"Delete backup with GUID {e.Guid} containing {e.FilesToDelete} files ({MpbkpuLib.Utility.String.BytesToString(e.BytesToDelete)})?", false, true);
         Console.CursorVisible = false;
         return Task.FromResult(res);
     }

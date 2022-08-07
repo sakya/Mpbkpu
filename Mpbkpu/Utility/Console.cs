@@ -1,8 +1,10 @@
-﻿namespace Mpbkpu.Utility;
+﻿using System.Text;
+
+namespace Mpbkpu.Utility;
 
 public static class Console
 {
-    public static bool Confirm(string message, bool? defaultValue = null)
+    public static bool Confirm(string message, bool? defaultValue = null, bool clearLine = false)
     {
         if (defaultValue == true)
             message = $"{message} [Y/n] ";
@@ -32,18 +34,21 @@ public static class Console
             }
 
             if (res.HasValue) {
-                if (key.Key != ConsoleKey.Enter && key.Key != ConsoleKey.Escape)
-                    System.Console.WriteLine(key.KeyChar);
-                else
-                    System.Console.WriteLine(res == true ? "Y" : "N");
-
+                if (clearLine) {
+                    ClearLine();
+                } else {
+                    if (key.Key != ConsoleKey.Enter && key.Key != ConsoleKey.Escape)
+                        System.Console.WriteLine(key.KeyChar);
+                    else
+                        System.Console.WriteLine(res == true ? "Y" : "N");
+                }
             }
         }
 
         return res.Value;
     }
 
-    public static string? AskPassword()
+    public static string? AskPassword(bool clearLine = false)
     {
         string? password = null;
         bool done = false;
@@ -64,7 +69,23 @@ public static class Console
             }
         }
 
-        System.Console.WriteLine();
+        if (clearLine)
+            ClearLine();
+        else
+            System.Console.WriteLine();
         return password;
+    }
+
+    /// <summary>
+    /// Clear the current line
+    /// </summary>
+    public static void ClearLine()
+    {
+        var sb = new StringBuilder();
+        for (var i = 0; i < System.Console.WindowWidth; i++)
+            sb.Append("\b \b");
+        System.Console.CursorLeft = System.Console.WindowWidth;
+        System.Console.Write(sb.ToString());
+        System.Console.CursorLeft = 0;
     }
 }
