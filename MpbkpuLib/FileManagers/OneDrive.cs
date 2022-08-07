@@ -175,6 +175,9 @@ namespace MpbkpuLib.FileManagers
                 res = await client.Drive.Root.ItemWithPath(filePath).Content.Request().GetAsync();
             } else {
                 // https://www.csharpcodi.com/vs2/3381/aspnet-snippets-sample/Graph-ASPNET-46-Snippets/Microsoft%20Graph%20ASPNET%20Snippets/Models/FilesService.cs/
+                UploadSession uploadSession = await client.Me.Drive.Root.ItemWithPath(filePath).CreateUploadSession().Request().PostAsync();
+                int maxSliceSize = 320 * 1024;
+                //var fileUploadTask = new LargeFileUploadTask<DriveItem>(uploadSession, fileStream, maxSliceSize);
             }
 
             return new FileSystemStream(this, res);
