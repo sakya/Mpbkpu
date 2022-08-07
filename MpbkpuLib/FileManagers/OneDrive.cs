@@ -1,15 +1,11 @@
-using MpbkpuLib.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using FluentFTP;
 using System.Net;
+using MpbkpuLib.Interfaces;
 using System.Net.Http.Headers;
+using System.Reflection;
 using Microsoft.Graph;
 using Microsoft.Identity.Client;
 using Microsoft.Identity.Client.Extensions.Msal;
+using Newtonsoft.Json;
 
 namespace MpbkpuLib.FileManagers
 {
@@ -24,10 +20,6 @@ namespace MpbkpuLib.FileManagers
             {
                 _accessToken = accessToken;
             }
-            public void SetAccessToken(string accessToken)
-            {
-                _accessToken = accessToken;
-            }
 
             public Task AuthenticateRequestAsync(HttpRequestMessage request)
             {
@@ -37,13 +29,13 @@ namespace MpbkpuLib.FileManagers
         }
         #endregion
 
-        private GraphServiceClient? _client = null;
-        private string? _account;
-        private string[] _scopes = new[] { "User.Read", "files.readwrite", "offline_access" };
-        private const string _tenantId = "common";
-        private const string _appName = "MicrosoftGraphTest";
-        private const string _appId = "d7f0a79d-cfc0-4faa-9708-c0196c8eb26f";
-        private const string _redirectUri = "http://localhost";
+        private GraphServiceClient? _client;
+        private readonly string? _account;
+        private readonly string[] _scopes = new[] { "User.Read", "files.readwrite", "offline_access" };
+        private const string TenantId = "common";
+        private const string AppName = "MicrosoftGraphTest";
+        private const string AppId = "d7f0a79d-cfc0-4faa-9708-c0196c8eb26f";
+        private const string RedirectUri = "http://localhost";
 
         public void Dispose()
         {
@@ -83,8 +75,12 @@ namespace MpbkpuLib.FileManagers
             throw new NotImplementedException();
         }
 
-        public Task<bool> CreateDirectory(string? path)
+        public async Task<bool> CreateDirectory(string? path)
         {
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentNullException(path);
+
+            var client = await GetClient();
             throw new NotImplementedException();
         }
 
@@ -100,14 +96,34 @@ namespace MpbkpuLib.FileManagers
 
         public async Task<bool> DirectoryExists(string? path)
         {
-            var client = await GetClient();
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentNullException(path);
 
-            throw new NotImplementedException();
+            var client = await GetClient();
+            try {
+                var item = await client.Drive.Root.ItemWithPath(GetPath(path)).Request().GetAsync();
+                return item.Folder != null;
+            } catch (ServiceException ex) {
+                if (ex.StatusCode == HttpStatusCode.NotFound)
+                    return false;
+                throw;
+            }
         }
 
-        public Task<bool> FileExists(string? path)
+        public async Task<bool> FileExists(string? path)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentNullException(path);
+
+            var client = await GetClient();
+            try {
+                var item = await client.Drive.Root.ItemWithPath(GetPath(path)).Request().GetAsync();
+                return item.File != null;
+            } catch (ServiceException ex) {
+                if (ex.StatusCode == HttpStatusCode.NotFound)
+                    return false;
+                throw;
+            }
         }
 
         public Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null)
@@ -127,10 +143,10 @@ namespace MpbkpuLib.FileManagers
             if (_client == null) {
                 var appOptions = new PublicClientApplicationOptions()
                 {
-                    ClientName = _appName,
-                    ClientId = _appId,
-                    TenantId = _tenantId,
-                    RedirectUri = _redirectUri
+                    ClientName = AppName,
+                    ClientId = AppId,
+                    TenantId = TenantId,
+                    RedirectUri = RedirectUri
                 };
                 var app = PublicClientApplicationBuilder.CreateWithApplicationOptions(appOptions).Build();
 
@@ -142,9 +158,7 @@ namespace MpbkpuLib.FileManagers
                         "MSAL token cache for Mpbkpu app.",
                         new KeyValuePair<string, string>("Version", "1"),
                         new KeyValuePair<string, string>("ProductGroup", "com.github.sakya"))
-                    .WithMacKeyChain(
-                        "Mpbkpu_msal_service",
-                        "Mpbkpu_msal_account")
+                    .WithMacKeyChain("Mpbkpu_msal_service", "Mpbkpu_msal_account")
                     .Build();
                 var cacheHelper = await MsalCacheHelper.CreateAsync(storageProperties);
                 cacheHelper.VerifyPersistence();
@@ -168,6 +182,14 @@ namespace MpbkpuLib.FileManagers
             }
 
             return _client;
+        }
+
+        private string GetPath(string position)
+        {
+            if (position.StartsWith($"onedrive://{_account}"))
+                return position.Remove(0, $"onedrive://{_account}".Length);
+
+            return position;
         }
         #endregion
     }
