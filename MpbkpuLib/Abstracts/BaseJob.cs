@@ -6,7 +6,7 @@ namespace MpbkpuLib.Abstracts;
 public abstract class BaseJob
 {
     #region private members
-    private StreamWriter? _logWriter;
+    private readonly StreamWriter? _logWriter;
     #endregion
     #region delegates
     public delegate void LogHandler(object sender, BaseSettings.LogLevels level, string message);
@@ -17,7 +17,7 @@ public abstract class BaseJob
     public event LogHandler? LogEmitted;
     #endregion
 
-    public BaseJob(BaseSettings? settings)
+    protected BaseJob(BaseSettings? settings)
     {
         if (settings == null)
             throw new ArgumentNullException(nameof(settings));
@@ -31,6 +31,9 @@ public abstract class BaseJob
 
     #region properties
     public BaseSettings Settings { get; private set; }
+
+    public DateTime? Started { get; set; }
+    public DateTime? Completed { get; set; }
     #endregion
 
     /// <summary>

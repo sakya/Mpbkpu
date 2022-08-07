@@ -13,6 +13,9 @@ public abstract class BaseAction : IAction
     protected const ConsoleColor WarningColor = ConsoleColor.Yellow;
     protected const ConsoleColor ErrorColor = ConsoleColor.Red;
 
+    public DateTime? Started { get; set; }
+    public DateTime? Completed { get; set; }
+
     public abstract Task<bool> Run(Arguments pArgs);
 
     protected async Task<BackupFile.OpenResult?> OpenBackup(string? backupPath, string? password)

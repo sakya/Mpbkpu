@@ -1,8 +1,6 @@
 using System.Text;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage;
 using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
@@ -107,8 +105,8 @@ public class BackupFile : IDisposable
             // Check header
             using (var sourceStream = await sourceFm.OpenFile(backupDbPath)) {
                 var header = new byte[EncryptDecrypt.Header.Length];
-                await sourceStream.ReadAsync(header);
-                encrypted = Encoding.ASCII.GetString(header) == EncryptDecrypt.Header;
+                var read =await sourceStream.ReadAsync(header);
+                encrypted = read == header.Length && Encoding.ASCII.GetString(header) == EncryptDecrypt.Header;
                 switch (encrypted) {
                     case true when string.IsNullOrEmpty(password):
                         throw new Exception("This backup is encrypted");
@@ -159,7 +157,7 @@ public class BackupFile : IDisposable
         // Pooling=false is required to delete the file after close
         var sqliteBuilder = new DbContextOptionsBuilder().UseSqlite($"Data Source={path};Pooling=false");
         _context = new Context.BackupContext(sqliteBuilder.Options);
-        await MigrateIfNeeded();
+        await ApplyMigrations();
     }
 
     public void Close()
@@ -168,11 +166,10 @@ public class BackupFile : IDisposable
         _context = null;
     }
 
-    private async Task MigrateIfNeeded()
+    private async Task ApplyMigrations()
     {
         _context!.Database.SetCommandTimeout(1800000);
-        var needMigration = _context.Database.GetPendingMigrations().Any();
-        if (needMigration) {
+        if (_context.Database.GetPendingMigrations().Any()) {
             await _context.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = OFF;");
             await _context.Database.MigrateAsync();
             await _context.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = ON;");

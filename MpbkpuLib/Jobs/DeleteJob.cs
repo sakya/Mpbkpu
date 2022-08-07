@@ -56,6 +56,7 @@ public class DeleteJob : BaseJob
         _cancellationToken = cancellationToken;
         ValidateSettings();
 
+        Started = DateTime.UtcNow;
         LogInfo("Starting with settings:");
         LogInfo(JsonConvert.SerializeObject(Settings, Formatting.Indented));
 
@@ -79,6 +80,8 @@ public class DeleteJob : BaseJob
                 await transaction.RollbackAsync();
                 LogError(ex);
                 throw;
+            } finally {
+                Completed = DateTime.UtcNow;
             }
         }
 

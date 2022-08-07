@@ -37,6 +37,10 @@ public class DeleteAction : BaseAction
             Console.CursorVisible = true;
             cts.Dispose();
         }
+
+        Started = job.Started;
+        Completed = job.Completed;
+
         return true;
     }
 

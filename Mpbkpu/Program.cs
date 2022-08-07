@@ -69,6 +69,9 @@ public static class Program
         if (action != null) {
             try {
                 action.Run(pArgs).Wait();
+                if (action.Completed.HasValue && action.Started.HasValue) {
+                    Console.WriteLine($"Completed in { (action.Completed.Value - action.Started.Value) }");
+                }
             } finally {
                 Console.ResetColor();
             }

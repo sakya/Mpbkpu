@@ -53,6 +53,9 @@ public class BackupAction : BaseAction
             cts.Dispose();
         }
 
+        Started = job.Started;
+        Completed = job.Completed;
+
         return true;
     }
 
