@@ -1,11 +1,9 @@
 using System.Net;
 using MpbkpuLib.Interfaces;
 using System.Net.Http.Headers;
-using System.Reflection;
 using Microsoft.Graph;
 using Microsoft.Identity.Client;
 using Microsoft.Identity.Client.Extensions.Msal;
-using Newtonsoft.Json;
 using File = MpbkpuLib.DataModel.File;
 
 namespace MpbkpuLib.FileManagers
@@ -70,7 +68,7 @@ namespace MpbkpuLib.FileManagers
             return res;
         }
 
-        public async IAsyncEnumerable<DataModel.File> GetDirectoryContent(string? path, bool includeHidden = true)
+        public async IAsyncEnumerable<File> GetDirectoryContent(string? path, bool includeHidden = true)
         {
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
@@ -78,7 +76,7 @@ namespace MpbkpuLib.FileManagers
             var client = await GetClient();
             var items = await client.Drive.Root.ItemWithPath(GetPath(path)).Children.Request().GetAsync();
             foreach (var item in items) {
-                var fInfo = new DataModel.File()
+                var fInfo = new File()
                 {
                     FullPath = $"{path}/{item.Name}",
                     Name = item.Name,
@@ -114,14 +112,24 @@ namespace MpbkpuLib.FileManagers
             return true;
         }
 
-        public Task<bool> DeleteDirectory(string? path)
+        public async Task<bool> DeleteDirectory(string? path)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentNullException(path);
+
+            var client = await GetClient();
+            await client.Drive.Root.ItemWithPath(path).Request().DeleteAsync();
+            return true;
         }
 
-        public Task<bool> DeleteFile(string? path)
+        public async Task<bool> DeleteFile(string? path)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentNullException(path);
+
+            var client = await GetClient();
+            await client.Drive.Root.ItemWithPath(path).Request().DeleteAsync();
+            return true;
         }
 
         public async Task<bool> DirectoryExists(string? path)
@@ -156,9 +164,20 @@ namespace MpbkpuLib.FileManagers
             }
         }
 
-        public Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null)
+        public async Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrEmpty(filePath))
+                throw new ArgumentNullException(filePath);
+
+            var client = await GetClient();
+            Stream? res = null;
+            if (!write) {
+                res = await client.Drive.Root.ItemWithPath(filePath).Content.Request().GetAsync();
+            } else {
+                // https://www.csharpcodi.com/vs2/3381/aspnet-snippets-sample/Graph-ASPNET-46-Snippets/Microsoft%20Graph%20ASPNET%20Snippets/Models/FilesService.cs/
+            }
+
+            return new FileSystemStream(this, res);
         }
 
         public Task<bool> CloseFile(Stream stream)
@@ -181,7 +200,7 @@ namespace MpbkpuLib.FileManagers
                 var app = PublicClientApplicationBuilder.CreateWithApplicationOptions(appOptions).Build();
 
                 // Create token cache
-                var storageProperties = new StorageCreationPropertiesBuilder("UserTokenCache.txt", "./cache")
+                var storageProperties = new StorageCreationPropertiesBuilder("UserTokenCache", Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Mpbkpu"))
                     .WithLinuxKeyring(
                         "com.github.sakya.Mpbkpu",
                         MsalCacheHelper.LinuxKeyRingDefaultCollection,

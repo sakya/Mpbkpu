@@ -123,7 +123,7 @@ namespace MpbkpuLib.FileManagers
             public async Task<bool> WaitTask()
             {
                 if (_writeTask != null)
-                        await _writeTask;
+                    await _writeTask;
                 return true;
             }
 
