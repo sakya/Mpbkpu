@@ -5,7 +5,6 @@ using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
 using MpbkpuLib.Jobs;
 using MpbkpuLib.Utility;
-using File = MpbkpuLib.DataModel.File;
 
 namespace MpbkpuLib;
 
@@ -133,7 +132,7 @@ public class BackupFile : IDisposable
         return new OpenResult(backupFile, backupDbPath, tempDbPath);
     }
 
-    private async Task<bool> Open(string? path)
+    private async Task Open(string? path)
     {
         if (string.IsNullOrEmpty(path))
             throw new ArgumentNullException(nameof(path));
@@ -142,8 +141,6 @@ public class BackupFile : IDisposable
         var sqliteBuilder = new DbContextOptionsBuilder().UseSqlite($"Data Source={path};Pooling=false");
         _context = new Context.BackupContext(sqliteBuilder.Options);
         await _context!.Database.EnsureCreatedAsync();
-
-        return true;
     }
 
     public void Close()

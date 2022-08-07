@@ -50,6 +50,10 @@ public static class Program
         if (pArgs.InteractivePassword == true) {
             Console.Write(("Password: "));
             pArgs.Password = Utility.Console.AskPassword(true);
+            if (string.IsNullOrEmpty(pArgs.Password)) {
+                Console.WriteLine("Empty password is not allowed, aborting");
+                return -1;
+            }
         }
 
         IAction? action = pArgs.Action switch
