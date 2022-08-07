@@ -58,6 +58,10 @@ public class BackupJob : BaseJob
 
     public delegate void FileProgressHandler(object sender, string filePath, long bytes, long totalBytes);
 
+    /// <summary>
+    /// Event fire for file progress
+    /// </summary>
+    /// <remarks>For directories this event fires with bytes and totalBytes equal to zero</remarks>
     public event FileProgressHandler? FileProgress;
     #endregion
 
@@ -355,6 +359,7 @@ public class BackupJob : BaseJob
                 // Create a zero byte file as a placeholder
                 await using (var _ = await destFm.OpenFile(destFilePath, true)) {
                 }
+                FileProgress?.Invoke(this, sourceFile.FullPath!, 0, 0);
                 break;
             case File.FileTyes.File:
                 using (var sourceFm = FileManagerFactory.GetFileManager(sourceFile.FullPath, out _)) {

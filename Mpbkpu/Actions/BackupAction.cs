@@ -98,6 +98,8 @@ public class BackupAction : BaseAction
     private void OnFileProgress(object sender, string filePath, long bytes, long totalBytes)
     {
         var perc = bytes / (double)totalBytes * 100.0;
+        if (bytes == 0 && totalBytes == 0)
+            perc = 100;
         var progress = $"[{_totalPerc,5:0.0}%][{perc,5:0.0}%]";
         if (filePath.Length > Console.WindowWidth - progress.Length - 1)
             filePath = $"...{ filePath.Substring(filePath.Length - (Console.WindowWidth - progress.Length) + 4) }";
