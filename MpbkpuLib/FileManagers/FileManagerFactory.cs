@@ -97,21 +97,19 @@ namespace MpbkpuLib.FileManagers
             }
 
             // OneDrive
-            // onedrive://accessToken:refreshToken:position
+            // onedrive://account@live.com/position
             if (path.StartsWith("onedrive://")) {
-                var m = Regex.Match(path, "onedrive://([^:]+)?:([^:]+)?:(.*)$");
+                var m = Regex.Match(path, "onedrive://([^:]+)/(.*)$");
                 if (m.Success) {
-                    string? accessToken = null;
-                    string? refreshToken = null;
-                    if (m.Groups.Count == 4) {
-                        accessToken = m.Groups[1].Value;
-                        refreshToken = m.Groups[2].Value;
+                    string? account = null;
+                    if (m.Groups.Count == 3) {
+                        account = m.Groups[1].Value;
                     }
-                    if (!string.IsNullOrEmpty(m.Groups[3].Value))
-                        newPosition = $"onedrive://{m.Groups[3].Value}";
+                    if (!string.IsNullOrEmpty(m.Groups[2].Value))
+                        newPosition = $"onedrive://{m.Groups[2].Value}";
                     else
                         newPosition = "onedrive:///";
-                    var odFm = new OneDrive(accessToken, refreshToken);
+                    var odFm = new OneDrive(account);
                     return odFm;
                 } else
                     throw new Exception("Invalid address");

@@ -6,13 +6,44 @@ using System.Text;
 using System.Threading.Tasks;
 using FluentFTP;
 using System.Net;
+using System.Net.Http.Headers;
+using Microsoft.Graph;
+using Microsoft.Identity.Client;
+using Microsoft.Identity.Client.Extensions.Msal;
 
 namespace MpbkpuLib.FileManagers
 {
     public class OneDrive : IFileManager
     {
-        private string? _accessToken = null;
-        private string? _refreshToken = null;
+        #region classes
+        private class AuthenticationProvider : IAuthenticationProvider
+        {
+            private string _accessToken;
+
+            public AuthenticationProvider(string accessToken)
+            {
+                _accessToken = accessToken;
+            }
+            public void SetAccessToken(string accessToken)
+            {
+                _accessToken = accessToken;
+            }
+
+            public Task AuthenticateRequestAsync(HttpRequestMessage request)
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);
+                return Task.CompletedTask;
+            }
+        }
+        #endregion
+
+        private GraphServiceClient? _client = null;
+        private string? _account;
+        private string[] _scopes = new[] { "User.Read", "files.readwrite", "offline_access" };
+        private const string _tenantId = "common";
+        private const string _appName = "MicrosoftGraphTest";
+        private const string _appId = "d7f0a79d-cfc0-4faa-9708-c0196c8eb26f";
+        private const string _redirectUri = "http://localhost";
 
         public void Dispose()
         {
@@ -24,10 +55,11 @@ namespace MpbkpuLib.FileManagers
             return false;
         }
 
-        public OneDrive(string? accessToken, string? refreshToken)
+        public OneDrive(string? account)
         {
-            _accessToken = accessToken;
-            _refreshToken = refreshToken;
+            if (string.IsNullOrEmpty(account))
+                throw new ArgumentNullException(nameof(account));
+            _account = account;
         }
 
         public string CombinePath(params string[] paths)
@@ -66,8 +98,10 @@ namespace MpbkpuLib.FileManagers
             throw new NotImplementedException();
         }
 
-        public Task<bool> DirectoryExists(string? path)
+        public async Task<bool> DirectoryExists(string? path)
         {
+            var client = await GetClient();
+
             throw new NotImplementedException();
         }
 
@@ -85,5 +119,56 @@ namespace MpbkpuLib.FileManagers
         {
             throw new NotImplementedException();
         }
+
+        #region private operations
+
+        private async Task<GraphServiceClient> GetClient()
+        {
+            if (_client == null) {
+                var appOptions = new PublicClientApplicationOptions()
+                {
+                    ClientName = _appName,
+                    ClientId = _appId,
+                    TenantId = _tenantId,
+                    RedirectUri = _redirectUri
+                };
+                var app = PublicClientApplicationBuilder.CreateWithApplicationOptions(appOptions).Build();
+
+                // Create token cache
+                var storageProperties = new StorageCreationPropertiesBuilder("UserTokenCache.txt", "./cache")
+                    .WithLinuxKeyring(
+                        "com.github.sakya.Mpbkpu",
+                        MsalCacheHelper.LinuxKeyRingDefaultCollection,
+                        "MSAL token cache for Mpbkpu app.",
+                        new KeyValuePair<string, string>("Version", "1"),
+                        new KeyValuePair<string, string>("ProductGroup", "com.github.sakya"))
+                    .WithMacKeyChain(
+                        "Mpbkpu_msal_service",
+                        "Mpbkpu_msal_account")
+                    .Build();
+                var cacheHelper = await MsalCacheHelper.CreateAsync(storageProperties);
+                cacheHelper.VerifyPersistence();
+                cacheHelper.RegisterCache(app.UserTokenCache);
+
+                // Get token
+                var accounts = await app.GetAccountsAsync();
+                AuthenticationResult result;
+                try {
+                    result = await app.AcquireTokenSilent(_scopes, accounts.FirstOrDefault(a => string.Compare(a.Username, _account, StringComparison.InvariantCultureIgnoreCase) == 0))
+                        .ExecuteAsync();
+                } catch (MsalUiRequiredException) {
+                    result = await app.AcquireTokenInteractive(_scopes)
+                        .ExecuteAsync();
+                    if (string.Compare(result.Account.Username, _account, StringComparison.InvariantCultureIgnoreCase) != 0)
+                        throw new Exception("Account mismatch");
+                }
+
+                // Create client
+                _client = new GraphServiceClient(new AuthenticationProvider(result.AccessToken));
+            }
+
+            return _client;
+        }
+        #endregion
     }
 }
