@@ -29,6 +29,7 @@ public static class Program
     public static int Main(string[] args)
     {
         Console.OutputEncoding = Encoding.UTF8;
+        Console.ForegroundColor = BaseAction.DefaultColor;
         PrintInfo();
         if (args.Length == 0) {
             PrintHelp();

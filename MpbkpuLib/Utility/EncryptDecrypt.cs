@@ -1,6 +1,7 @@
 ﻿using System.IO.Compression;
 using System.Text;
 using System.Security.Cryptography;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using MpbkpuLib.DataModel;
 
 namespace MpbkpuLib.Utility
@@ -10,7 +11,8 @@ namespace MpbkpuLib.Utility
     /// </summary>
     internal class EncryptDecrypt
     {
-        static byte[]? _keyBytes;
+        private const string Header = "MPBKPU_ENCRYPTED";
+        private static byte[]? _keyBytes;
 
         public EncryptDecrypt(string? key)
         {
@@ -57,6 +59,8 @@ namespace MpbkpuLib.Utility
             if (_keyBytes == null)
                 throw new Exception("Cannot encrypt without a key");
 
+            // Header
+            await destination.WriteAsync(Encoding.ASCII.GetBytes(Header));
             using (var aesAlg = Aes.Create()) {
                 aesAlg.Mode = CipherMode.CBC;
                 aesAlg.Padding = PaddingMode.PKCS7;
@@ -118,6 +122,12 @@ namespace MpbkpuLib.Utility
                 throw new ArgumentNullException(nameof(destination));
             if (_keyBytes == null)
                 throw new Exception("Cannot decrypt without a key");
+
+            // Check header
+            var header = new byte[Header.Length];
+            await source.ReadAsync(header);
+            if (Encoding.ASCII.GetString(header) != Header)
+                throw new Exception("This file is not encrypted");
 
             var iv = new byte[16];
             if (await source.ReadAsync(iv, 0, iv.Length) != 16)

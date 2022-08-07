@@ -9,7 +9,7 @@ namespace Mpbkpu.Actions;
 
 public abstract class BaseAction : IAction
 {
-    protected const ConsoleColor DefaultColor = ConsoleColor.Gray;
+    public const ConsoleColor DefaultColor = ConsoleColor.Gray;
     protected const ConsoleColor HighlightColor = ConsoleColor.White;
 
     protected const ConsoleColor InfoColor = ConsoleColor.Blue;
