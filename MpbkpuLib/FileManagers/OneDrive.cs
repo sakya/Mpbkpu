@@ -13,7 +13,7 @@ namespace MpbkpuLib.FileManagers
         #region classes
         private class AuthenticationProvider : IAuthenticationProvider
         {
-            private string _accessToken;
+            private readonly string _accessToken;
 
             public AuthenticationProvider(string accessToken)
             {
@@ -176,7 +176,7 @@ namespace MpbkpuLib.FileManagers
             } else {
                 // https://www.csharpcodi.com/vs2/3381/aspnet-snippets-sample/Graph-ASPNET-46-Snippets/Microsoft%20Graph%20ASPNET%20Snippets/Models/FilesService.cs/
                 UploadSession uploadSession = await client.Me.Drive.Root.ItemWithPath(filePath).CreateUploadSession().Request().PostAsync();
-                int maxSliceSize = 320 * 1024;
+                //int maxSliceSize = 320 * 1024;
                 //var fileUploadTask = new LargeFileUploadTask<DriveItem>(uploadSession, fileStream, maxSliceSize);
             }
 

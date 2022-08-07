@@ -12,7 +12,7 @@ public class GoogleDrive : IFileManager
 
     public bool CanOpenDatabase()
     {
-        throw new NotImplementedException();
+        return false;
     }
 
     public string CombinePath(params string[] paths)
