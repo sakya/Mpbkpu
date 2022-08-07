@@ -307,7 +307,7 @@ namespace MpbkpuLib.FileManagers
             childName = null;
             position = GetPath(position);
             int idx = position.LastIndexOf("/", StringComparison.InvariantCultureIgnoreCase);
-            if (idx > 0) {
+            if (idx >= 0) {
                 childName = position.Substring(idx + 1);
                 return position.Substring(0, idx);
             }

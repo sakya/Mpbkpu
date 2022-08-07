@@ -6,6 +6,7 @@ using Microsoft.Graph;
 using Microsoft.Identity.Client;
 using Microsoft.Identity.Client.Extensions.Msal;
 using Newtonsoft.Json;
+using File = MpbkpuLib.DataModel.File;
 
 namespace MpbkpuLib.FileManagers
 {
@@ -39,7 +40,6 @@ namespace MpbkpuLib.FileManagers
 
         public void Dispose()
         {
-
         }
 
         public bool CanOpenDatabase()
@@ -70,9 +70,26 @@ namespace MpbkpuLib.FileManagers
             return res;
         }
 
-        public IAsyncEnumerable<DataModel.File> GetDirectoryContent(string? path, bool includeHidden = true)
+        public async IAsyncEnumerable<DataModel.File> GetDirectoryContent(string? path, bool includeHidden = true)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentNullException(path);
+
+            var client = await GetClient();
+            var items = await client.Drive.Root.ItemWithPath(GetPath(path)).Children.Request().GetAsync();
+            foreach (var item in items) {
+                var fInfo = new DataModel.File()
+                {
+                    FullPath = $"{path}/{item.Name}",
+                    Name = item.Name,
+                    Type = item.Folder != null ? File.FileTyes.Directory : File.FileTyes.File,
+                    Size = item.Size ?? 0,
+
+                    Created = item.CreatedDateTime?.UtcDateTime,
+                    LastModified = item.LastModifiedDateTime?.UtcDateTime
+                };
+                yield return fInfo;
+            }
         }
 
         public async Task<bool> CreateDirectory(string? path)
@@ -81,7 +98,20 @@ namespace MpbkpuLib.FileManagers
                 throw new ArgumentNullException(path);
 
             var client = await GetClient();
-            throw new NotImplementedException();
+            var parent = GetParent(GetPath(path), out var dirName);
+            var folderDriveItem = new DriveItem()
+            {
+                Name = dirName,
+                Folder = new Folder(),
+            };
+
+            if (string.IsNullOrEmpty(parent)) {
+                await client.Drive.Root.Children.Request().AddAsync(folderDriveItem);
+            } else {
+                await client.Drive.Root.ItemWithPath(parent).Children.Request().AddAsync(folderDriveItem);
+            }
+
+            return true;
         }
 
         public Task<bool> DeleteDirectory(string? path)
@@ -186,10 +216,23 @@ namespace MpbkpuLib.FileManagers
 
         private string GetPath(string position)
         {
-            if (position.StartsWith($"onedrive://{_account}"))
-                return position.Remove(0, $"onedrive://{_account}".Length);
+            if (position.StartsWith($"onedrive://"))
+                return position.Remove(0, $"onedrive://".Length);
 
             return position;
+        }
+
+        private string GetParent(string position, out string? childName)
+        {
+            childName = null;
+            position = GetPath(position);
+            int idx = position.LastIndexOf("/", StringComparison.InvariantCultureIgnoreCase);
+            if (idx >= 0) {
+                childName = position.Substring(idx + 1);
+                return position.Substring(0, idx);
+            }
+
+            throw new Exception($"Cannot get parent of {position}");
         }
         #endregion
     }

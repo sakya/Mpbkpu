@@ -314,9 +314,9 @@ public class BackupJob : BaseJob
     /// <returns>The path of the database file to use for this backup</returns>
     private async Task CheckDestination()
     {
-        using var fm = FileManagerFactory.GetFileManager(Settings.Destination, out _);
-        if (!await fm.DirectoryExists(Settings.Destination))
-            await fm.CreateDirectory(Settings.Destination);
+        using var fm = FileManagerFactory.GetFileManager(Settings.Destination, out var newPath);
+        if (!await fm.DirectoryExists(newPath))
+            await fm.CreateDirectory(newPath);
     }
 
     /// <summary>
