@@ -253,9 +253,9 @@ public class BackupJob : BaseJob
 
         // Backup files
         Step?.Invoke(this, Steps.BackupFiles);
-        Utility.EncryptDecrypt? encryptor = null;
+        Utility.EncryptDecrypt? encrypter = null;
         if (!string.IsNullOrEmpty(Settings.EncryptPassword)) {
-            encryptor = new Utility.EncryptDecrypt(Settings.EncryptPassword);
+            encrypter = new Utility.EncryptDecrypt(Settings.EncryptPassword);
         }
 
         int fileIdx = 0;
@@ -271,7 +271,7 @@ public class BackupJob : BaseJob
             }
 
             if (fileToBackup.FileAction == File.FileActions.Backup) {
-                if (await BackupFileFromSource(backupFile, fileToBackup, encryptor)) {
+                if (await BackupFileFromSource(backupFile, fileToBackup, encrypter)) {
                     bytes += fileToBackup.Size;
                     Progress?.Invoke(this, ++fileIdx, cArgs.FilesToBackup, bytes, cArgs.BytesToBackup);
                 } else {
@@ -328,10 +328,10 @@ public class BackupJob : BaseJob
     /// </summary>
     /// <param name="backupFile">The <see cref="BackupFile"/></param>
     /// <param name="sourceFile">The <see cref="DataModel.File"/> to backup</param>
-    /// <param name="encryptor">The optional <see cref="Utility.EncryptDecrypt"/> to encrypt the file</param>
+    /// <param name="encrypter">The optional <see cref="Utility.EncryptDecrypt"/> to encrypt the file</param>
     /// <returns>True on success</returns>
     /// <exception cref="ArgumentNullException"></exception>
-    private async Task<bool> BackupFileFromSource(BackupFile? backupFile, File? sourceFile, Utility.EncryptDecrypt? encryptor)
+    private async Task<bool> BackupFileFromSource(BackupFile? backupFile, File? sourceFile, Utility.EncryptDecrypt? encrypter)
     {
         if (backupFile == null)
             throw new ArgumentNullException(nameof(backupFile));
@@ -377,8 +377,8 @@ public class BackupJob : BaseJob
                                 }
                             });
 
-                            if (encryptor != null)
-                                await encryptor.Encrypt(backupItem, sourceStream, destStream, Settings.Compress,
+                            if (encrypter != null)
+                                await encrypter.Encrypt(backupItem, sourceStream, destStream, Settings.Compress,
                                     progressAction);
                             else if (Settings.Compress)
                                 await BackupFileFromSourceCompress(backupItem, sourceStream, destStream, progressAction);
