@@ -18,4 +18,17 @@ public static class Files
 
         return true;
     }
+
+    public static string CombinePath(char separator, params string[] paths)
+    {
+        string res = string.Empty;
+        foreach (var p in paths) {
+            if (string.IsNullOrEmpty(p))
+                throw new Exception("Path cannot be empty");
+
+            res = !string.IsNullOrEmpty(res) && !res.EndsWith("/") ? $"{res}{separator}{p}" : $"{res}{p}";
+        }
+
+        return res;
+    }
 }

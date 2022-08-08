@@ -154,18 +154,7 @@ namespace MpbkpuLib.FileManagers
 
         public string CombinePath(params string[] paths)
         {
-            string res = string.Empty;
-            foreach (var p in paths) {
-                if (string.IsNullOrEmpty(p))
-                    throw new Exception("Path cannot be empty");
-
-                var part = p;
-                if (!part.EndsWith("/"))
-                    part = $"{part}/";
-                res = $"{res}{part}";
-            }
-
-            return res;
+            return Utility.Files.CombinePath('/', paths);
         }
 
         public string? Host { get; }

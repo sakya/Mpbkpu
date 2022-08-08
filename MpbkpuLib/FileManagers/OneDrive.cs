@@ -26,6 +26,123 @@ namespace MpbkpuLib.FileManagers
                 return Task.CompletedTask;
             }
         }
+
+        private class WriterStream : Stream
+        {
+            private bool _abort;
+            private readonly UploadSession? _session;
+            private Task? _writeTask;
+            private long _pos;
+            private long _length;
+            private long _writtenBytes;
+
+            private readonly long _cacheSize = 32768;
+            private readonly List<byte> _buffer = new List<byte>();
+            private readonly SemaphoreSlim _bufferSema = new SemaphoreSlim(1,1);
+
+            public WriterStream(UploadSession session, long? size)
+            {
+                _session = session;
+                if (size.HasValue)
+                    _length = size.Value;
+
+                _writeTask = new LargeFileUploadTask<DriveItem>(_session, this, 320 * 1024).UploadAsync(null);
+            }
+
+            public override bool CanRead => false;
+
+            public override bool CanSeek => false;
+
+            public override bool CanWrite => true;
+
+            public override long Length => _length;
+
+            public override long Position {
+                get => _pos;
+                set => _pos = value;
+            }
+
+            protected override void Dispose(bool disposing)
+            {
+                _writeTask?.Dispose();
+                base.Dispose();
+            }
+
+            public override void Flush()
+            {
+                throw new NotImplementedException();
+            }
+
+            public override int Read(byte[] buffer, int offset, int count)
+            {
+                if (_abort && _writtenBytes < _length || _pos >= _length)
+                    return 0;
+
+                _bufferSema.Wait();
+                int readCount = 0;
+                for (int i = 0; i < count; i++) {
+                    if (_buffer.Count > 0) {
+                        buffer[offset + i] = _buffer[0];
+                        _buffer.RemoveAt(0);
+
+                        _pos++;
+                        readCount++;
+                        if (_pos >= _length)
+                            break;
+                    } else {
+                        _bufferSema.Release();
+                        Thread.Sleep(10);
+                        _bufferSema.Wait();
+                        i--;
+                        if (_abort)
+                            break;
+                    }
+                }
+                _bufferSema.Release();
+                return readCount;
+            }
+
+            public override long Seek(long offset, SeekOrigin origin)
+            {
+                throw new InvalidOperationException();
+            }
+
+            public override void SetLength(long value)
+            {
+                _length = value;
+            }
+
+            public override void Write(byte[] buffer, int offset, int count)
+            {
+                if (_abort)
+                    return;
+
+                if (_session == null)
+                    throw new Exception("Node is null");
+
+                while(_buffer.Count >= _cacheSize)
+                    Thread.Sleep(10);
+
+                _bufferSema.Wait();
+                for (int i = 0; i < count; i++) {
+                    _buffer.Add(buffer[offset + i]);
+                }
+                _writtenBytes += count;
+                _bufferSema.Release();
+            }
+
+            public async Task<bool> WaitTask()
+            {
+                if (_writeTask != null)
+                    await _writeTask;
+                return true;
+            }
+
+            public void Abort()
+            {
+                _abort = true;
+            }
+        }
         #endregion
 
         private GraphServiceClient? _client;
@@ -54,18 +171,7 @@ namespace MpbkpuLib.FileManagers
 
         public string CombinePath(params string[] paths)
         {
-            string res = string.Empty;
-            foreach (var p in paths) {
-                if (string.IsNullOrEmpty(p))
-                    throw new Exception("Path cannot be empty");
-
-                var part = p;
-                if (!part.EndsWith("/"))
-                    part = $"{part}/";
-                res = $"{res}{part}";
-            }
-
-            return res;
+            return Utility.Files.CombinePath('/', paths);
         }
 
         public async IAsyncEnumerable<File> GetDirectoryContent(string? path, bool includeHidden = true)
@@ -169,6 +275,7 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(filePath))
                 throw new ArgumentNullException(filePath);
 
+            filePath = GetPath(filePath);
             var client = await GetClient();
             Stream? res = null;
             if (!write) {
@@ -176,16 +283,21 @@ namespace MpbkpuLib.FileManagers
             } else {
                 // https://www.csharpcodi.com/vs2/3381/aspnet-snippets-sample/Graph-ASPNET-46-Snippets/Microsoft%20Graph%20ASPNET%20Snippets/Models/FilesService.cs/
                 UploadSession uploadSession = await client.Me.Drive.Root.ItemWithPath(filePath).CreateUploadSession().Request().PostAsync();
-                //int maxSliceSize = 320 * 1024;
-                //var fileUploadTask = new LargeFileUploadTask<DriveItem>(uploadSession, fileStream, maxSliceSize);
+                res = new WriterStream(uploadSession, 0);
             }
 
             return new FileSystemStream(this, res);
         }
 
-        public Task<bool> CloseFile(Stream stream)
+        public async Task<bool> CloseFile(Stream stream)
         {
-            throw new NotImplementedException();
+            if (stream is WriterStream ws) {
+                ws.Abort();
+                await ws.WaitTask();
+            }
+            stream.Close();
+
+            return true;
         }
 
         #region private operations
@@ -248,6 +360,9 @@ namespace MpbkpuLib.FileManagers
         {
             childName = null;
             position = GetPath(position);
+            if (position.EndsWith("/"))
+                position = position.Remove(position.Length - 1, 1);
+
             int idx = position.LastIndexOf("/", StringComparison.InvariantCultureIgnoreCase);
             if (idx >= 0) {
                 childName = position.Substring(idx + 1);

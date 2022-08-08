@@ -84,7 +84,7 @@ public static class Console
         var sb = new StringBuilder();
         for (var i = 0; i < System.Console.WindowWidth; i++)
             sb.Append("\b \b");
-        System.Console.CursorLeft = System.Console.WindowWidth;
+        System.Console.CursorLeft = System.Console.WindowWidth - 1;
         System.Console.Write(sb.ToString());
         System.Console.CursorLeft = 0;
     }
