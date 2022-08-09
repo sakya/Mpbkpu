@@ -31,7 +31,6 @@ namespace MpbkpuLib.FileManagers
         {
             private readonly Task? _writeTask;
             private long _pos;
-            private long _writtenBytes;
 
             private readonly long _cacheSize = 1310720;
             private readonly List<byte> _buffer = new();
@@ -111,7 +110,6 @@ namespace MpbkpuLib.FileManagers
                 for (int i = 0; i < count; i++) {
                     _buffer.Add(buffer[offset + i]);
                 }
-                _writtenBytes += count;
                 _bufferSema.Release();
             }
 
