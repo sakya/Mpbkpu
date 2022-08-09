@@ -114,8 +114,8 @@ public class BackupJob : BaseJob
                     }
                 }
             } catch (Exception ex) {
-                await transaction.RollbackAsync();
                 LogError(ex);
+                await transaction.RollbackAsync();
                 throw;
             } finally {
                 Completed = DateTime.UtcNow;

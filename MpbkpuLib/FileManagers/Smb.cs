@@ -119,11 +119,10 @@ namespace MpbkpuLib.FileManagers
                 _bufferSema.Release();
             }
 
-            public async Task<bool> WaitTask()
+            public async Task WaitTask()
             {
                 if (_writeTask != null)
                     await _writeTask;
-                return true;
             }
 
             public void Abort()

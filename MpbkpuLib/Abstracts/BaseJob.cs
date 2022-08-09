@@ -56,7 +56,17 @@ public abstract class BaseJob
         using var sourceFm = FileManagerFactory.GetFileManager(openRes.TempFilePath, out _);
         using var destFm = FileManagerFactory.GetFileManager(destination, out _);
         await using var sourceStream = await sourceFm.OpenFile(openRes.TempFilePath);
-        await using var destStream = await destFm.OpenFile(openRes.BackupFilePath, true);
+
+        long? destFileSize = sourceStream.Length;
+        if (destFm.SupportCompression()) {
+            // Unknown file size
+            destFileSize = null;
+        } else {
+            destFileSize = (destFileSize / 16 + 1) * 16;
+            // Header
+            destFileSize += 32;
+        }
+        await using var destStream = await destFm.OpenFile(openRes.BackupFilePath, true, destFileSize);
 
         if (string.IsNullOrEmpty(password))
             await Files.Copy(sourceStream, destStream);

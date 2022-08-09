@@ -77,8 +77,8 @@ public class DeleteJob : BaseJob
                     await CopyDatabaseToDestination(openRes, Settings.BackupPath, Settings.EncryptPassword);
                 }
             } catch (Exception ex) {
-                await transaction.RollbackAsync();
                 LogError(ex);
+                await transaction.RollbackAsync();
                 throw;
             } finally {
                 Completed = DateTime.UtcNow;

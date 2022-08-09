@@ -68,8 +68,8 @@ public class VerifyJob: BaseJob
                 await RunPrimitive(backupFile);
                 await transaction.CommitAsync();
             } catch (Exception ex) {
-                await transaction.RollbackAsync();
                 LogError(ex);
+                await transaction.RollbackAsync();
                 throw;
             } finally {
                 Completed = DateTime.UtcNow;
