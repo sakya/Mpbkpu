@@ -14,6 +14,7 @@ namespace MpbkpuLib.Interfaces
         /// </summary>
         /// <returns>True/False</returns>
         public bool CanOpenDatabase();
+        public bool SupportCompression();
         public string CombinePath(params string[] paths);
         public Task<bool> CreateDirectory(string? path);
         public Task<bool> DeleteDirectory(string? path);

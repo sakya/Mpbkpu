@@ -29,22 +29,18 @@ namespace MpbkpuLib.FileManagers
 
         private class WriterStream : Stream
         {
-            private bool _abort;
-            private readonly UploadSession? _session;
             private readonly Task? _writeTask;
-            private readonly string? _uploadUrl;
             private long _pos;
             private long _writtenBytes;
 
-            private readonly long _cacheSize = 32768;
+            private readonly long _cacheSize = 1310720;
             private readonly List<byte> _buffer = new();
             private readonly SemaphoreSlim _bufferSema = new(1,1);
 
-            public WriterStream(UploadSession session)
+            public WriterStream(UploadSession session, long length)
             {
-                _session = session;
-                _uploadUrl = _session.UploadUrl;
-                _writeTask = new LargeFileUploadTask<DriveItem>(_session, this, 320 * 1024).UploadAsync();
+                Length = length;
+                _writeTask = new LargeFileUploadTask<DriveItem>(session, this, (int)_cacheSize).UploadAsync();
             }
 
             public override bool CanRead => true;
@@ -53,7 +49,7 @@ namespace MpbkpuLib.FileManagers
 
             public override bool CanWrite => true;
 
-            public override long Length => throw new NotImplementedException();
+            public override long Length { get; }
 
             public override long Position {
                 get => _pos;
@@ -63,17 +59,15 @@ namespace MpbkpuLib.FileManagers
             protected override void Dispose(bool disposing)
             {
                 _writeTask?.Dispose();
-                base.Dispose();
             }
 
             public override void Flush()
             {
-                throw new NotImplementedException();
             }
 
             public override int Read(byte[] buffer, int offset, int count)
             {
-                if (_abort || _pos >= _writtenBytes)
+                if (_pos >= _writtenBytes)
                     return 0;
 
                 _bufferSema.Wait();
@@ -92,8 +86,6 @@ namespace MpbkpuLib.FileManagers
                         Thread.Sleep(10);
                         _bufferSema.Wait();
                         i--;
-                        if (_abort)
-                            break;
                     }
                 }
                 _bufferSema.Release();
@@ -102,7 +94,7 @@ namespace MpbkpuLib.FileManagers
 
             public override long Seek(long offset, SeekOrigin origin)
             {
-                throw new InvalidOperationException();
+                return offset;
             }
 
             public override void SetLength(long value)
@@ -112,12 +104,6 @@ namespace MpbkpuLib.FileManagers
 
             public override void Write(byte[] buffer, int offset, int count)
             {
-                if (_abort)
-                    return;
-
-                if (_session == null)
-                    throw new Exception("Node is null");
-
                 while(_buffer.Count >= _cacheSize)
                     Thread.Sleep(10);
 
@@ -134,11 +120,6 @@ namespace MpbkpuLib.FileManagers
                 if (_writeTask != null)
                     await _writeTask;
             }
-
-            public void Abort()
-            {
-                _abort = true;
-            }
         }
         #endregion
 
@@ -146,7 +127,7 @@ namespace MpbkpuLib.FileManagers
         private readonly string? _account;
         private readonly string[] _scopes = new[] { "User.Read", "files.readwrite", "offline_access" };
         private const string TenantId = "common";
-        private const string AppName = "MicrosoftGraphTest";
+        private const string AppName = "Mpbkpu";
         private const string AppId = "d7f0a79d-cfc0-4faa-9708-c0196c8eb26f";
         private const string RedirectUri = "http://localhost";
 
@@ -155,6 +136,11 @@ namespace MpbkpuLib.FileManagers
         }
 
         public bool CanOpenDatabase()
+        {
+            return false;
+        }
+
+        public bool SupportCompression()
         {
             return false;
         }
@@ -278,9 +264,10 @@ namespace MpbkpuLib.FileManagers
             if (!write) {
                 res = await client.Drive.Root.ItemWithPath(filePath).Content.Request().GetAsync();
             } else {
-                // https://www.csharpcodi.com/vs2/3381/aspnet-snippets-sample/Graph-ASPNET-46-Snippets/Microsoft%20Graph%20ASPNET%20Snippets/Models/FilesService.cs/
+                if (size == null)
+                    throw new ArgumentNullException(nameof(size));
                 UploadSession uploadSession = await client.Me.Drive.Root.ItemWithPath(filePath).CreateUploadSession().Request().PostAsync();
-                res = new WriterStream(uploadSession);
+                res = new WriterStream(uploadSession, size.Value);
             }
 
             return new FileSystemStream(this, res);
@@ -289,7 +276,7 @@ namespace MpbkpuLib.FileManagers
         public async Task<bool> CloseFile(Stream stream)
         {
             if (stream is WriterStream ws) {
-                ws.Abort();
+                //ws.Abort();
                 await ws.WaitTask();
             }
             stream.Close();

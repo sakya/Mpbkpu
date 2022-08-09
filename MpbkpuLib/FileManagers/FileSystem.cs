@@ -22,6 +22,11 @@ namespace MpbkpuLib.FileManagers
             return true;
         }
 
+        public bool SupportCompression()
+        {
+            return true;
+        }
+
         public string CombinePath(params string[] paths)
         {
             string res = string.Empty;

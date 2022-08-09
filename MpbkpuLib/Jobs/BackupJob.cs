@@ -1,5 +1,6 @@
 ﻿using System.IO.Compression;
 using System.Security.Cryptography;
+using System.Text;
 using Newtonsoft.Json;
 using Microsoft.EntityFrameworkCore;
 using MpbkpuLib.Abstracts;
@@ -271,7 +272,18 @@ public class BackupJob : BaseJob
             }
 
             if (fileToBackup.FileAction == File.FileActions.Backup) {
-                if (await BackupFileFromSource(backupFile, fileToBackup, encrypter)) {
+                // Compute file size of the backup file if possible
+                long? backupFileSize =  fileToBackup.Size;
+                if (Settings.Compress) {
+                    // Unknown file size
+                    backupFileSize = null;
+                } else if (encrypter != null) {
+                    backupFileSize = (fileToBackup.Size / 16 + 1) * 16;
+                    // Header
+                    backupFileSize += 32;
+                }
+
+                if (await BackupFileFromSource(backupFile, fileToBackup, encrypter, backupFileSize)) {
                     bytes += fileToBackup.Size;
                     Progress?.Invoke(this, ++fileIdx, cArgs.FilesToBackup, bytes, cArgs.BytesToBackup);
                 } else {
@@ -319,6 +331,9 @@ public class BackupJob : BaseJob
     private async Task CheckDestination()
     {
         using var fm = FileManagerFactory.GetFileManager(Settings.Destination, out var newPath);
+        if (Settings.Compress && !fm.SupportCompression())
+            throw new Exception("Destination doesn't support compression");
+
         if (!await fm.DirectoryExists(newPath))
             await fm.CreateDirectory(newPath);
     }
@@ -331,7 +346,7 @@ public class BackupJob : BaseJob
     /// <param name="encrypter">The optional <see cref="Utility.EncryptDecrypt"/> to encrypt the file</param>
     /// <returns>True on success</returns>
     /// <exception cref="ArgumentNullException"></exception>
-    private async Task<bool> BackupFileFromSource(BackupFile? backupFile, File? sourceFile, Utility.EncryptDecrypt? encrypter)
+    private async Task<bool> BackupFileFromSource(BackupFile? backupFile, File? sourceFile, Utility.EncryptDecrypt? encrypter, long? backupFileSize)
     {
         if (backupFile == null)
             throw new ArgumentNullException(nameof(backupFile));
@@ -356,9 +371,13 @@ public class BackupJob : BaseJob
         var destFilePath = destFm.CombinePath(destPath, _backup.Guid, backupItem.Volume!.Name!, backupItem.Name!);
         switch (sourceFile.Type) {
             case File.FileTyes.Directory:
-                // Create a zero byte file as a placeholder
-                await using (var _ = await destFm.OpenFile(destFilePath, true)) {
+                // Create a placeholder file
+                using (var sourceStream = new MemoryStream(Encoding.ASCII.GetBytes("DIRECTORY"))) {
+                    await using (var destStream = await destFm.OpenFile(destFilePath, true, 9)) {
+                        await sourceStream.CopyToAsync(destStream);
+                    }
                 }
+
                 FileProgress?.Invoke(this, sourceFile.FullPath!, 0, 0);
                 break;
             case File.FileTyes.File:
@@ -367,7 +386,7 @@ public class BackupJob : BaseJob
 
                     DateTime? lastFileProgress = null;
                     using (var sourceStream = await sourceFm.OpenFile(sourceFile.FullPath)) {
-                        using (var destStream = await destFm.OpenFile(destFilePath, true)) {
+                        using (var destStream = await destFm.OpenFile(destFilePath, true, backupFileSize)) {
                             var progressAction = new Action<long>((copied) =>
                             {
                                 if (lastFileProgress == null || copied == sourceFile.Size ||

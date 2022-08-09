@@ -62,7 +62,7 @@ public abstract class BaseJob
             await Files.Copy(sourceStream, destStream);
         else {
             var encrypt = new EncryptDecrypt(password);
-            await encrypt.Encrypt(sourceStream, destStream, true);
+            await encrypt.Encrypt(sourceStream, destStream, destFm.SupportCompression());
         }
 
         return true;

@@ -125,7 +125,7 @@ public class BackupFile : IDisposable
                     await Utility.Files.Copy(sourceStream, tempStream);
                 else {
                     var decrypt = new EncryptDecrypt(password);
-                    await decrypt.Decrypt(sourceStream, tempStream, true);
+                    await decrypt.Decrypt(sourceStream, tempStream, sourceFm.SupportCompression());
                 }
             }
         } else {

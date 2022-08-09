@@ -15,6 +15,11 @@ public class GoogleDrive : IFileManager
         return false;
     }
 
+    public bool SupportCompression()
+    {
+        return false;
+    }
+
     public string CombinePath(params string[] paths)
     {
         throw new NotImplementedException();
