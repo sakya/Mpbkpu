@@ -372,6 +372,7 @@ public class BackupJob : BaseJob
         switch (sourceFile.Type) {
             case File.FileTyes.Directory:
                 // Create a placeholder file
+                // We don't write a zero byte file because it would be not valid for some remote filesystems (like OneDrive)
                 using (var sourceStream = new MemoryStream(Encoding.ASCII.GetBytes("DIRECTORY"))) {
                     await using (var destStream = await destFm.OpenFile(destFilePath, true, 9)) {
                         await sourceStream.CopyToAsync(destStream);

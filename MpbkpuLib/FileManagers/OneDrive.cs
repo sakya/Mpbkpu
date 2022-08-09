@@ -67,7 +67,7 @@ namespace MpbkpuLib.FileManagers
 
             public override int Read(byte[] buffer, int offset, int count)
             {
-                if (_pos >= _writtenBytes)
+                if (_pos >= Length)
                     return 0;
 
                 _bufferSema.Wait();
@@ -79,7 +79,7 @@ namespace MpbkpuLib.FileManagers
 
                         _pos++;
                         readCount++;
-                        if (_pos >= _writtenBytes)
+                        if (_pos >= Length)
                             break;
                     } else {
                         _bufferSema.Release();
@@ -104,7 +104,7 @@ namespace MpbkpuLib.FileManagers
 
             public override void Write(byte[] buffer, int offset, int count)
             {
-                while(_buffer.Count >= _cacheSize)
+                while(_buffer.Count > 0)
                     Thread.Sleep(10);
 
                 _bufferSema.Wait();
