@@ -384,6 +384,7 @@ public class BackupJob : BaseJob
                 using (var sourceFm = FileManagerFactory.GetFileManager(sourceFile.FullPath, out _)) {
                     LogDebug($"Backing up {sourceFile.FullPath} to {destFilePath}");
 
+                    FileProgress?.Invoke(this, sourceFile.FullPath!, 0, sourceFile.Size);
                     DateTime? lastFileProgress = null;
                     using (var sourceStream = await sourceFm.OpenFile(sourceFile.FullPath)) {
                         using (var destStream = await destFm.OpenFile(destFilePath, true, backupFileSize)) {
@@ -419,7 +420,7 @@ public class BackupJob : BaseJob
             using (CryptoStream hashStream = new CryptoStream(destStream, hasher, CryptoStreamMode.Write, true)) {
                 long copied = 0;
                 int read;
-                byte[] buffer = new byte[4096];
+                byte[] buffer = new byte[32768];
                 while ((read = await sourceStream.ReadAsync(buffer, 0, buffer.Length)) > 0) {
                     await hashStream.WriteAsync(buffer, 0, read);
                     copied += read;
@@ -439,7 +440,7 @@ public class BackupJob : BaseJob
                 using (var compressorStream = new GZipStream(hashStream, CompressionLevel.Optimal, true)) {
                     long copied = 0;
                     int read;
-                    byte[] buffer = new byte[4096];
+                    byte[] buffer = new byte[32768];
                     while ((read = await sourceStream.ReadAsync(buffer, 0, buffer.Length)) > 0) {
                         await compressorStream.WriteAsync(buffer, 0, read);
                         copied += read;

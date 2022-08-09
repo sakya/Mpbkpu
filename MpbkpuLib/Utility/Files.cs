@@ -10,7 +10,7 @@ public static class Files
     /// <returns>True on success</returns>
     public static async Task<bool> Copy(Stream source, Stream destination)
     {
-        byte[] buffer = new byte[4096];
+        byte[] buffer = new byte[32768];
         int read;
         while ((read = await source.ReadAsync(buffer, 0, buffer.Length)) > 0) {
             await destination.WriteAsync(buffer, 0, read);

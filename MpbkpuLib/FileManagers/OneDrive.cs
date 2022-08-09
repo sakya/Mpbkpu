@@ -83,7 +83,7 @@ namespace MpbkpuLib.FileManagers
                             break;
                     } else {
                         _bufferSema.Release();
-                        Thread.Sleep(10);
+                        Thread.Sleep(20);
                         _bufferSema.Wait();
                         i--;
                     }

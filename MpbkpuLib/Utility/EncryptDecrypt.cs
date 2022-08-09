@@ -68,7 +68,7 @@ namespace MpbkpuLib.Utility
                     using (var encryptor = aesAlg.CreateEncryptor(_keyBytes, aesAlg.IV)) {
                         using (CryptoStream hashStream = new CryptoStream(destination, hasher, CryptoStreamMode.Write, true)) {
                             using (var csEncrypt = new CryptoStream(hashStream, encryptor, CryptoStreamMode.Write)) {
-                                byte[] buffer = new byte[4096];
+                                byte[] buffer = new byte[32768];
 
                                 await csEncrypt.WriteAsync(aesAlg.IV);
                                 long processed = 0;
@@ -138,7 +138,7 @@ namespace MpbkpuLib.Utility
                 aesAlg.Padding = PaddingMode.PKCS7;
                 using (var decryptor = aesAlg.CreateDecryptor(_keyBytes, iv)) {
                     using (var csDecrypt = new CryptoStream(source, decryptor, CryptoStreamMode.Read)) {
-                        byte[] buffer = new byte[4096];
+                        byte[] buffer = new byte[32768];
 
                         long processed = 0;
                         int read;
