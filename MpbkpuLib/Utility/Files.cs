@@ -31,4 +31,19 @@ public static class Files
 
         return res;
     }
+
+    public static long? GetDestinationFileSize(long sourceFileSize, bool compress, bool encrypt)
+    {
+        long? destFileSize = sourceFileSize;
+        if (compress) {
+            // Unknown file size
+            destFileSize = null;
+        } else if (encrypt) {
+            destFileSize = (sourceFileSize / 16 + 1) * 16;
+            // Header
+            destFileSize += 32;
+        }
+
+        return destFileSize;
+    }
 }

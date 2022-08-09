@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using MpbkpuLib.Abstracts;
 using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
+using MpbkpuLib.Utility;
 using File = MpbkpuLib.DataModel.File;
 
 namespace MpbkpuLib.Jobs;
@@ -274,16 +275,7 @@ public class BackupJob : BaseJob
 
             if (fileToBackup.FileAction == File.FileActions.Backup) {
                 // Compute file size of the backup file if possible
-                long? backupFileSize =  fileToBackup.Size;
-                if (Settings.Compress) {
-                    // Unknown file size
-                    backupFileSize = null;
-                } else if (encrypter != null) {
-                    backupFileSize = (fileToBackup.Size / 16 + 1) * 16;
-                    // Header
-                    backupFileSize += 32;
-                }
-
+                long? backupFileSize = Files.GetDestinationFileSize(fileToBackup.Size, Settings.Compress, encrypter != null);
                 if (await BackupFileFromSource(backupFile, fileToBackup, encrypter, backupFileSize)) {
                     bytes += fileToBackup.Size;
                     Progress?.Invoke(this, ++fileIdx, cArgs.FilesToBackup, bytes, cArgs.BytesToBackup);

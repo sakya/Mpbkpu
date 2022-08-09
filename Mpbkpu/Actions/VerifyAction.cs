@@ -63,6 +63,7 @@ public class VerifyAction : BaseAction
 
     private void OnLog(object sender, BaseSettings.LogLevels level, string message)
     {
+        Utility.Console.ClearLine();
         WriteLog(level, message);
     }
 
