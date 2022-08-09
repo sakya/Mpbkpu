@@ -82,6 +82,7 @@ public class DeleteJob : BaseJob
                 throw;
             } finally {
                 Completed = DateTime.UtcNow;
+                transaction.Dispose();
             }
         }
 

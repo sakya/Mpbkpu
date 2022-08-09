@@ -22,7 +22,6 @@ namespace MpbkpuLib.FileManagers
             private long _length;
             private long _writtenBytes;
 
-            private readonly long _cacheSize = 32768;
             private readonly List<byte> _buffer = new List<byte>();
             private readonly SemaphoreSlim _bufferSema = new SemaphoreSlim(1,1);
 
@@ -109,8 +108,8 @@ namespace MpbkpuLib.FileManagers
                 if (_writeTask == null)
                     _writeTask = _node.Write(this, _fileName);
 
-                while(_buffer.Count >= _cacheSize)
-                    Thread.Sleep(10);
+                while(_buffer.Count >= 0)
+                    Thread.Sleep(20);
 
                 _bufferSema.Wait();
                 for (int i = 0; i < count; i++) {

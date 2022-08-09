@@ -119,6 +119,7 @@ public class BackupJob : BaseJob
                 throw;
             } finally {
                 Completed = DateTime.UtcNow;
+                transaction.Dispose();
             }
         }
 
@@ -344,6 +345,7 @@ public class BackupJob : BaseJob
     /// <param name="backupFile">The <see cref="BackupFile"/></param>
     /// <param name="sourceFile">The <see cref="DataModel.File"/> to backup</param>
     /// <param name="encrypter">The optional <see cref="Utility.EncryptDecrypt"/> to encrypt the file</param>
+    /// <param name="backupFileSize">The size of the backup file, if known</param>
     /// <returns>True on success</returns>
     /// <exception cref="ArgumentNullException"></exception>
     private async Task<bool> BackupFileFromSource(BackupFile? backupFile, File? sourceFile, Utility.EncryptDecrypt? encrypter, long? backupFileSize)
@@ -366,8 +368,7 @@ public class BackupJob : BaseJob
         backupItem.OriginalSize = sourceFile.Size;
         backupFile.BackupItems.Add(backupItem);
 
-        string? destPath;
-        using var destFm = FileManagerFactory.GetFileManager(Settings.Destination, out destPath);
+        using var destFm = FileManagerFactory.GetFileManager(Settings.Destination, out var destPath);
         var destFilePath = destFm.CombinePath(destPath, _backup.Guid, backupItem.Volume!.Name!, backupItem.Name!);
         switch (sourceFile.Type) {
             case File.FileTyes.Directory:

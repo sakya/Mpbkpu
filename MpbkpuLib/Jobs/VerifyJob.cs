@@ -73,6 +73,7 @@ public class VerifyJob: BaseJob
                 throw;
             } finally {
                 Completed = DateTime.UtcNow;
+                transaction.Dispose();
             }
         }
 
