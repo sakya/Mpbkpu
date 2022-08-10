@@ -1,5 +1,6 @@
 <Project>
   <PropertyGroup>
+    <AssemblyTitle>Multi Platform Backup Utility</AssemblyTitle>
     <Authors>Paolo Iommarini</Authors>
     <Copyright>Copyright © 2022, Paolo Iommarini</Copyright>
     <Version>0.1.0.0</Version>

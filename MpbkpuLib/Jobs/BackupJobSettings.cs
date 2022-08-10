@@ -45,6 +45,7 @@ public class BackupJobSettings : BaseSettings
     /// <value></value>
     public string? Destination { get; set; }
 
+    public List<string>? Exclude { get; set; }
     public int MaxFilesPerDirectory { get; set; }
     public bool IncludeHiddenFiles { get; set; }
 

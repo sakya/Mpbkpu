@@ -17,6 +17,7 @@ public class BackupAction : BaseAction
             LogLevel = pArgs.LogLevel,
             Source = pArgs.SourcePath,
             Destination = pArgs.DestinationPath,
+            Exclude = pArgs.Exclude,
             EncryptPassword = pArgs.Password,
             Compress = pArgs.Compress,
             LogToConsole = false,

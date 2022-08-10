@@ -1,5 +1,6 @@
 using CmdLineArgsParser;
 using CmdLineArgsParser.Attributes;
+using Microsoft.Graph;
 using MpbkpuLib.Abstracts;
 using MpbkpuLib.Jobs;
 
@@ -35,6 +36,11 @@ public class Arguments : IOptions
         Description = "The destination path of a backup",
         OnlyForVerbs = "Backup")]
     public string? DestinationPath { get; set; }
+
+    [Option("exclude", 'e',
+        Description = "File or directory to exclude from the backup",
+        OnlyForVerbs = "Backup;Restore")]
+    public List<string>? Exclude { get; set; }
 
     [Option("password", ShortName = 'p',
         MutuallyExclusive = "password",
