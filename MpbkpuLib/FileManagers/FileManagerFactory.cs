@@ -99,7 +99,7 @@ namespace MpbkpuLib.FileManagers
             // OneDrive
             // onedrive://account@live.com/position
             if (path.StartsWith("onedrive://")) {
-                var m = Regex.Match(path, "onedrive://([^:]+)/(.*)$");
+                var m = Regex.Match(path, "onedrive://([^/]+)/(.*)$");
                 if (m.Success) {
                     string? account = null;
                     if (m.Groups.Count == 3) {

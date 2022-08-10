@@ -127,8 +127,8 @@ namespace MpbkpuLib.Utility
 
             // Check header
             var header = new byte[Header.Length];
-            await source.ReadAsync(header);
-            if (Encoding.ASCII.GetString(header) != Header)
+            var hRead = await source.ReadAsync(header);
+            if (hRead != header.Length || Encoding.ASCII.GetString(header) != Header)
                 throw new Exception("This file is not encrypted");
 
             var iv = new byte[16];

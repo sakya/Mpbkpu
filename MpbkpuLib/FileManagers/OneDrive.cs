@@ -161,19 +161,23 @@ namespace MpbkpuLib.FileManagers
                 throw new ArgumentNullException(path);
 
             var client = await GetClient();
-            var items = await client.Drive.Root.ItemWithPath(GetPath(path)).Children.Request().GetAsync();
-            foreach (var item in items) {
-                var fInfo = new File()
-                {
-                    FullPath = $"{path}/{item.Name}",
-                    Name = item.Name,
-                    Type = item.Folder != null ? File.FileTyes.Directory : File.FileTyes.File,
-                    Size = item.Size ?? 0,
+            var page = await client.Drive.Root.ItemWithPath(GetPath(path)).Children.Request().GetAsync();
+            while (page != null) {
+                foreach (var item in page.CurrentPage) {
+                    var fInfo = new File()
+                    {
+                        FullPath = $"{path}/{item.Name}",
+                        Name = item.Name,
+                        Type = item.Folder != null ? File.FileTyes.Directory : File.FileTyes.File,
+                        Size = item.Size ?? 0,
 
-                    Created = item.CreatedDateTime?.UtcDateTime,
-                    LastModified = item.LastModifiedDateTime?.UtcDateTime
-                };
-                yield return fInfo;
+                        Created = item.CreatedDateTime?.UtcDateTime,
+                        LastModified = item.LastModifiedDateTime?.UtcDateTime
+                    };
+                    yield return fInfo;
+                }
+
+                page = page.NextPageRequest != null ? await page.NextPageRequest.GetAsync() : null;
             }
         }
 
