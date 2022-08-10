@@ -1,7 +1,6 @@
 ﻿using System.IO.Compression;
 using System.Text;
 using System.Security.Cryptography;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using MpbkpuLib.DataModel;
 
 namespace MpbkpuLib.Utility
@@ -60,11 +59,14 @@ namespace MpbkpuLib.Utility
                 throw new Exception("Cannot encrypt without a key");
 
             // Header
-            await destination.WriteAsync(Encoding.ASCII.GetBytes(Header));
+            byte[] header = Encoding.ASCII.GetBytes(Header);
+            await destination.WriteAsync(header);
+
             using (var aesAlg = Aes.Create()) {
                 aesAlg.Mode = CipherMode.CBC;
                 aesAlg.Padding = PaddingMode.PKCS7;
                 using (var hasher = MD5.Create()) {
+                    hasher.TransformBlock(header, 0, header.Length, null, 0);
                     using (var encryptor = aesAlg.CreateEncryptor(_keyBytes, aesAlg.IV)) {
                         using (CryptoStream hashStream = new CryptoStream(destination, hasher, CryptoStreamMode.Write, true)) {
                             using (var csEncrypt = new CryptoStream(hashStream, encryptor, CryptoStreamMode.Write)) {
@@ -136,8 +138,8 @@ namespace MpbkpuLib.Utility
             using (var aesAlg = Aes.Create()) {
                 aesAlg.Mode = CipherMode.CBC;
                 aesAlg.Padding = PaddingMode.PKCS7;
-                using (var decryptor = aesAlg.CreateDecryptor(_keyBytes, iv)) {
-                    using (var csDecrypt = new CryptoStream(source, decryptor, CryptoStreamMode.Read)) {
+                using (var decrypter = aesAlg.CreateDecryptor(_keyBytes, iv)) {
+                    using (var csDecrypt = new CryptoStream(source, decrypter, CryptoStreamMode.Read)) {
                         byte[] buffer = new byte[32768];
 
                         long processed = 0;
