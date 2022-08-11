@@ -5,6 +5,7 @@
         <TargetFramework>net6.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <AssemblyName>mpbkpu</AssemblyName>
     </PropertyGroup>
 
     <ItemGroup>
@@ -12,6 +13,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="CmdLineArgsParser" Version="0.5.1" />
+        <PackageReference Include="CmdLineArgsParser" Version="0.6.0" />
     </ItemGroup>
 </Project>

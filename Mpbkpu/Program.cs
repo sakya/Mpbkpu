@@ -30,12 +30,12 @@ public static class Program
     {
         Console.OutputEncoding = Encoding.UTF8;
         Console.ForegroundColor = BaseAction.DefaultColor;
-        PrintInfo();
         if (args.Length == 0) {
             PrintHelp();
             return -1;
         }
 
+        PrintInfo();
         var pArgs = new Parser().Parse<Arguments>(args, out var errors);
         if (errors.Count > 0) {
             foreach (var e in errors) {
