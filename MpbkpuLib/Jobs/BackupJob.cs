@@ -278,6 +278,18 @@ public class BackupJob : BaseJob
             }
 
             if (fileToBackup.FileAction == File.FileActions.Backup) {
+                if (fileToBackup.Type == File.FileTyes.File) {
+                    try {
+                        var fInfo = await sourceFm.GetFileInfo(fileToBackup.FullPath);
+                        if (fInfo.Size != fileToBackup.Size || fInfo.LastModified != fileToBackup.LastModified) {
+                            LogWarning($"File {fileToBackup.FullPath} changed after the backup started");
+                            fileToBackup.Size = fInfo.Size;
+                        }
+                    } catch (FileNotFoundException) {
+                        LogWarning($"File {fileToBackup.FullPath} not found");
+                    }
+                }
+
                 // Compute file size of the backup file if possible
                 long? backupFileSize = Files.GetDestinationFileSize(fileToBackup.Size, Settings.Compress, encrypter != null);
                 if (await BackupFileFromSource(backupFile, sourceFm, destFm, destPath, fileToBackup, encrypter, backupFileSize)) {
@@ -392,18 +404,6 @@ public class BackupJob : BaseJob
                 break;
             case File.FileTyes.File:
                 LogDebug($"Backing up {sourceFile.FullPath} to {destFilePath}");
-
-                try {
-                    var fInfo = await sourceFm.GetFileInfo(sourceFile.FullPath);
-                    if (fInfo.Size != sourceFile.Size || fInfo.LastModified != sourceFile.LastModified) {
-                        LogWarning($"File {sourceFile.FullPath} changed after the backup started");
-                        sourceFile.Size = fInfo.Size;
-                    }
-                } catch (FileNotFoundException) {
-                    LogWarning($"File {sourceFile.FullPath} not found");
-                    return true;
-                }
-
                 FileProgress?.Invoke(this, sourceFile.FullPath!, 0, sourceFile.Size);
                 DateTime? lastFileProgress = null;
                 using (var sourceStream = await sourceFm.OpenFile(sourceFile.FullPath)) {

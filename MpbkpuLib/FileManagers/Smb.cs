@@ -109,7 +109,7 @@ namespace MpbkpuLib.FileManagers
                     _writeTask = _node.Write(this, _fileName);
 
                 while(_buffer.Count >= 0)
-                    Thread.Sleep(20);
+                    Thread.Sleep(10);
 
                 _bufferSema.Wait();
                 for (int i = 0; i < count; i++) {
