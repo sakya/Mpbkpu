@@ -226,20 +226,21 @@ public class Mega : IFileManager
             throw new ArgumentNullException(path);
 
         var parent = await GetNode(path);
-        if (parent != null) {
-            foreach (var node in _nodes!.Where(n => n.ParentId == parent.Id)) {
-                var fInfo = new File()
-                {
-                    FullPath = $"{path}/{node.Name}",
-                    Name = node.Name,
-                    Type = node.Type == NodeType.Directory ? File.FileTyes.Directory : File.FileTyes.File,
-                    Size = node.Size,
+        if (parent == null)
+            throw new Exception($"Folder {path} not found");
 
-                    Created = node.CreationDate,
-                    LastModified = node.ModificationDate
-                };
-                yield return fInfo;
-            }
+        foreach (var node in _nodes!.Where(n => n.ParentId == parent.Id)) {
+            var fInfo = new File()
+            {
+                FullPath = $"{path}/{node.Name}",
+                Name = node.Name,
+                Type = node.Type == NodeType.Directory ? File.FileTyes.Directory : File.FileTyes.File,
+                Size = node.Size,
+
+                Created = node.CreationDate,
+                LastModified = node.ModificationDate
+            };
+            yield return fInfo;
         }
     }
 
