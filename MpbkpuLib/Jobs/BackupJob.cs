@@ -287,6 +287,10 @@ public class BackupJob : BaseJob
                         }
                     } catch (FileNotFoundException) {
                         LogWarning($"File {fileToBackup.FullPath} not found");
+
+                        bytes += fileToBackup.Size;
+                        Progress?.Invoke(this, ++fileIdx, cArgs.FilesToBackup, bytes, cArgs.BytesToBackup);
+                        continue;
                     }
                 }
 
