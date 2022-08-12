@@ -169,7 +169,7 @@ namespace MpbkpuLib.FileManagers
 
             using var node = await Node.GetNode(GetPath(path), GetParamSet(), true);
             if (node.Type != NodeType.File)
-                throw new Exception($"File {path} not found");
+                throw new FileNotFoundException($"File {path} not found", path);
 
             var fInfo = new File()
             {

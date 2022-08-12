@@ -161,19 +161,27 @@ namespace MpbkpuLib.FileManagers
                 throw new ArgumentNullException(path);
 
             var client = await GetClient();
-            var item = await client.Drive.Root.ItemWithPath(GetPath(path)).Request().GetAsync();
-            var fInfo = new File()
-            {
-                FullPath = $"{path}/{item.Name}",
-                Name = item.Name,
-                Type = item.Folder != null ? File.FileTyes.Directory : File.FileTyes.File,
-                Size = item.Size ?? 0,
+            try {
+                var item = await client.Drive.Root.ItemWithPath(GetPath(path)).Request().GetAsync();
+                if (item.File == null)
+                    throw new FileNotFoundException($"File {path} not found", path);
 
-                Created = item.CreatedDateTime?.UtcDateTime,
-                LastModified = item.LastModifiedDateTime?.UtcDateTime
-            };
+                var fInfo = new File()
+                {
+                    FullPath = $"{path}/{item.Name}",
+                    Name = item.Name,
+                    Type = item.Folder != null ? File.FileTyes.Directory : File.FileTyes.File,
+                    Size = item.Size ?? 0,
 
-            return fInfo;
+                    Created = item.CreatedDateTime?.UtcDateTime,
+                    LastModified = item.LastModifiedDateTime?.UtcDateTime
+                };
+                return fInfo;
+            } catch (ServiceException ex) {
+                if (ex.StatusCode == HttpStatusCode.NotFound)
+                    throw new FileNotFoundException($"File {path} not found", path);
+                throw;
+            }
         }
 
         public async IAsyncEnumerable<File> GetDirectoryContent(string? path, bool includeHidden = true)

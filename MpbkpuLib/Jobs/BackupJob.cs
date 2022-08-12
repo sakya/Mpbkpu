@@ -358,7 +358,6 @@ public class BackupJob : BaseJob
         backupItem.OriginalName = sourceFile.Name;
         backupItem.OriginalPath = sourceFile.FullPath;
         backupItem.OriginalSize = sourceFile.Size;
-        backupFile.BackupItems.Add(backupItem);
 
         using var destFm = FileManagerFactory.GetFileManager(Settings.Destination, out var destPath);
         var destFilePath = destFm.CombinePath(destPath, _backup.Guid, backupItem.Volume!.Name!, backupItem.Name!);
@@ -377,6 +376,17 @@ public class BackupJob : BaseJob
             case File.FileTyes.File:
                 using (var sourceFm = FileManagerFactory.GetFileManager(sourceFile.FullPath, out _)) {
                     LogDebug($"Backing up {sourceFile.FullPath} to {destFilePath}");
+
+                    try {
+                        var fInfo = await sourceFm.GetFileInfo(sourceFile.FullPath);
+                        if (fInfo.Size != sourceFile.Size || fInfo.LastModified != sourceFile.LastModified) {
+                            LogWarning($"File {sourceFile.FullPath} changed after the backup started");
+                            sourceFile.Size = fInfo.Size;
+                        }
+                    } catch (FileNotFoundException) {
+                        LogWarning($"File {sourceFile.FullPath} not found");
+                        return true;
+                    }
 
                     FileProgress?.Invoke(this, sourceFile.FullPath!, 0, sourceFile.Size);
                     DateTime? lastFileProgress = null;
@@ -404,7 +414,9 @@ public class BackupJob : BaseJob
                 break;
         }
 
+        backupFile.BackupItems.Add(backupItem);
         await backupFile.SaveChangesAsync();
+
         return true;
     }
 

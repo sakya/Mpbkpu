@@ -70,6 +70,9 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
 
+            if (!File.Exists(path))
+                throw new FileNotFoundException($"File {path} not found", path);
+
             var fi = new FileInfo(path);
             var fInfo = new DataModel.File()
             {

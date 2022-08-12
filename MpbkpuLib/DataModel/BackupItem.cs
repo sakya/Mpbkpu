@@ -16,7 +16,7 @@ public class BackupItem : BaseModel
     public int BackupId { get; set; }
     public Backup? Backup { get; set; }
 
-    public int VolumeId { get; set; }
+    public int? VolumeId { get; set; }
     public BackupVolume? Volume { get; set; }
 
     public File.FileTyes Type { get; set; }

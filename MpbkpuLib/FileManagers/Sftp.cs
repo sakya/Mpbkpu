@@ -44,7 +44,7 @@ namespace MpbkpuLib.FileManagers
             var client = GetClient();
             var f = await Task.Run( () => client.Get(path));
             if (f == null || !f.IsRegularFile)
-                throw new Exception($"File {path} not found");
+                throw new FileNotFoundException($"File {path} not found", path);
 
             var fInfo = new File()
             {

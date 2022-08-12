@@ -99,7 +99,7 @@ namespace MpbkpuLib.Migrations
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     BackupId = table.Column<int>(type: "INTEGER", nullable: false),
-                    VolumeId = table.Column<int>(type: "INTEGER", nullable: false),
+                    VolumeId = table.Column<int>(type: "INTEGER", nullable: true),
                     Type = table.Column<int>(type: "INTEGER", nullable: false),
                     Action = table.Column<int>(type: "INTEGER", nullable: false),
                     Name = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
