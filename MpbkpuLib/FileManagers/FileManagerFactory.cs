@@ -115,15 +115,15 @@ namespace MpbkpuLib.FileManagers
                     throw new Exception("Invalid address");
             }
 
-            // SMB
+            // MEGA
             // mega://user:password/position
             if (path.StartsWith("mega://")) {
-                var m = Regex.Match(path, "mega://(([^:]+):([^@]+))/?(.*)?$");
+                var m = Regex.Match(path, "mega://(([^:]+):([^/]+))/?(.*)?$");
                 if (m.Success) {
-                    if (m.Groups.Count == 3) {
-                        var megaFm = new Mega(m.Groups[1].Value, m.Groups[2].Value);
-                        if (!string.IsNullOrEmpty(m.Groups[3].Value))
-                            newPosition = $"mega://{m.Groups[3].Value}";
+                    if (m.Groups.Count == 5) {
+                        var megaFm = new Mega(m.Groups[2].Value, m.Groups[3].Value);
+                        if (!string.IsNullOrEmpty(m.Groups[4].Value))
+                            newPosition = $"mega://{m.Groups[4].Value}";
                         else
                             newPosition = $"mega:///";
                         return megaFm;

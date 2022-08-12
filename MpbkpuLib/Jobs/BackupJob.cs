@@ -365,9 +365,16 @@ public class BackupJob : BaseJob
             case File.FileTyes.Directory:
                 // Create a placeholder file
                 // We don't write a zero byte file because it would be not valid for some remote filesystems (like OneDrive)
-                using (var sourceStream = new MemoryStream(Encoding.ASCII.GetBytes("DIRECTORY"))) {
-                    await using (var destStream = await destFm.OpenFile(destFilePath, true, 9)) {
-                        await sourceStream.CopyToAsync(destStream);
+                using (var sourceFm = FileManagerFactory.GetFileManager(sourceFile.FullPath, out _)) {
+                    if (!await sourceFm.DirectoryExists(sourceFile.FullPath)) {
+                        LogWarning($"Directory {sourceFile.FullPath} not found");
+                        return true;
+                    }
+
+                    using (var sourceStream = new MemoryStream(Encoding.ASCII.GetBytes("DIRECTORY"))) {
+                        await using (var destStream = await destFm.OpenFile(destFilePath, true, 9)) {
+                            await sourceStream.CopyToAsync(destStream);
+                        }
                     }
                 }
 

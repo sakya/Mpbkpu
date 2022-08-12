@@ -307,7 +307,6 @@ namespace MpbkpuLib.FileManagers
         public async Task<bool> CloseFile(Stream stream)
         {
             if (stream is WriterStream ws) {
-                //ws.Abort();
                 await ws.WaitTask();
             }
             stream.Close();
