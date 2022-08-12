@@ -256,9 +256,9 @@ public class BackupJob : BaseJob
 
         // Backup files
         Step?.Invoke(this, Steps.BackupFiles);
-        Utility.EncryptDecrypt? encrypter = null;
+        EncryptDecrypt? encrypter = null;
         if (!string.IsNullOrEmpty(Settings.EncryptPassword)) {
-            encrypter = new Utility.EncryptDecrypt(Settings.EncryptPassword);
+            encrypter = new EncryptDecrypt(Settings.EncryptPassword);
         }
 
         int fileIdx = 0;
@@ -340,7 +340,7 @@ public class BackupJob : BaseJob
     /// <param name="backupFileSize">The size of the backup file, if known</param>
     /// <returns>True on success</returns>
     /// <exception cref="ArgumentNullException"></exception>
-    private async Task<bool> BackupFileFromSource(BackupFile? backupFile, File? sourceFile, Utility.EncryptDecrypt? encrypter, long? backupFileSize)
+    private async Task<bool> BackupFileFromSource(BackupFile? backupFile, File? sourceFile, EncryptDecrypt? encrypter, long? backupFileSize)
     {
         if (backupFile == null)
             throw new ArgumentNullException(nameof(backupFile));
