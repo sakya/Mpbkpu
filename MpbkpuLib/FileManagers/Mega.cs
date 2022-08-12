@@ -112,8 +112,13 @@ public class Mega : IFileManager
 
     public void Dispose()
     {
-        if (_client?.IsLoggedIn == true)
-            _client?.Logout();
+        if (_client?.IsLoggedIn == true) {
+            try {
+                _client?.Logout();
+            } catch {
+                // ignored
+            }
+        }
     }
 
     public bool CanOpenDatabase()
