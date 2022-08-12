@@ -372,18 +372,7 @@ namespace MpbkpuLib.FileManagers
 
         private string GetParent(string position, out string? childName)
         {
-            childName = null;
-            position = GetPath(position);
-            if (position.EndsWith("/"))
-                position = position.Remove(position.Length - 1, 1);
-
-            int idx = position.LastIndexOf("/", StringComparison.InvariantCultureIgnoreCase);
-            if (idx >= 0) {
-                childName = position.Substring(idx + 1);
-                return position.Substring(0, idx);
-            }
-
-            throw new Exception($"Cannot get parent of {position}");
+            return Utility.Files.GetParent('/', GetPath(position), out childName);
         }
         #endregion
     }

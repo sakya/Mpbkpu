@@ -123,7 +123,7 @@ public class Mega : IFileManager
 
     public bool SupportCompression()
     {
-        return true;
+        return false;
     }
 
     public string CombinePath(params string[] paths)
@@ -311,9 +311,12 @@ public class Mega : IFileManager
 
         INode? node = null;
         foreach (var dir in SplitPath(GetPath(path))) {
-            if (node == null)
-                node = _nodes.FirstOrDefault(n => n.Name == dir);
-            else
+            if (node == null) {
+                if (string.IsNullOrEmpty(dir) || dir == "/")
+                    node = _nodes.FirstOrDefault(n => n.Type == NodeType.Root);
+                else
+                    node = _nodes.FirstOrDefault(n => n.Name == dir);
+            } else
                 node = _nodes.FirstOrDefault(n => n.Name == dir && n.ParentId == node.Id);
 
             if (node == null)
@@ -325,18 +328,7 @@ public class Mega : IFileManager
 
     private string GetParent(string position, out string? childName)
     {
-        childName = null;
-        position = GetPath(position);
-        if (position.EndsWith("/"))
-            position = position.Remove(position.Length - 1, 1);
-
-        int idx = position.LastIndexOf("/", StringComparison.InvariantCultureIgnoreCase);
-        if (idx >= 0) {
-            childName = position.Substring(idx + 1);
-            return position.Substring(0, idx);
-        }
-
-        throw new Exception($"Cannot get parent of {position}");
+        return Utility.Files.GetParent('/', GetPath(position), out childName);
     }
     #endregion
 }

@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using MpbkpuLib.Abstracts;
 using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
+using MpbkpuLib.Interfaces;
 using MpbkpuLib.Utility;
 using File = MpbkpuLib.DataModel.File;
 
@@ -247,8 +248,10 @@ public class BackupJob : BaseJob
             }
         }
 
-        // Create the backup directory
+        using var sourceFm = FileManagerFactory.GetFileManager(Settings.Source, out _);
         using var destFm = FileManagerFactory.GetFileManager(Settings.Destination, out string destPath);
+
+        // Create the backup directory
         var backupDirectory = destFm.CombinePath(destPath, _backup.Guid);
         if (await destFm.DirectoryExists(backupDirectory))
             throw new Exception($"The backup destination {backupDirectory} exist");
@@ -276,7 +279,7 @@ public class BackupJob : BaseJob
             if (fileToBackup.FileAction == File.FileActions.Backup) {
                 // Compute file size of the backup file if possible
                 long? backupFileSize = Files.GetDestinationFileSize(fileToBackup.Size, Settings.Compress, encrypter != null);
-                if (await BackupFileFromSource(backupFile, fileToBackup, encrypter, backupFileSize)) {
+                if (await BackupFileFromSource(backupFile, sourceFm, destFm, destPath, fileToBackup, encrypter, backupFileSize)) {
                     bytes += fileToBackup.Size;
                     Progress?.Invoke(this, ++fileIdx, cArgs.FilesToBackup, bytes, cArgs.BytesToBackup);
                 } else {
@@ -335,12 +338,21 @@ public class BackupJob : BaseJob
     /// Backup a <see cref="DataModel.File"/>
     /// </summary>
     /// <param name="backupFile">The <see cref="BackupFile"/></param>
+    /// <param name="sourceFm">The source <see cref="IFileManager"/></param>
+    /// <param name="destFm">The destination <see cref="IFileManager"/></param>
+    /// <param name="destPath">The destination path</param>
     /// <param name="sourceFile">The <see cref="DataModel.File"/> to backup</param>
     /// <param name="encrypter">The optional <see cref="Utility.EncryptDecrypt"/> to encrypt the file</param>
     /// <param name="backupFileSize">The size of the backup file, if known</param>
     /// <returns>True on success</returns>
     /// <exception cref="ArgumentNullException"></exception>
-    private async Task<bool> BackupFileFromSource(BackupFile? backupFile, File? sourceFile, EncryptDecrypt? encrypter, long? backupFileSize)
+    private async Task<bool> BackupFileFromSource(BackupFile? backupFile,
+        IFileManager sourceFm,
+        IFileManager destFm,
+        string destPath,
+        File? sourceFile,
+        EncryptDecrypt? encrypter,
+        long? backupFileSize)
     {
         if (backupFile == null)
             throw new ArgumentNullException(nameof(backupFile));
@@ -359,63 +371,58 @@ public class BackupJob : BaseJob
         backupItem.OriginalPath = sourceFile.FullPath;
         backupItem.OriginalSize = sourceFile.Size;
 
-        using var destFm = FileManagerFactory.GetFileManager(Settings.Destination, out var destPath);
         var destFilePath = destFm.CombinePath(destPath, _backup.Guid, _lastUsedVolume!.Name!, backupItem.Name!);
         switch (sourceFile.Type) {
             case File.FileTyes.Directory:
                 // Create a placeholder file
                 // We don't write a zero byte file because it would be not valid for some remote filesystems (like OneDrive)
-                using (var sourceFm = FileManagerFactory.GetFileManager(sourceFile.FullPath, out _)) {
-                    if (!await sourceFm.DirectoryExists(sourceFile.FullPath)) {
-                        LogWarning($"Directory {sourceFile.FullPath} not found");
-                        return true;
-                    }
+                if (!await sourceFm.DirectoryExists(sourceFile.FullPath)) {
+                    LogWarning($"Directory {sourceFile.FullPath} not found");
+                    return true;
+                }
 
-                    using (var sourceStream = new MemoryStream(Encoding.ASCII.GetBytes("DIRECTORY"))) {
-                        await using (var destStream = await destFm.OpenFile(destFilePath, true, 9)) {
-                            await sourceStream.CopyToAsync(destStream);
-                        }
+                using (var sourceStream = new MemoryStream(Encoding.ASCII.GetBytes("DIRECTORY"))) {
+                    await using (var destStream = await destFm.OpenFile(destFilePath, true, 9)) {
+                        await sourceStream.CopyToAsync(destStream);
                     }
                 }
 
                 FileProgress?.Invoke(this, sourceFile.FullPath!, 0, 0);
                 break;
             case File.FileTyes.File:
-                using (var sourceFm = FileManagerFactory.GetFileManager(sourceFile.FullPath, out _)) {
-                    LogDebug($"Backing up {sourceFile.FullPath} to {destFilePath}");
+                LogDebug($"Backing up {sourceFile.FullPath} to {destFilePath}");
 
-                    try {
-                        var fInfo = await sourceFm.GetFileInfo(sourceFile.FullPath);
-                        if (fInfo.Size != sourceFile.Size || fInfo.LastModified != sourceFile.LastModified) {
-                            LogWarning($"File {sourceFile.FullPath} changed after the backup started");
-                            sourceFile.Size = fInfo.Size;
-                        }
-                    } catch (FileNotFoundException) {
-                        LogWarning($"File {sourceFile.FullPath} not found");
-                        return true;
+                try {
+                    var fInfo = await sourceFm.GetFileInfo(sourceFile.FullPath);
+                    if (fInfo.Size != sourceFile.Size || fInfo.LastModified != sourceFile.LastModified) {
+                        LogWarning($"File {sourceFile.FullPath} changed after the backup started");
+                        sourceFile.Size = fInfo.Size;
                     }
+                } catch (FileNotFoundException) {
+                    LogWarning($"File {sourceFile.FullPath} not found");
+                    return true;
+                }
 
-                    FileProgress?.Invoke(this, sourceFile.FullPath!, 0, sourceFile.Size);
-                    DateTime? lastFileProgress = null;
-                    using (var sourceStream = await sourceFm.OpenFile(sourceFile.FullPath)) {
-                        using (var destStream = await destFm.OpenFile(destFilePath, true, backupFileSize)) {
-                            var progressAction = new Action<long>((copied) =>
-                            {
-                                if (lastFileProgress == null || copied == sourceFile.Size ||
-                                    (DateTime.UtcNow - lastFileProgress.Value).TotalMilliseconds >= 500) {
-                                    FileProgress?.Invoke(this, sourceFile.FullPath!, copied, sourceFile.Size);
-                                    lastFileProgress = DateTime.UtcNow;
-                                }
-                            });
+                FileProgress?.Invoke(this, sourceFile.FullPath!, 0, sourceFile.Size);
+                DateTime? lastFileProgress = null;
+                using (var sourceStream = await sourceFm.OpenFile(sourceFile.FullPath)) {
+                    using (var destStream = await destFm.OpenFile(destFilePath, true, backupFileSize)) {
+                        var progressAction = new Action<long>((copied) =>
+                        {
+                            if (lastFileProgress == null || copied == sourceFile.Size ||
+                                (DateTime.UtcNow - lastFileProgress.Value).TotalMilliseconds >= 500) {
+                                FileProgress?.Invoke(this, sourceFile.FullPath!, copied, sourceFile.Size);
+                                lastFileProgress = DateTime.UtcNow;
+                            }
+                        });
 
-                            if (encrypter != null)
-                                await encrypter.Encrypt(backupItem, sourceStream, destStream, Settings.Compress,
-                                    progressAction);
-                            else if (Settings.Compress)
-                                await BackupFileFromSourceCompress(backupItem, sourceStream, destStream, progressAction);
-                            else
-                                await BackupFileFromSourceCopy(backupItem, sourceStream, destStream, progressAction);
-                        }
+                        if (encrypter != null)
+                            await encrypter.Encrypt(backupItem, sourceStream, destStream, Settings.Compress,
+                                progressAction);
+                        else if (Settings.Compress)
+                            await BackupFileFromSourceCompress(backupItem, sourceStream, destStream, progressAction);
+                        else
+                            await BackupFileFromSourceCopy(backupItem, sourceStream, destStream, progressAction);
                     }
                 }
                 break;

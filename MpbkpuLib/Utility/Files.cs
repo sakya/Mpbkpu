@@ -32,6 +32,23 @@ public static class Files
         return res;
     }
 
+    public static string GetParent(char separator, string path, out string? childName)
+    {
+        childName = null;
+        if (path.EndsWith(separator))
+            path = path.Remove(path.Length - 1, 1);
+        if (!path.StartsWith(separator))
+            path = $"{separator}{path}";
+
+        int idx = path.LastIndexOf($"{separator}", StringComparison.InvariantCultureIgnoreCase);
+        if (idx >= 0) {
+            childName = path.Substring(idx + 1);
+            return path.Substring(0, idx);
+        }
+
+        throw new Exception($"Cannot get parent of {path}");
+    }
+
     public static long? GetDestinationFileSize(long sourceFileSize, bool compress, bool encrypt)
     {
         long? destFileSize = sourceFileSize;
