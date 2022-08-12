@@ -8,9 +8,9 @@ public static class TempFile
         if (!string.IsNullOrEmpty(extension) && !extension.StartsWith("."))
             extension = $".{extension}";
 
-        var tempFolder = Path.GetTempPath();
+        var tempPath = Path.GetTempPath();
         while (res == null) {
-            res = Path.Combine(tempFolder, $"{Guid.NewGuid().ToString("N")}{extension}");
+            res = Path.Combine(tempPath, $"{Guid.NewGuid().ToString("N")}{extension}");
             if (!File.Exists(res)) {
                 try {
                     using (var _ = new FileStream(res, FileMode.Create, FileAccess.Write, FileShare.Read)) {

@@ -17,8 +17,26 @@ public class VerifyJob: BaseJob
         VerifyFiles
     }
 
-    #region classes
+    public enum ErrorCodes
+    {
+        BackupNotFound,
+        BackupDirectoryNotFound,
+        FileNotFound,
+        Md5Mismatch
+    }
 
+    #region classes
+    public class Error
+    {
+        public Error(ErrorCodes code, string message)
+        {
+            Code = code;
+            Message = message;
+        }
+
+        public ErrorCodes Code { get; set; }
+        public string Message { get; set; }
+    }
     #endregion
 
     #region private members
@@ -46,6 +64,7 @@ public class VerifyJob: BaseJob
         get { return (base.Settings as VerifyJobSettings)!; }
     }
 
+    public List<Error>? Errors { get; set; }
     #endregion
 
     #region public operations
@@ -91,11 +110,15 @@ public class VerifyJob: BaseJob
     /// <returns>True on success</returns>
     private async Task<bool> RunPrimitive(BackupFile backupFile)
     {
+        Errors = new List<Error>();
         var bkp = await backupFile.Backups.AsNoTracking()
             .Where(b => b.Guid == Settings.BackupGuid)
             .FirstOrDefaultAsync();
-        if (bkp == null)
-            throw new Exception($"Backup with GUID { Settings.BackupGuid } not found");
+        if (bkp == null) {
+            Errors.Add(new Error(ErrorCodes.BackupNotFound, $"Backup with GUID {Settings.BackupGuid} not found"));
+            LogError($"Backup with GUID {Settings.BackupGuid} not found");
+            return false;
+        }
 
         if (bkp.Result != Backup.Results.Completed)
             LogWarning($"Database result is { bkp.Result }");
@@ -118,10 +141,11 @@ public class VerifyJob: BaseJob
             throw new Exception("Cannot read backup settings");
         using var fm = FileManagerFactory.GetFileManager(settings.Destination, out var newPath);
 
-        // Verify backup folder
+        // Verify backup directory
         var backupRoot = fm.CombinePath(newPath, bkp.Guid);
         if (!await fm.DirectoryExists(backupRoot)) {
-            LogWarning("Database folder does not exists");
+            Errors.Add(new Error(ErrorCodes.BackupDirectoryNotFound, $"Backup directory {backupRoot} does not exists"));
+            LogWarning("Backup directory does not exists");
         } else {
             // Verify backup items
             int filesError = 0;
@@ -162,6 +186,7 @@ public class VerifyJob: BaseJob
     {
         var filePath = fm.CombinePath(backupRoot, item.Volume!.Name!, item.Name!);
         if (!await fm.FileExists(filePath)) {
+            Errors!.Add(new Error(ErrorCodes.FileNotFound, $"File {filePath} not found"));
             LogWarning($"File {filePath} not found");
             return false;
         }
@@ -177,6 +202,7 @@ public class VerifyJob: BaseJob
                         var hash = await hasher.ComputeHashAsync(source);
                         var md5 = BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
                         if (md5 != item.MD5) {
+                            Errors!.Add(new Error(ErrorCodes.Md5Mismatch, $"MD5 mismatch for file {item.OriginalPath}"));
                             LogWarning($"MD5 mismatch for file {item.OriginalPath}");
                             return false;
                         }

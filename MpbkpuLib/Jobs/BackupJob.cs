@@ -247,7 +247,7 @@ public class BackupJob : BaseJob
             }
         }
 
-        // Create the backup folder
+        // Create the backup directory
         using var destFm = FileManagerFactory.GetFileManager(Settings.Destination, out string destPath);
         var backupDirectory = destFm.CombinePath(destPath, _backup.Guid);
         if (await destFm.DirectoryExists(backupDirectory))

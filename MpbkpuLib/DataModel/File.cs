@@ -26,7 +26,7 @@ namespace MpbkpuLib.DataModel
         public FileTyes Type { get; set; }
 
         /// <summary>
-        /// The root path of the file (i.e. the source or destination folder of the backup)
+        /// The root path of the file (i.e. the source or destination directory of the backup)
         /// </summary>
         /// <value></value>
         [MaxLength(255)]

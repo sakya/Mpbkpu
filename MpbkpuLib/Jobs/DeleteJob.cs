@@ -142,7 +142,7 @@ public class DeleteJob : BaseJob
         // Delete data
         await backupFile.DeleteBackup(bkp.Id);
 
-        // Delete backup folder
+        // Delete backup directory
         var bkpPath = fm.CombinePath(newPath, bkp.Guid);
         if (await fm.DirectoryExists(bkpPath))
             await fm.DeleteDirectory(bkpPath);
