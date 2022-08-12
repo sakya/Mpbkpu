@@ -167,8 +167,8 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
 
-            using var node = await Node.GetNode(GetPath(path), GetParamSet(), true);
-            if (node.Type != NodeType.File)
+            using var node = await Node.GetNode(GetPath(path), GetParamSet());
+            if (node == null || node.Type != NodeType.File)
                 throw new FileNotFoundException($"File {path} not found", path);
 
             var fInfo = new File()

@@ -43,7 +43,7 @@ namespace MpbkpuLib.FileManagers
             path = GetPath(path);
             var client = GetClient();
             var f = await client.GetObjectInfoAsync(path, true);
-            if (f.Type != FtpObjectType.File)
+            if (f == null || f.Type != FtpObjectType.File)
                 throw new Exception($"File {path} not found");
 
             return new File() {
