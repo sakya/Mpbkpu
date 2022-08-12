@@ -360,7 +360,7 @@ public class BackupJob : BaseJob
         backupItem.OriginalSize = sourceFile.Size;
 
         using var destFm = FileManagerFactory.GetFileManager(Settings.Destination, out var destPath);
-        var destFilePath = destFm.CombinePath(destPath, _backup.Guid, backupItem.Volume!.Name!, backupItem.Name!);
+        var destFilePath = destFm.CombinePath(destPath, _backup.Guid, _lastUsedVolume!.Name!, backupItem.Name!);
         switch (sourceFile.Type) {
             case File.FileTyes.Directory:
                 // Create a placeholder file
