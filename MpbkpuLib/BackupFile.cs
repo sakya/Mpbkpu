@@ -219,6 +219,17 @@ public class BackupFile : IDisposable
         return true;
     }
 
+    /// <summary>
+    /// Vacuum the database
+    /// </summary>
+    /// <returns>True on success</returns>
+    public async Task<bool> Vacuum()
+    {
+        EnsureDbOpen();
+        await _context!.Database.ExecuteSqlRawAsync("VACUUM");
+        return true;
+    }
+
     public async Task<int> SaveChangesAsync()
     {
         EnsureDbOpen();

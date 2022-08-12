@@ -106,6 +106,7 @@ public class BackupJob : BaseJob
                 await RunPrimitive(backupFile);
                 await transaction.CommitAsync();
 
+                await backupFile.Vacuum();
                 backupFile.Close();
 
                 if (!_userCancelled) {

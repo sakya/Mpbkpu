@@ -282,7 +282,7 @@ public class Mega : IFileManager
     private async Task<MegaApiClient> GetClient()
     {
         if (_client == null) {
-            _client = new MegaApiClient(new WebClient(20000));
+            _client = new MegaApiClient(new WebClient(30000));
             await _client.LoginAsync(_username, _password);
         }
 

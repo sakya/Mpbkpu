@@ -70,7 +70,9 @@ public class DeleteJob : BaseJob
                 await RunPrimitive(backupFile);
                 await transaction.CommitAsync();
 
+                await backupFile.Vacuum();
                 backupFile.Close();
+
                 // Copy temporary database file to destination
                 if (!string.IsNullOrEmpty(openRes.TempFilePath)) {
                     Step?.Invoke(this, Steps.CopyDatabase);
