@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using MpbkpuLib.FileManagers;
+﻿using MpbkpuLib.FileManagers;
 
 namespace MpbkpuLib.Interfaces
 {
@@ -21,6 +16,7 @@ namespace MpbkpuLib.Interfaces
         public Task<bool> DeleteFile(string? path);
         public Task<bool> DirectoryExists(string? path);
         public Task<bool> FileExists(string? path);
+        public Task<DataModel.File> GetFileInfo(string? path);
         public IAsyncEnumerable<DataModel.File> GetDirectoryContent(string? path, bool includeHidden = true);
         public Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null);
         public Task<bool> CloseFile(Stream stream);

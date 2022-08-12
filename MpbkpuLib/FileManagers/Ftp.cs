@@ -35,6 +35,28 @@ namespace MpbkpuLib.FileManagers
             return Utility.Files.CombinePath('/', paths);
         }
 
+        public async Task<File> GetFileInfo(string? path)
+        {
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentNullException(path);
+
+            path = GetPath(path);
+            var client = GetClient();
+            var f = await client.GetObjectInfoAsync(path, true);
+            if (f.Type != FtpObjectType.File)
+                throw new Exception($"File {path} not found");
+
+            return new File() {
+                FullPath = $"ftp://{Host}{f.FullName}",
+                Name = f.Name,
+                Type = File.FileTyes.File,
+
+                Size = f.Size,
+                LastModified = f.Modified,
+                Created = f.Created,
+            };
+        }
+
         public async IAsyncEnumerable<File> GetDirectoryContent(string? path, bool includeHidden = true)
         {
             if (string.IsNullOrEmpty(path))

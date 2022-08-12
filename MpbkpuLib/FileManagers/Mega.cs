@@ -61,6 +61,11 @@ public class Mega : IFileManager
         throw new NotImplementedException();
     }
 
+    public Task<File> GetFileInfo(string? path)
+    {
+        throw new NotImplementedException();
+    }
+
     public async IAsyncEnumerable<File> GetDirectoryContent(string? path, bool includeHidden = true)
     {
         var client = await GetClient();

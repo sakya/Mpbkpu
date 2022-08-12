@@ -155,6 +155,27 @@ namespace MpbkpuLib.FileManagers
             return Utility.Files.CombinePath('/', paths);
         }
 
+        public async Task<File> GetFileInfo(string? path)
+        {
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentNullException(path);
+
+            var client = await GetClient();
+            var item = await client.Drive.Root.ItemWithPath(GetPath(path)).Request().GetAsync();
+            var fInfo = new File()
+            {
+                FullPath = $"{path}/{item.Name}",
+                Name = item.Name,
+                Type = item.Folder != null ? File.FileTyes.Directory : File.FileTyes.File,
+                Size = item.Size ?? 0,
+
+                Created = item.CreatedDateTime?.UtcDateTime,
+                LastModified = item.LastModifiedDateTime?.UtcDateTime
+            };
+
+            return fInfo;
+        }
+
         public async IAsyncEnumerable<File> GetDirectoryContent(string? path, bool includeHidden = true)
         {
             if (string.IsNullOrEmpty(path))

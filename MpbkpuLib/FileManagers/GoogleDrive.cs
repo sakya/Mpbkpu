@@ -50,6 +50,11 @@ public class GoogleDrive : IFileManager
         throw new NotImplementedException();
     }
 
+    public Task<File> GetFileInfo(string? path)
+    {
+        throw new NotImplementedException();
+    }
+
     public IAsyncEnumerable<File> GetDirectoryContent(string? path, bool includeHidden = true)
     {
         throw new NotImplementedException();

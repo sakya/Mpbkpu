@@ -162,12 +162,35 @@ namespace MpbkpuLib.FileManagers
 
         public string? Host { get; }
 
+        public async Task<File> GetFileInfo(string? path)
+        {
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentNullException(path);
+
+            using var node = await Node.GetNode(GetPath(path), GetParamSet(), true);
+            if (node.Type != NodeType.File)
+                throw new Exception($"File {path} not found");
+
+            var fInfo = new File()
+            {
+                FullPath = $"smb://{node.FullPath.Replace("\\", "/")}",
+                Name = node.Name,
+                Type = File.FileTyes.File,
+                Size = node.Size ?? 0,
+
+                Created = node.Created,
+                LastModified = node.Updated,
+            };
+
+            return fInfo;
+        }
+
         public async IAsyncEnumerable<File> GetDirectoryContent(string? path, bool includeHidden = true)
         {
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
 
-            var dir = await Node.GetNode(GetPath(path), GetParamSet());
+            using var dir = await Node.GetNode(GetPath(path), GetParamSet());
             foreach (var node in await dir.GetList()) {
                 if (node.Name == ".." || node.Name == "." || node.Type != NodeType.Folder)
                     continue;
@@ -202,7 +225,7 @@ namespace MpbkpuLib.FileManagers
             if (node?.Type == NodeType.Folder)
                 throw new Exception($"Cannot create '{path}' because a directory with the same name already exists");
 
-            node =await Node.GetNode(GetParent(path, out var dirName), GetParamSet());
+            node = await Node.GetNode(GetParent(path, out var dirName), GetParamSet());
             await node.CreateFolder(dirName);
             return true;
         }

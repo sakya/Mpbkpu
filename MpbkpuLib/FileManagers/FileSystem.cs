@@ -1,10 +1,4 @@
 ﻿using MpbkpuLib.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Graph;
 using Directory = System.IO.Directory;
 using File = System.IO.File;
 
@@ -71,6 +65,26 @@ namespace MpbkpuLib.FileManagers
             return Task.FromResult(Directory.Exists(path));
         }
 
+        public Task<DataModel.File> GetFileInfo(string? path)
+        {
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentNullException(path);
+
+            var fi = new FileInfo(path);
+            var fInfo = new DataModel.File()
+            {
+                FullPath = fi.FullName,
+                Name = fi.Name,
+                Type = DataModel.File.FileTyes.File,
+                Extension = fi.Extension,
+                Size = fi.Length,
+
+                Created = fi.CreationTime,
+                LastModified = fi.LastWriteTime,
+            };
+            return Task.FromResult(fInfo);
+        }
+
         public async IAsyncEnumerable<DataModel.File> GetDirectoryContent(string? path, bool includeHidden = true)
         {
             if (string.IsNullOrEmpty(path))
@@ -106,6 +120,7 @@ namespace MpbkpuLib.FileManagers
                 {
                     FullPath = fi.FullName,
                     Name = fi.Name,
+                    Type = DataModel.File.FileTyes.File,
                     Extension = fi.Extension,
                     Size = fi.Length,
 
@@ -134,7 +149,7 @@ namespace MpbkpuLib.FileManagers
         {
             if (string.IsNullOrEmpty(filePath))
                 throw new ArgumentNullException(filePath);
-            Stream? res = null;
+            Stream? res;
             if (!write)
                 res = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             else
