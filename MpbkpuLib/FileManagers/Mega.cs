@@ -35,7 +35,6 @@ public class Mega : IFileManager
 
         protected override void Dispose(bool disposing)
         {
-            WriteTask?.Dispose();
         }
 
         public override void Flush()
@@ -95,6 +94,7 @@ public class Mega : IFileManager
         {
             if (WriteTask != null)
                 await WriteTask;
+            WriteTask?.Dispose();
         }
     }
     #endregion

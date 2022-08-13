@@ -57,6 +57,9 @@ public abstract class BaseJob
         using var destFm = FileManagerFactory.GetFileManager(destination, out _);
         await using var sourceStream = await sourceFm.OpenFile(openRes.TempFilePath);
 
+        if (await destFm.FileExists(openRes.BackupFilePath))
+            await destFm.DeleteFile(openRes.BackupFilePath);
+
         long? destFileSize = Files.GetDestinationFileSize(sourceStream.Length, destFm.SupportCompression(), !string.IsNullOrEmpty(password));
         await using var destStream = await destFm.OpenFile(openRes.BackupFilePath, true, destFileSize);
 

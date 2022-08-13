@@ -57,7 +57,6 @@ namespace MpbkpuLib.FileManagers
 
             protected override void Dispose(bool disposing)
             {
-                _writeTask?.Dispose();
             }
 
             public override void Flush()
@@ -117,6 +116,7 @@ namespace MpbkpuLib.FileManagers
             {
                 if (_writeTask != null)
                     await _writeTask;
+                _writeTask?.Dispose();
             }
         }
         #endregion
@@ -248,6 +248,7 @@ namespace MpbkpuLib.FileManagers
                 throw new ArgumentNullException(path);
 
             var client = await GetClient();
+            path = GetPath(path);
             await client.Drive.Root.ItemWithPath(path).Request().DeleteAsync();
             return true;
         }
@@ -274,8 +275,9 @@ namespace MpbkpuLib.FileManagers
                 throw new ArgumentNullException(path);
 
             var client = await GetClient();
+            path = GetPath(path);
             try {
-                var item = await client.Drive.Root.ItemWithPath(GetPath(path)).Request().GetAsync();
+                var item = await client.Drive.Root.ItemWithPath(path).Request().GetAsync();
                 return item.File != null;
             } catch (ServiceException ex) {
                 if (ex.StatusCode == HttpStatusCode.NotFound)
@@ -289,8 +291,8 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(filePath))
                 throw new ArgumentNullException(filePath);
 
-            filePath = GetPath(filePath);
             var client = await GetClient();
+            filePath = GetPath(filePath);
             Stream? res;
             if (!write) {
                 res = await client.Drive.Root.ItemWithPath(filePath).Content.Request().GetAsync();

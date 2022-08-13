@@ -48,7 +48,6 @@ namespace MpbkpuLib.FileManagers
 
             protected override void Dispose(bool disposing)
             {
-                _writeTask?.Dispose();
                 _node?.Dispose();
                 base.Dispose();
             }
@@ -123,6 +122,7 @@ namespace MpbkpuLib.FileManagers
             {
                 if (_writeTask != null)
                     await _writeTask;
+                _writeTask?.Dispose();
             }
 
             public void Abort()

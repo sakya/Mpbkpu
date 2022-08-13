@@ -32,11 +32,17 @@ public class Dropbox : IFileManager
     {
         private long _pos;
 
+        private DropboxClient _client;
+        private string _fileName;
+        private const int ChunkSize = 128 * 1024;
+        private string? _sessionId = null;
         private readonly List<byte> _buffer = new();
         private readonly SemaphoreSlim _bufferSema = new(1,1);
 
-        public WriterStream(long length)
+        public WriterStream(DropboxClient client, string fileName, long length)
         {
+            _client = client;
+            _fileName = fileName;
             Length = length;
         }
 
@@ -66,6 +72,19 @@ public class Dropbox : IFileManager
         {
             if (_pos >= Length)
                 return 0;
+
+            if (_pos > 0 && _pos % ChunkSize == 0) {
+                // Next chunk
+                if (_sessionId == null && WriteTask != null) {
+                    var sr = Task.Run( () => ((Task<UploadSessionStartResult>)WriteTask)).Result;
+                    _sessionId = sr.SessionId;
+                }
+                UploadSessionCursor cursor = new UploadSessionCursor(_sessionId, (ulong)_pos);
+                if (_pos + ChunkSize >= Length)
+                    WriteTask = _client.Files.UploadSessionFinishAsync(cursor, new CommitInfo(_fileName), body: this);
+                else
+                    WriteTask = _client.Files.UploadSessionAppendV2Async(cursor, body: this);
+            }
 
             _bufferSema.Wait();
             int readCount = 0;
@@ -309,8 +328,8 @@ public class Dropbox : IFileManager
             if (size == null)
                 throw new ArgumentNullException(nameof(size));
 
-            var ws = new WriterStream(size.Value);
-            ws.WriteTask = client.Files.UploadAsync(filePath, WriteMode.Overwrite.Instance, body: ws);
+            var ws = new WriterStream(client, filePath, size.Value);
+            ws.WriteTask = client.Files.UploadSessionStartAsync(body: ws); //client.Files.UploadAsync(filePath, WriteMode.Overwrite.Instance, body: ws);
             res = ws;
         }
 
