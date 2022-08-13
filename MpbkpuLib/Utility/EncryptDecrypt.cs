@@ -1,6 +1,7 @@
 ﻿using System.IO.Compression;
 using System.Text;
 using System.Security.Cryptography;
+using Microsoft.Graph.SecurityNamespace;
 using MpbkpuLib.DataModel;
 
 namespace MpbkpuLib.Utility
@@ -21,6 +22,24 @@ namespace MpbkpuLib.Utility
             using (HashAlgorithm hash = MD5.Create()) {
                 _keyBytes = hash.ComputeHash(Encoding.Unicode.GetBytes(key));
             }
+        }
+
+        public async Task<string> Encrypt(string text)
+        {
+            using var source = new MemoryStream(Encoding.UTF8.GetBytes(text));
+            using var dest = new MemoryStream();
+            await Encrypt(null, source, dest, false);
+            dest.Position = 0;
+            return Convert.ToBase64String(dest.ToArray());
+        }
+
+        public async Task<string> Decrypt(string text)
+        {
+            using var source = new MemoryStream(Convert.FromBase64String(text));
+            using var dest = new MemoryStream();
+            await Decrypt(source, dest, false);
+            dest.Position = 0;
+            return Encoding.UTF8.GetString(dest.ToArray());
         }
 
         /// <summary>

@@ -133,6 +133,25 @@ namespace MpbkpuLib.FileManagers
                     throw new Exception("Invalid address");
             }
 
+            // Dropbox
+            // dropbox://user/position
+            if (path.StartsWith("dropbox://")) {
+                var m = Regex.Match(path, "dropbox://([^/]+)/(.*)$");
+                if (m.Success) {
+                    string? account = null;
+                    if (m.Groups.Count == 3) {
+                        account = m.Groups[1].Value;
+                    }
+                    if (!string.IsNullOrEmpty(m.Groups[2].Value))
+                        newPosition = $"dropbox://{m.Groups[2].Value}";
+                    else
+                        newPosition = "dropbox:///";
+                    var odFm = new Dropbox(account);
+                    return odFm;
+                } else
+                    throw new Exception("Invalid address");
+            }
+
             // Default to FileSystem
             return new FileSystem();
         } // GetFileManager

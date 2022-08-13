@@ -195,12 +195,9 @@ namespace MpbkpuLib.FileManagers
             return _client;
         }
 
-        private string GetPath(string position)
+        private string GetPath(string path)
         {
-            if (position.StartsWith($"ftp://{Host}"))
-                return position.Remove(0, $"ftp://{Host}".Length);
-
-            return position;
+            return Utility.Files.GetPath('/', $"ftp://{Host}", path);
         }
         #endregion
     }

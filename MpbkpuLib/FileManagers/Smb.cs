@@ -310,11 +310,9 @@ namespace MpbkpuLib.FileManagers
             };
         }
 
-        private string GetPath(string position)
+        private string GetPath(string path)
         {
-            if (position.StartsWith("smb://"))
-                return position.Remove(0, 6);
-            return position;
+            return Utility.Files.GetPath('/', "smb://", path);
         }
 
         private string GetParent(string position, out string? childName)

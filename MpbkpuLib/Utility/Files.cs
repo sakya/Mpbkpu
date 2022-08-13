@@ -32,6 +32,18 @@ public static class Files
         return res;
     }
 
+    public static string GetPath(char separator, string scheme, string path)
+    {
+        if (path.StartsWith(scheme)) {
+            var res = path.Remove(0, scheme.Length);
+            if (!res.StartsWith($"{separator}"))
+                res = $"{separator}{res}";
+            return res;
+        }
+
+        return path;
+    }
+
     public static string GetParent(char separator, string path, out string? childName)
     {
         childName = null;

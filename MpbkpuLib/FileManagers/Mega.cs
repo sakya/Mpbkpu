@@ -295,12 +295,9 @@ public class Mega : IFileManager
         return _client;
     }
 
-    private string GetPath(string position)
+    private string GetPath(string path)
     {
-        if (position.StartsWith($"mega://"))
-            return position.Remove(0, $"mega://".Length);
-
-        return position;
+        return Utility.Files.GetPath('/', "mega://", path);
     }
 
     private string[] SplitPath(string position)

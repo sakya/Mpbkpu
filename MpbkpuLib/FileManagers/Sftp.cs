@@ -197,12 +197,9 @@ namespace MpbkpuLib.FileManagers
             return _client;
         }
 
-        private string GetPath(string position)
+        private string GetPath(string path)
         {
-            if (position.StartsWith($"sftp://{Host}")) {
-                return position.Remove(0, $"sftp://{Host}".Length);
-            }
-            return position;
+            return Utility.Files.GetPath('/', $"sftp://{Host}", path);
         }
 
         private async Task<IEnumerable<SftpFile>> ListDirectoryAsync(SftpClient client, string path)

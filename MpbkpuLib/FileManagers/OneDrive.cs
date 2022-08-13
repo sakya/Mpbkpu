@@ -362,12 +362,9 @@ namespace MpbkpuLib.FileManagers
             return _client;
         }
 
-        private string GetPath(string position)
+        private string GetPath(string path)
         {
-            if (position.StartsWith($"onedrive://"))
-                return position.Remove(0, $"onedrive://".Length);
-
-            return position;
+            return Utility.Files.GetPath('/', "onedrive://", path);
         }
 
         private string GetParent(string position, out string? childName)
