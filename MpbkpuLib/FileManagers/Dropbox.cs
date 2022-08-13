@@ -56,7 +56,6 @@ public class Dropbox : IFileManager
 
         protected override void Dispose(bool disposing)
         {
-            WriteTask?.Dispose();
         }
 
         public override void Flush()
@@ -116,6 +115,7 @@ public class Dropbox : IFileManager
         {
             if (WriteTask != null)
                 await WriteTask;
+            WriteTask?.Dispose();
         }
     }
     #endregion
@@ -309,8 +309,9 @@ public class Dropbox : IFileManager
             if (size == null)
                 throw new ArgumentNullException(nameof(size));
 
-            res = new WriterStream(size.Value);
-            await client.Files.UploadAsync(filePath, WriteMode.Overwrite.Instance, body: res);
+            var ws = new WriterStream(size.Value);
+            ws.WriteTask = client.Files.UploadAsync(filePath, WriteMode.Overwrite.Instance, body: ws);
+            res = ws;
         }
 
         return new FileSystemStream(this, res);
@@ -321,7 +322,6 @@ public class Dropbox : IFileManager
         if (stream is WriterStream ws) {
             await ws.WaitTask();
         }
-        stream.Close();
 
         return true;
     }
@@ -400,7 +400,7 @@ public class Dropbox : IFileManager
         if (!System.IO.File.Exists(_tokenCache))
             return null;
 
-        TokenCache? cache = null;
+        TokenCache? cache;
         using (var fs = new FileStream(_tokenCache, FileMode.Open, FileAccess.Read)) {
             using (var sr = new StreamReader(fs)) {
                 cache = JsonConvert.DeserializeObject<TokenCache>(await sr.ReadToEndAsync());
@@ -412,8 +412,7 @@ public class Dropbox : IFileManager
 
         var enc = new Utility.EncryptDecrypt(_deviceId);
         account = await enc.Encrypt(account);
-        TokenCache.Data? data;
-        if (cache.Tokens.TryGetValue(account, out data)) {
+        if (cache.Tokens.TryGetValue(account, out var data)) {
             data.AccessToken = await enc.Decrypt(data.AccessToken!);
             data.RefreshToken = await enc.Decrypt(data.RefreshToken!);
 
@@ -429,7 +428,7 @@ public class Dropbox : IFileManager
         if (!Directory.Exists(dir))
             Directory.CreateDirectory(dir!);
 
-        TokenCache? cache = null;
+        TokenCache? cache;
         using (var fs = new FileStream(_tokenCache, FileMode.OpenOrCreate, FileAccess.Read)) {
             using (var sr = new StreamReader(fs)) {
                 cache = JsonConvert.DeserializeObject<TokenCache>(await sr.ReadToEndAsync());
