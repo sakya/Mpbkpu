@@ -37,7 +37,7 @@ public class Dropbox : IFileManager
         private readonly string _fileName;
         private readonly long _fileLength;
         private long _length;
-        public static readonly int ChunkSize = 128 * 1024;
+        public static readonly int ChunkSize = 4 * 1024 * 1024; // 4Mb
         private readonly int _chunkNumber;
         private int _chunkIndex;
         private string? _sessionId;

@@ -24,6 +24,9 @@ public class BackupAction : BaseAction
             LogFile = pArgs.LogFile
         };
 
+        if (pArgs.RetryOnError.HasValue)
+            settings.RetryOnError = pArgs.RetryOnError.Value;
+
         Console.WriteLine($"Type       : { pArgs.BackupType }");
         Console.Write("Compression: ");
         WriteEnabled(pArgs.Compress);

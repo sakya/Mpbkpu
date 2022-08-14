@@ -26,6 +26,7 @@ public class BackupJobSettings : BaseSettings
     public BackupJobSettings()
     {
         MaxFilesPerDirectory = 1000;
+        RetryOnError = 3;
     }
 
     /// <summary>
@@ -54,4 +55,9 @@ public class BackupJobSettings : BaseSettings
     /// </summary>
     /// <value></value>
     public bool Compress { get; set; }
+
+    /// <summary>
+    /// Number of retries on error while backing up a file (Default: 3)
+    /// </summary>
+    public int RetryOnError { get; set; }
 }

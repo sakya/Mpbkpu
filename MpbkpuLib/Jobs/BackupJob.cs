@@ -298,13 +298,19 @@ public class BackupJob : BaseJob
                     }
                 }
 
-                // Compute file size of the backup file if possible
-                long? backupFileSize = Files.GetDestinationFileSize(fileToBackup.Size, Settings.Compress, encrypter != null);
-                if (await BackupFileFromSource(backupFile, sourceFm, BackupFm, BackupPath!, fileToBackup, encrypter, backupFileSize)) {
-                    bytes += fileToBackup.Size;
-                    Progress?.Invoke(this, ++fileIdx, cArgs.FilesToBackup, bytes, cArgs.BytesToBackup);
-                } else {
-                    LogError($"Failed to backup {fileToBackup.FullPath}");
+                int tryCount = 0;
+                while (++tryCount <= Settings.RetryOnError) {
+                    try {
+                        // Compute file size of the backup file if possible
+                        long? backupFileSize = Files.GetDestinationFileSize(fileToBackup.Size, Settings.Compress, encrypter != null);
+                        await BackupFileFromSource(backupFile, sourceFm, BackupFm, BackupPath!, fileToBackup, encrypter, backupFileSize);
+                        bytes += fileToBackup.Size;
+                        Progress?.Invoke(this, ++fileIdx, cArgs.FilesToBackup, bytes, cArgs.BytesToBackup);
+                        break;
+                    } catch {
+                        if (tryCount == Settings.RetryOnError)
+                            throw;
+                    }
                 }
             } else {
                 await DeleteItem(backupFile, fileToBackup);
@@ -338,6 +344,9 @@ public class BackupJob : BaseJob
 
         if (Settings.MaxFilesPerDirectory <= 0)
             throw new ArgumentException("MaxFilesPerDirectory must be greater than zero");
+
+        if (Settings.RetryOnError <= 0)
+            throw new ArgumentException("RetryOnError must be greater than zero");
     }
 
     /// <summary>
@@ -367,9 +376,8 @@ public class BackupJob : BaseJob
     /// <param name="sourceFile">The <see cref="DataModel.File"/> to backup</param>
     /// <param name="encrypter">The optional <see cref="Utility.EncryptDecrypt"/> to encrypt the file</param>
     /// <param name="backupFileSize">The size of the backup file, if known</param>
-    /// <returns>True on success</returns>
     /// <exception cref="ArgumentNullException"></exception>
-    private async Task<bool> BackupFileFromSource(BackupFile? backupFile,
+    private async Task BackupFileFromSource(BackupFile? backupFile,
         IFileManager sourceFm,
         IFileManager destFm,
         string destPath,
@@ -401,7 +409,7 @@ public class BackupJob : BaseJob
                 // We don't write a zero byte file because it would be not valid for some remote filesystems (like OneDrive)
                 if (!await sourceFm.DirectoryExists(sourceFile.FullPath)) {
                     LogWarning($"Directory {sourceFile.FullPath} not found");
-                    return true;
+                    return;
                 }
 
                 using (var sourceStream = new MemoryStream(Encoding.ASCII.GetBytes("DIRECTORY"))) {
@@ -441,8 +449,6 @@ public class BackupJob : BaseJob
 
         backupFile.BackupItems.Add(backupItem);
         await backupFile.SaveChangesAsync();
-
-        return true;
     }
 
     private async Task BackupFileFromSourceCopy(BackupItem backupItem, Stream sourceStream, Stream destStream, Action<long>? progressAction = null)

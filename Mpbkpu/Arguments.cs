@@ -88,6 +88,11 @@ public class Arguments : IOptions
         Description = "The type of backup to execute")]
     public BackupJobSettings.BackupTypes? BackupType { get; set; }
 
+    [Option("retry",
+        Description = "Number of retries in case of error",
+        OnlyForVerbs = "Backup;Restore")]
+    public int? RetryOnError { get; set; }
+
     [Option("yes", 'y',
         Description = "Auto reply YES to any question")]
     public bool? AlwaysYes { get; set; }
