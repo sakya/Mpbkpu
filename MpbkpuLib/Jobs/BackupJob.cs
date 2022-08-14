@@ -307,9 +307,11 @@ public class BackupJob : BaseJob
                         bytes += fileToBackup.Size;
                         Progress?.Invoke(this, ++fileIdx, cArgs.FilesToBackup, bytes, cArgs.BytesToBackup);
                         break;
-                    } catch {
+                    } catch (Exception ex) {
                         if (tryCount == Settings.RetryOnError)
                             throw;
+
+                        LogWarning($"Failed to backup {fileToBackup.FullPath}: {ex.Message}, retrying");
                     }
                 }
             } else {
