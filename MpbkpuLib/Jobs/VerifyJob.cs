@@ -77,8 +77,9 @@ public class VerifyJob: BaseJob
         LogInfo("Starting with settings:");
         LogInfo(JsonConvert.SerializeObject(Settings, Formatting.Indented));
 
+        BackupFm = FileManagerFactory.GetFileManager(Settings.BackupPath, out BackupPath);
         Step?.Invoke(this, Steps.OpenDatabase);
-        using (var openRes = await BackupFile.OpenBackupFile(Settings.BackupPath!, Settings.EncryptPassword)) {
+        using (var openRes = await BackupFile.OpenBackupFile(BackupFm, BackupPath, Settings.EncryptPassword)) {
             var backupFile = openRes.BackupFile;
             await backupFile.EmptyFiles();
             var transaction = backupFile.BeginTransaction();
@@ -110,6 +111,9 @@ public class VerifyJob: BaseJob
     /// <returns>True on success</returns>
     private async Task<bool> RunPrimitive(BackupFile backupFile)
     {
+        if (BackupFm == null)
+            throw new Exception("Backup file manager not initialized");
+
         Errors = new List<Error>();
         var bkp = await backupFile.Backups.AsNoTracking()
             .Where(b => b.Guid == Settings.BackupGuid)
@@ -139,11 +143,10 @@ public class VerifyJob: BaseJob
         var settings = JsonConvert.DeserializeObject<BackupJobSettings>(bkp.Settings!);
         if (settings == null)
             throw new Exception("Cannot read backup settings");
-        using var fm = FileManagerFactory.GetFileManager(settings.Destination, out var newPath);
 
         // Verify backup directory
-        var backupRoot = fm.CombinePath(newPath, bkp.Guid);
-        if (!await fm.DirectoryExists(backupRoot)) {
+        var backupRoot = BackupFm.CombinePath(BackupPath!, bkp.Guid);
+        if (!await BackupFm.DirectoryExists(backupRoot)) {
             Errors.Add(new Error(ErrorCodes.BackupDirectoryNotFound, $"Backup directory {backupRoot} does not exists"));
             LogWarning("Backup directory does not exists");
         } else {
@@ -157,7 +160,7 @@ public class VerifyJob: BaseJob
                     return false;
                 }
 
-                if (!await VerifyBackupItem(fm, backupRoot, item))
+                if (!await VerifyBackupItem(BackupFm, backupRoot, item))
                     filesError++;
                 Progress?.Invoke(this, ++fileIdx, filesCount);
             }

@@ -60,8 +60,9 @@ public class DeleteJob : BaseJob
         LogInfo("Starting with settings:");
         LogInfo(JsonConvert.SerializeObject(Settings, Formatting.Indented));
 
+        BackupFm = FileManagerFactory.GetFileManager(Settings.BackupPath, out BackupPath);
         Step?.Invoke(this, Steps.OpenDatabase);
-        using (var openRes = await BackupFile.OpenBackupFile(Settings.BackupPath!, Settings.EncryptPassword)) {
+        using (var openRes = await BackupFile.OpenBackupFile(BackupFm, BackupPath, Settings.EncryptPassword)) {
             var backupFile = openRes.BackupFile;
             await backupFile.EmptyFiles();
             var transaction = backupFile.BeginTransaction();
@@ -100,6 +101,9 @@ public class DeleteJob : BaseJob
     /// <returns>True on success</returns>
     private async Task RunPrimitive(BackupFile backupFile)
     {
+        if (BackupFm == null)
+            throw new Exception("Backup file manager not initialized");
+
         var bkp = await backupFile.Backups.AsNoTracking()
             .Where(b => b.Guid == Settings.BackupGuid)
             .FirstOrDefaultAsync();
@@ -127,7 +131,6 @@ public class DeleteJob : BaseJob
         // Delete files
         Step?.Invoke(this, Steps.DeleteFiles);
 
-        using var fm = FileManagerFactory.GetFileManager(Settings.BackupPath, out var newPath);
         var items = backupFile.BackupItems.AsNoTracking()
             .Include(i => i.Volume)
             .Where(i => i.BackupId == bkp.Id);
@@ -137,17 +140,17 @@ public class DeleteJob : BaseJob
                 return;
             }
 
-            var filePath = fm.CombinePath(newPath, bkp.Guid, item.Volume!.Name!, item.Name!);
-            await fm.DeleteFile(filePath);
+            var filePath = BackupFm.CombinePath(BackupPath!, bkp.Guid, item.Volume!.Name!, item.Name!);
+            await BackupFm.DeleteFile(filePath);
         }
 
         // Delete data
         await backupFile.DeleteBackup(bkp.Id);
 
         // Delete backup directory
-        var bkpPath = fm.CombinePath(newPath, bkp.Guid);
-        if (await fm.DirectoryExists(bkpPath))
-            await fm.DeleteDirectory(bkpPath);
+        var bkpPath = BackupFm.CombinePath(BackupPath!, bkp.Guid);
+        if (await BackupFm.DirectoryExists(bkpPath))
+            await BackupFm.DeleteDirectory(bkpPath);
     }
 
     /// <summary>

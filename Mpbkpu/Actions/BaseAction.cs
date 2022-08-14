@@ -1,5 +1,6 @@
 using MpbkpuLib;
 using MpbkpuLib.Abstracts;
+using MpbkpuLib.FileManagers;
 
 namespace Mpbkpu.Actions;
 
@@ -29,7 +30,8 @@ public abstract class BaseAction : IAction
         BackupFile.OpenResult? backupFile;
 
         try {
-            backupFile = await BackupFile.OpenBackupFile(backupPath, password);
+            using var fm = FileManagerFactory.GetFileManager(backupPath, out var newPath);
+            backupFile = await BackupFile.OpenBackupFile(fm, newPath, password);
         } catch (Exception ex) {
             Console.ForegroundColor = ErrorColor;
             Console.WriteLine($"ERROR: {ex.Message}");

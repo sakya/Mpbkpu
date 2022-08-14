@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
+using MpbkpuLib.Interfaces;
 using MpbkpuLib.Jobs;
 using MpbkpuLib.Utility;
 
@@ -101,18 +102,17 @@ public class BackupFile : IDisposable
         _context?.Dispose();
     }
 
-    public static async Task<OpenResult> OpenBackupFile(string backupPath, string? password = null, bool create = false)
+    public static async Task<OpenResult> OpenBackupFile(IFileManager backupFm, string backupPath, string? password = null, bool create = false)
     {
-        using var sourceFm = FileManagerFactory.GetFileManager(backupPath, out var newPath);
-        if (!await sourceFm.DirectoryExists(newPath))
-            throw new Exception($"Directory {newPath} does not exists");
+        if (!await backupFm.DirectoryExists(backupPath))
+            throw new Exception($"Directory {backupPath} does not exists");
 
-        var backupDbPath = sourceFm.CombinePath(newPath, DefaultDatabaseFileName);
+        var backupDbPath = backupFm.CombinePath(backupPath, DefaultDatabaseFileName);
         string? tempDbPath = null;
         bool encrypted = false;
-        if (await sourceFm.FileExists(backupDbPath)) {
+        if (await backupFm.FileExists(backupDbPath)) {
             // Check header
-            using (var sourceStream = await sourceFm.OpenFile(backupDbPath)) {
+            using (var sourceStream = await backupFm.OpenFile(backupDbPath)) {
                 var header = new byte[EncryptDecrypt.Header.Length];
                 var read =await sourceStream.ReadAsync(header);
                 encrypted = read == header.Length && Encoding.ASCII.GetString(header) == EncryptDecrypt.Header;
@@ -124,24 +124,24 @@ public class BackupFile : IDisposable
                 }
             }
 
-            if (!string.IsNullOrEmpty(password) || !sourceFm.CanOpenDatabase()) {
+            if (!string.IsNullOrEmpty(password) || !backupFm.CanOpenDatabase()) {
                 // Copy database to temp file
                 tempDbPath = TempFile.GetTempFileName();
                 using var tempFm = FileManagerFactory.GetFileManager(tempDbPath, out _);
-                await using var sourceStream = await sourceFm.OpenFile(backupDbPath);
+                await using var sourceStream = await backupFm.OpenFile(backupDbPath);
                 await using var tempStream = await tempFm.OpenFile(tempDbPath, true);
                 if (string.IsNullOrEmpty(password))
                     await Utility.Files.Copy(sourceStream, tempStream);
                 else {
                     var decrypt = new EncryptDecrypt(password);
-                    await decrypt.Decrypt(sourceStream, tempStream, sourceFm.SupportCompression());
+                    await decrypt.Decrypt(sourceStream, tempStream, backupFm.SupportCompression());
                 }
             }
         } else {
             if (!create)
                 throw new Exception($"Database file not found in {backupPath}");
 
-            if (!string.IsNullOrEmpty(password) || !sourceFm.CanOpenDatabase())
+            if (!string.IsNullOrEmpty(password) || !backupFm.CanOpenDatabase())
                 tempDbPath = TempFile.GetTempFileName();
         }
 

@@ -387,7 +387,7 @@ public class Dropbox : IFileManager
                 http.Start();
 
                 if (OperatingSystem.IsLinux()) {
-                    System.Diagnostics.Process.Start($"xdg-open", $"\"{authorizeUri.ToString()}\"");
+                    System.Diagnostics.Process.Start($"xdg-open", $"\"{authorizeUri}\"");
                 } else {
                     System.Diagnostics.Process.Start(authorizeUri.ToString());
                 }
@@ -407,7 +407,7 @@ public class Dropbox : IFileManager
                     throw new Exception("Wrong account");
                 }
 
-                await SaveConfig(_account!, tokenResult.ScopeList, accessToken, refreshToken, tokenResult.ExpiresAt);
+                await SaveConfig(_account!, accessToken, refreshToken, tokenResult.ExpiresAt);
             } else {
                 _client = new DropboxClient(saved.AccessToken, saved.RefreshToken, AppKey, AppSecret, new DropboxClientConfig());
             }
@@ -468,7 +468,7 @@ public class Dropbox : IFileManager
         return null;
     }
 
-    private async Task SaveConfig(string account, string[] scopesList, string accessToken, string refreshToken, DateTime? expiresAt)
+    private async Task SaveConfig(string account, string accessToken, string refreshToken, DateTime? expiresAt)
     {
         var dir = Path.GetDirectoryName(_tokenCache);
         if (!Directory.Exists(dir))

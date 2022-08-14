@@ -1,4 +1,5 @@
 ﻿using MpbkpuLib.FileManagers;
+using MpbkpuLib.Interfaces;
 using MpbkpuLib.Utility;
 
 namespace MpbkpuLib.Abstracts;
@@ -7,7 +8,10 @@ public abstract class BaseJob
 {
     #region private members
     private readonly StreamWriter? _logWriter;
+    protected IFileManager? BackupFm;
+    protected string? BackupPath;
     #endregion
+
     #region delegates
     public delegate void LogHandler(object sender, BaseSettings.LogLevels level, string message);
 
@@ -52,22 +56,23 @@ public abstract class BaseJob
     {
         if (string.IsNullOrEmpty(destination))
             throw new ArgumentNullException(nameof(destination));
+        if (BackupFm == null)
+            throw new Exception("Backup file manager not initialized");
 
         using var sourceFm = FileManagerFactory.GetFileManager(openRes.TempFilePath, out _);
-        using var destFm = FileManagerFactory.GetFileManager(destination, out _);
         await using var sourceStream = await sourceFm.OpenFile(openRes.TempFilePath);
 
-        if (await destFm.FileExists(openRes.BackupFilePath))
-            await destFm.DeleteFile(openRes.BackupFilePath);
+        if (await BackupFm.FileExists(openRes.BackupFilePath))
+            await BackupFm.DeleteFile(openRes.BackupFilePath);
 
-        var destFileSize = Files.GetDestinationFileSize(sourceStream.Length, destFm.SupportCompression(), !string.IsNullOrEmpty(password));
-        await using var destStream = await destFm.OpenFile(openRes.BackupFilePath, true, destFileSize);
+        var destFileSize = Files.GetDestinationFileSize(sourceStream.Length, BackupFm.SupportCompression(), !string.IsNullOrEmpty(password));
+        await using var destStream = await BackupFm.OpenFile(openRes.BackupFilePath, true, destFileSize);
 
         if (string.IsNullOrEmpty(password))
             await Files.Copy(sourceStream, destStream);
         else {
             var encrypt = new EncryptDecrypt(password);
-            await encrypt.Encrypt(sourceStream, destStream, destFm.SupportCompression());
+            await encrypt.Encrypt(sourceStream, destStream, BackupFm.SupportCompression());
         }
     }
 

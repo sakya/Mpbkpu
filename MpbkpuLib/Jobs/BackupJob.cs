@@ -95,9 +95,11 @@ public class BackupJob : BaseJob
         LogInfo("Starting with settings:");
         LogInfo(JsonConvert.SerializeObject(Settings, Formatting.Indented));
 
+        BackupFm = FileManagerFactory.GetFileManager(Settings.Destination, out BackupPath);
+
         Step?.Invoke(this, Steps.OpenDatabase);
         await CheckDestination();
-        using (var openRes = await BackupFile.OpenBackupFile(Settings.Destination!, Settings.EncryptPassword, true)) {
+        using (var openRes = await BackupFile.OpenBackupFile(BackupFm, BackupPath, Settings.EncryptPassword, true)) {
             var backupFile = openRes.BackupFile;
             await backupFile.EmptyFiles();
             var transaction = backupFile.BeginTransaction();
@@ -138,6 +140,9 @@ public class BackupJob : BaseJob
     /// <returns>True on success</returns>
     private async Task RunPrimitive(BackupFile backupFile)
     {
+        if (BackupFm == null)
+            throw new Exception("Backup file manager not initialized");
+
         _lastUsedVolume = null;
         Backup? lastBackup = await backupFile.LastBackup();
         // If there is no previous backup this is a full backup
@@ -250,13 +255,12 @@ public class BackupJob : BaseJob
         }
 
         using var sourceFm = FileManagerFactory.GetFileManager(Settings.Source, out _);
-        using var destFm = FileManagerFactory.GetFileManager(Settings.Destination, out string destPath);
 
         // Create the backup directory
-        var backupDirectory = destFm.CombinePath(destPath, _backup.Guid);
-        if (await destFm.DirectoryExists(backupDirectory))
+        var backupDirectory = BackupFm.CombinePath(BackupPath!, _backup.Guid);
+        if (await BackupFm.DirectoryExists(backupDirectory))
             throw new Exception($"The backup destination {backupDirectory} exist");
-        await destFm.CreateDirectory(backupDirectory);
+        await BackupFm.CreateDirectory(backupDirectory);
 
         // Backup files
         Step?.Invoke(this, Steps.BackupFiles);
@@ -296,7 +300,7 @@ public class BackupJob : BaseJob
 
                 // Compute file size of the backup file if possible
                 long? backupFileSize = Files.GetDestinationFileSize(fileToBackup.Size, Settings.Compress, encrypter != null);
-                if (await BackupFileFromSource(backupFile, sourceFm, destFm, destPath, fileToBackup, encrypter, backupFileSize)) {
+                if (await BackupFileFromSource(backupFile, sourceFm, BackupFm, BackupPath!, fileToBackup, encrypter, backupFileSize)) {
                     bytes += fileToBackup.Size;
                     Progress?.Invoke(this, ++fileIdx, cArgs.FilesToBackup, bytes, cArgs.BytesToBackup);
                 } else {
@@ -343,12 +347,14 @@ public class BackupJob : BaseJob
     /// <returns>The path of the database file to use for this backup</returns>
     private async Task CheckDestination()
     {
-        using var fm = FileManagerFactory.GetFileManager(Settings.Destination, out var newPath);
-        if (Settings.Compress && !fm.SupportCompression())
+        if (BackupFm == null)
+            throw new Exception("Backup file manager not initialized");
+
+        if (Settings.Compress && !BackupFm.SupportCompression())
             throw new Exception("Destination doesn't support compression");
 
-        if (!await fm.DirectoryExists(newPath))
-            await fm.CreateDirectory(newPath);
+        if (!await BackupFm.DirectoryExists(BackupPath))
+            await BackupFm.CreateDirectory(BackupPath);
     }
 
     /// <summary>
@@ -512,6 +518,9 @@ public class BackupJob : BaseJob
     /// <returns>A <see cref="DataModel.BackupItem"/></returns>
     private async Task<BackupItem> GetNextBackupItem(BackupFile backupFile)
     {
+        if (BackupFm == null)
+            throw new Exception("Backup file manager not initialized");
+
         int? volumeId;
         string? volumeName;
         if (_lastUsedVolume?.ItemsCount < Settings.MaxFilesPerDirectory) {
@@ -542,16 +551,14 @@ public class BackupJob : BaseJob
             };
         }
 
-        using var destFm = FileManagerFactory.GetFileManager(Settings.Destination, out var destPath);
-
         var res = new BackupItem()
         {
             Name = Guid.NewGuid().ToString("N"),
             VolumeId = volumeId!.Value
         };
-        var volumePath = destFm.CombinePath(destPath, _backup!.Guid, volumeName!);
-        if (!await destFm.DirectoryExists(volumePath))
-            await destFm.CreateDirectory(volumePath);
+        var volumePath = BackupFm.CombinePath(BackupPath!, _backup!.Guid, volumeName!);
+        if (!await BackupFm.DirectoryExists(volumePath))
+            await BackupFm.CreateDirectory(volumePath);
         return res;
     }
 
