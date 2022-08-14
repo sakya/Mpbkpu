@@ -32,18 +32,26 @@ public class Dropbox : IFileManager
     {
         private long _pos;
 
-        private DropboxClient _client;
-        private string _fileName;
+        private readonly DropboxClient _client;
+        private readonly string _fileName;
+        private readonly long _fileLength;
+        private long _length;
         private const int ChunkSize = 128 * 1024;
-        private string? _sessionId = null;
+        private readonly int _chunkNumber;
+        private int _chunkIndex;
+        private string? _sessionId;
         private readonly List<byte> _buffer = new();
         private readonly SemaphoreSlim _bufferSema = new(1,1);
 
-        public WriterStream(DropboxClient client, string fileName, long length)
+        public WriterStream(DropboxClient client, string fileName, long fileLength)
         {
             _client = client;
             _fileName = fileName;
-            Length = length;
+
+            _fileLength = fileLength;
+            _length = fileLength < ChunkSize ? fileLength : ChunkSize;
+            _chunkNumber = (int)Math.Ceiling((double)_fileLength / ChunkSize);
+            _chunkIndex = 0;
         }
 
         public Task? WriteTask { get; set; }
@@ -53,7 +61,7 @@ public class Dropbox : IFileManager
 
         public override bool CanWrite => true;
 
-        public override long Length { get; }
+        public override long Length => _length;
 
         public override long Position {
             get => _pos;
@@ -70,20 +78,11 @@ public class Dropbox : IFileManager
 
         public override int Read(byte[] buffer, int offset, int count)
         {
-            if (_pos >= Length)
-                return 0;
-
-            if (_pos > 0 && _pos % ChunkSize == 0) {
-                // Next chunk
-                if (_sessionId == null && WriteTask != null) {
-                    var sr = Task.Run( () => ((Task<UploadSessionStartResult>)WriteTask)).Result;
-                    _sessionId = sr.SessionId;
+            if (_pos >= Length) {
+                if (_chunkIndex < _chunkNumber - 1) {
+                    _ = NextChunk();
                 }
-                UploadSessionCursor cursor = new UploadSessionCursor(_sessionId, (ulong)_pos);
-                if (_pos + ChunkSize >= Length)
-                    WriteTask = _client.Files.UploadSessionFinishAsync(cursor, new CommitInfo(_fileName), body: this);
-                else
-                    WriteTask = _client.Files.UploadSessionAppendV2Async(cursor, body: this);
+                return 0;
             }
 
             _bufferSema.Wait();
@@ -135,6 +134,28 @@ public class Dropbox : IFileManager
             if (WriteTask != null)
                 await WriteTask;
             WriteTask?.Dispose();
+        }
+
+        private async Task NextChunk()
+        {
+            if (WriteTask == null)
+                throw new Exception("WriteTask not initialized");
+
+            _chunkIndex++;
+            if (_chunkIndex == 1) {
+                var sr = await (Task<UploadSessionStartResult>)WriteTask;
+                _sessionId = sr.SessionId;
+            } else {
+                await WriteTask;
+            }
+
+            _pos = 0;
+            UploadSessionCursor cursor = new UploadSessionCursor(_sessionId, (ulong)(ChunkSize * _chunkIndex));
+            if (_chunkIndex == _chunkNumber - 1) {
+                _length = _fileLength - (ChunkSize * _chunkIndex);
+                WriteTask = _client.Files.UploadSessionFinishAsync(cursor, new CommitInfo(_fileName), body: this);
+            } else
+                WriteTask = _client.Files.UploadSessionAppendV2Async(cursor, body: this);
         }
     }
     #endregion
@@ -329,7 +350,7 @@ public class Dropbox : IFileManager
                 throw new ArgumentNullException(nameof(size));
 
             var ws = new WriterStream(client, filePath, size.Value);
-            ws.WriteTask = client.Files.UploadSessionStartAsync(body: ws); //client.Files.UploadAsync(filePath, WriteMode.Overwrite.Instance, body: ws);
+            ws.WriteTask = client.Files.UploadSessionStartAsync(body: ws);
             res = ws;
         }
 

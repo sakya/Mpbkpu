@@ -541,8 +541,8 @@ public class BackupJob : BaseJob
                 ItemsCount = volume.Items?.Count() ?? 1
             };
         }
-        string? destPath;
-        using var destFm = FileManagerFactory.GetFileManager(Settings.Destination, out destPath);
+
+        using var destFm = FileManagerFactory.GetFileManager(Settings.Destination, out var destPath);
 
         var res = new BackupItem()
         {
