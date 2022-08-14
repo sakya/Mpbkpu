@@ -18,14 +18,12 @@ public class BackupAction : BaseAction
             Source = pArgs.SourcePath,
             Destination = pArgs.DestinationPath,
             Exclude = pArgs.Exclude,
+            RetryOnError = pArgs.RetryOnError,
             EncryptPassword = pArgs.Password,
             Compress = pArgs.Compress,
             LogToConsole = false,
             LogFile = pArgs.LogFile
         };
-
-        if (pArgs.RetryOnError.HasValue)
-            settings.RetryOnError = pArgs.RetryOnError.Value;
 
         Console.WriteLine($"Type       : { pArgs.BackupType }");
         Console.Write("Compression: ");
