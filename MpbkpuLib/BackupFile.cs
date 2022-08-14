@@ -27,8 +27,17 @@ public class BackupFile : IDisposable
         }
 
         public BackupFile BackupFile { get; private set; }
+
+        /// <summary>
+        /// The path where the backup file is
+        /// </summary>
         public string? BackupFilePath { get; private set; }
+
+        /// <summary>
+        /// The temporary file where has been copied to open it
+        /// </summary>
         public string? TempFilePath { get; private set; }
+
         public void Dispose()
         {
             BackupFile.Dispose();

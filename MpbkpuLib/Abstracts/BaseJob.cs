@@ -48,7 +48,7 @@ public abstract class BaseJob
     /// </summary>
     protected abstract void ValidateSettings();
 
-    protected async Task<bool> CopyDatabaseToDestination(BackupFile.OpenResult openRes, string? destination, string? password)
+    protected async Task CopyDatabaseToDestination(BackupFile.OpenResult openRes, string? destination, string? password)
     {
         if (string.IsNullOrEmpty(destination))
             throw new ArgumentNullException(nameof(destination));
@@ -60,7 +60,7 @@ public abstract class BaseJob
         if (await destFm.FileExists(openRes.BackupFilePath))
             await destFm.DeleteFile(openRes.BackupFilePath);
 
-        long? destFileSize = Files.GetDestinationFileSize(sourceStream.Length, destFm.SupportCompression(), !string.IsNullOrEmpty(password));
+        var destFileSize = Files.GetDestinationFileSize(sourceStream.Length, destFm.SupportCompression(), !string.IsNullOrEmpty(password));
         await using var destStream = await destFm.OpenFile(openRes.BackupFilePath, true, destFileSize);
 
         if (string.IsNullOrEmpty(password))
@@ -69,8 +69,6 @@ public abstract class BaseJob
             var encrypt = new EncryptDecrypt(password);
             await encrypt.Encrypt(sourceStream, destStream, destFm.SupportCompression());
         }
-
-        return true;
     }
 
     protected void LogDebug(string message)

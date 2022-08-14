@@ -19,6 +19,7 @@ public class Dropbox : IFileManager
         {
             public string? AccessToken { get; set; }
             public string? RefreshToken { get; set; }
+            public DateTime? ExpiresAt { get; set; }
         }
 
         public TokenCache()
@@ -36,7 +37,7 @@ public class Dropbox : IFileManager
         private readonly string _fileName;
         private readonly long _fileLength;
         private long _length;
-        private const int ChunkSize = 128 * 1024;
+        public static readonly int ChunkSize = 128 * 1024;
         private readonly int _chunkNumber;
         private int _chunkIndex;
         private string? _sessionId;
@@ -350,7 +351,10 @@ public class Dropbox : IFileManager
                 throw new ArgumentNullException(nameof(size));
 
             var ws = new WriterStream(client, filePath, size.Value);
-            ws.WriteTask = client.Files.UploadSessionStartAsync(body: ws);
+            if (size.Value <= WriterStream.ChunkSize)
+                ws.WriteTask = client.Files.UploadAsync(filePath, body: ws);
+            else
+                ws.WriteTask = client.Files.UploadSessionStartAsync(body: ws);
             res = ws;
         }
 
@@ -376,13 +380,14 @@ public class Dropbox : IFileManager
                 var codeVerifier = DropboxOAuth2Helper.GeneratePKCECodeVerifier();
                 var codeChallenge = DropboxOAuth2Helper.GeneratePKCECodeChallenge(codeVerifier);
                 var authorizeUri = DropboxOAuth2Helper.GetAuthorizeUri(OAuthResponseType.Code, AppKey, _redirectUri,
-                    tokenAccessType: TokenAccessType.Offline, state: state, codeChallenge: codeChallenge);
+                    tokenAccessType: TokenAccessType.Offline, state: state,
+                    codeChallenge: codeChallenge);
                 using var http = new HttpListener();
                 http.Prefixes.Add(LoopbackHost);
                 http.Start();
 
                 if (OperatingSystem.IsLinux()) {
-                    System.Diagnostics.Process.Start($"xdg-open", authorizeUri.ToString());
+                    System.Diagnostics.Process.Start($"xdg-open", $"\"{authorizeUri.ToString()}\"");
                 } else {
                     System.Diagnostics.Process.Start(authorizeUri.ToString());
                 }
@@ -391,6 +396,7 @@ public class Dropbox : IFileManager
                 var redirectUri = await HandleJsRedirect(http);
                 var tokenResult = await DropboxOAuth2Helper.ProcessCodeFlowAsync(redirectUri, AppKey, AppSecret,
                     _redirectUri.ToString(), state, codeVerifier: codeVerifier);
+                http.Stop();
 
                 var accessToken = tokenResult.AccessToken;
                 var refreshToken = tokenResult.RefreshToken;
@@ -401,7 +407,7 @@ public class Dropbox : IFileManager
                     throw new Exception("Wrong account");
                 }
 
-                await SaveConfig(_account!, accessToken, refreshToken);
+                await SaveConfig(_account!, tokenResult.ScopeList, accessToken, refreshToken, tokenResult.ExpiresAt);
             } else {
                 _client = new DropboxClient(saved.AccessToken, saved.RefreshToken, AppKey, AppSecret, new DropboxClientConfig());
             }
@@ -453,6 +459,9 @@ public class Dropbox : IFileManager
         var enc = new Utility.EncryptDecrypt(_deviceId);
         account = await enc.Encrypt(account);
         if (cache.Tokens.TryGetValue(account, out var data)) {
+            if (data.ExpiresAt < DateTime.Now) {
+                // TODO: refresh the token
+            }
             data.AccessToken = await enc.Decrypt(data.AccessToken!);
             data.RefreshToken = await enc.Decrypt(data.RefreshToken!);
 
@@ -462,7 +471,7 @@ public class Dropbox : IFileManager
         return null;
     }
 
-    private async Task SaveConfig(string account, string accessToken, string refreshToken)
+    private async Task SaveConfig(string account, string[] scopesList, string accessToken, string refreshToken, DateTime? expiresAt)
     {
         var dir = Path.GetDirectoryName(_tokenCache);
         if (!Directory.Exists(dir))
@@ -475,14 +484,14 @@ public class Dropbox : IFileManager
             }
         }
 
-        if (cache == null)
-            cache = new TokenCache();
+        cache ??= new TokenCache();
 
         var enc = new Utility.EncryptDecrypt(_deviceId);
         var data = new TokenCache.Data()
         {
             AccessToken = await enc.Encrypt(accessToken),
-            RefreshToken = await enc.Encrypt(refreshToken)
+            RefreshToken = await enc.Encrypt(refreshToken),
+            ExpiresAt = expiresAt
         };
         account = await enc.Encrypt(account);
 
