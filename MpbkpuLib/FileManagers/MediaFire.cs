@@ -8,6 +8,149 @@ namespace MpbkpuLib.FileManagers;
 
 public class MediaFire : IFileManager
 {
+    #region classes
+
+    private class ReaderStream : Stream
+    {
+        private HttpClient _client;
+        private Stream _baseStream;
+        public ReaderStream(string url)
+        {
+            _client = new HttpClient();
+            var res = _client.GetAsync(new Uri(url));
+            _baseStream = res.Result.Content.ReadAsStream();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            _baseStream?.Dispose();
+            _client?.Dispose();
+        }
+
+        public override void Flush()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            return _baseStream.Read(buffer, offset, count);
+        }
+
+        public override long Seek(long offset, SeekOrigin origin)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void SetLength(long value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length { get; }
+        public override long Position { get; set; }
+    }
+
+    private class WriterStream : Stream
+    {
+        private long _pos;
+
+        private readonly List<byte> _buffer = new();
+        private readonly SemaphoreSlim _bufferSema = new(1,1);
+
+        public WriterStream(long length)
+        {
+            Length = length;
+        }
+
+        public Task? WriteTask { get; set; }
+        public override bool CanRead => true;
+
+        public override bool CanSeek => true;
+
+        public override bool CanWrite => true;
+
+        public override long Length { get; }
+
+        public override long Position {
+            get => _pos;
+            set => _pos = value;
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+        }
+
+        public override void Flush()
+        {
+        }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            if (_pos >= Length)
+                return 0;
+
+            _bufferSema.Wait();
+            int readCount = 0;
+            for (int i = 0; i < count; i++) {
+                if (_buffer.Count > 0) {
+                    buffer[offset + i] = _buffer[0];
+                    _buffer.RemoveAt(0);
+
+                    _pos++;
+                    readCount++;
+                    if (_pos >= Length)
+                        break;
+                } else {
+                    _bufferSema.Release();
+                    Thread.Sleep(10);
+                    _bufferSema.Wait();
+                    i--;
+                }
+            }
+            _bufferSema.Release();
+            return readCount;
+        }
+
+        public override long Seek(long offset, SeekOrigin origin)
+        {
+            return offset;
+        }
+
+        public override void SetLength(long value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            while(_buffer.Count > 0)
+                Thread.Sleep(10);
+
+            _bufferSema.Wait();
+            for (int i = 0; i < count; i++) {
+                _buffer.Add(buffer[offset + i]);
+            }
+            _bufferSema.Release();
+        }
+
+        public async Task WaitTask()
+        {
+            if (WriteTask != null)
+                await WriteTask;
+            WriteTask?.Dispose();
+        }
+    }
+    #endregion
+
     private readonly string? _username;
     private readonly string? _password;
     private Client? _client;
@@ -172,17 +315,49 @@ public class MediaFire : IFileManager
 
     }
 
-    public Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null)
+    public async Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null)
     {
         if (string.IsNullOrEmpty(filePath))
             throw new ArgumentNullException(filePath);
 
+        filePath = GetPath(filePath);
+        var client = await GetClient();
+        Stream? res;
+        if (!write) {
+            try {
+                var info = (await client.FileGetInfo(filePath: filePath))?.ToList();
+                if (info != null) {
+                    var links = await client.DownloadDirectLink(new[] { info[0].QuickKey });
+                    res = new ReaderStream(links.First().DirectDownload);
+                } else {
+                    throw new FileNotFoundException($"File {filePath} not found", filePath);
+                }
+            } catch (MediaFireApiException ex) {
+                if (ex.ErrorCode == (int)ErrorCodes.ErrorInvalidFilePath)
+                    throw new FileNotFoundException($"File {filePath} not found", filePath);
 
+                throw;
+            }
+        } else {
+            if (size == null)
+                throw new ArgumentNullException(nameof(size));
+
+            var parentPath = GetParent(filePath, out var childName);
+            var ws = new WriterStream(size.Value);
+            ws.WriteTask = client.UploadSimple(ws, "application/octet-stream", childName, ws.Length, path: parentPath);
+            res = ws;
+        }
+        return new FileSystemStream(this, res);
     }
 
-    public Task<bool> CloseFile(Stream stream)
+    public async Task<bool> CloseFile(Stream stream)
     {
-        throw new NotImplementedException();
+        if (stream is WriterStream ws) {
+            await ws.WaitTask();
+        }
+        stream.Close();
+
+        return true;
     }
 
     #region private operations
