@@ -18,7 +18,7 @@ public class BackupAction : BaseAction
             Source = pArgs.SourcePath,
             Destination = pArgs.DestinationPath,
             Exclude = pArgs.Exclude,
-            RetryOnError = pArgs.RetryOnError,
+            RetryOnError = pArgs.RetryOnError ?? 3,
             EncryptPassword = pArgs.Password,
             Compress = pArgs.Compress,
             LogToConsole = false,

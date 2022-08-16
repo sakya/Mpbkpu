@@ -152,6 +152,24 @@ namespace MpbkpuLib.FileManagers
                     throw new Exception("Invalid address");
             }
 
+            // MediaFire
+            // mediafire://user:password/position
+            if (path.StartsWith("mediafire://")) {
+                var m = Regex.Match(path, "mediafire://(([^:]+):([^/]+))/?(.*)?$");
+                if (m.Success) {
+                    if (m.Groups.Count == 5) {
+                        var megaFm = new MediaFire(m.Groups[2].Value, m.Groups[3].Value);
+                        if (!string.IsNullOrEmpty(m.Groups[4].Value))
+                            newPosition = $"mediafire://{m.Groups[4].Value}";
+                        else
+                            newPosition = $"mediafire:///";
+                        return megaFm;
+                    } else
+                        throw new Exception("Invalid address");
+                } else
+                    throw new Exception("Invalid address");
+            }
+
             // Default to FileSystem
             return new FileSystem();
         } // GetFileManager
