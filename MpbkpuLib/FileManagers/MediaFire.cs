@@ -296,7 +296,7 @@ public class MediaFire : IFileManager
 
         // Read folders
         var content = await client.FolderGetContent(folderPath: path, contentType: FolderContentType.Folders);
-        while (content != null) {
+        while (content?.Folders != null) {
             foreach (var f in content.Folders) {
                 var fInfo = new File()
                 {
@@ -318,7 +318,7 @@ public class MediaFire : IFileManager
 
         // Read files
         content = await client.FolderGetContent(folderPath: path, contentType: FolderContentType.Files);
-        while (content != null) {
+        while (content?.Files != null) {
             foreach (var f in content.Files) {
                 var fInfo = new File()
                 {
@@ -327,7 +327,7 @@ public class MediaFire : IFileManager
                     Type = File.FileTyes.File,
                     Size = f.Size,
 
-                    Created = f.Created,
+                    Created = f.Created
                 };
                 yield return fInfo;
             }
