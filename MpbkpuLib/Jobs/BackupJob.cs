@@ -17,6 +17,7 @@ namespace MpbkpuLib.Jobs;
 public class BackupJob : BaseJob
 {
     private bool _userCancelled;
+    private ProgressData? _progressData;
 
     public enum Steps
     {
@@ -29,7 +30,15 @@ public class BackupJob : BaseJob
 
     #region classes
 
-    public class LastUsedVolume
+    private class ProgressData
+    {
+        public int TotalFiles { get; set; }
+        public int FileIndex { get; set; }
+        public long TotalBytes { get; set; }
+        public long Bytes { get; set; }
+    }
+
+    private class LastUsedVolume
     {
         public int? Id { get; set; }
         public string? Name { get; set; }
@@ -269,8 +278,11 @@ public class BackupJob : BaseJob
             encrypter = new EncryptDecrypt(Settings.EncryptPassword);
         }
 
-        int fileIdx = 0;
-        long bytes = 0;
+        _progressData = new ProgressData()
+        {
+            TotalBytes = cArgs.BytesToBackup,
+            TotalFiles = cArgs.FilesToBackup
+        };
         var filesToBackup = backupFile.Files.AsNoTracking()
                             .Where(f => f.FileAction == File.FileActions.Backup || f.FileAction == File.FileActions.Delete);
         foreach (var fileToBackup in filesToBackup) {
@@ -292,8 +304,8 @@ public class BackupJob : BaseJob
                     } catch (FileNotFoundException) {
                         LogWarning($"File {fileToBackup.FullPath} not found");
 
-                        bytes += fileToBackup.Size;
-                        Progress?.Invoke(this, ++fileIdx, cArgs.FilesToBackup, bytes, cArgs.BytesToBackup);
+                        _progressData.Bytes += fileToBackup.Size;
+                        Progress?.Invoke(this, ++_progressData.FileIndex, cArgs.FilesToBackup, _progressData.Bytes, _progressData.TotalBytes);
                         continue;
                     }
                 }
@@ -304,8 +316,8 @@ public class BackupJob : BaseJob
                         // Compute file size of the backup file if possible
                         long? backupFileSize = Files.GetDestinationFileSize(fileToBackup.Size, Settings.Compress, encrypter != null);
                         await BackupFileFromSource(backupFile, sourceFm, BackupFm, BackupPath!, fileToBackup, encrypter, backupFileSize);
-                        bytes += fileToBackup.Size;
-                        Progress?.Invoke(this, ++fileIdx, cArgs.FilesToBackup, bytes, cArgs.BytesToBackup);
+                        _progressData.Bytes += fileToBackup.Size;
+                        Progress?.Invoke(this, ++_progressData.FileIndex, cArgs.FilesToBackup, _progressData.Bytes, _progressData.TotalBytes);
                         break;
                     } catch (Exception ex) {
                         if (tryCount == Settings.RetryOnError)
@@ -433,6 +445,7 @@ public class BackupJob : BaseJob
                             if (lastFileProgress == null || copied == sourceFile.Size ||
                                 (DateTime.UtcNow - lastFileProgress.Value).TotalMilliseconds >= 500) {
                                 FileProgress?.Invoke(this, sourceFile.FullPath!, copied, sourceFile.Size);
+                                Progress?.Invoke(this, _progressData!.FileIndex, _progressData.TotalFiles, _progressData.Bytes + copied, _progressData.TotalBytes);
                                 lastFileProgress = DateTime.UtcNow;
                             }
                         });
