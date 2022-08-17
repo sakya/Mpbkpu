@@ -36,7 +36,11 @@ namespace MpbkpuLib.FileManagers
                 if (m.Success) {
                     if (m.Groups.Count == 7) {
                         var ftpFm = new Ftp();
-                        ftpFm.Credentials = new System.Net.NetworkCredential(m.Groups[2].Value, m.Groups[3].Value);
+                        if (!string.IsNullOrEmpty(m.Groups[2].Value) && !string.IsNullOrEmpty(m.Groups[3].Value))
+                            ftpFm.Credentials = new System.Net.NetworkCredential(m.Groups[2].Value, m.Groups[3].Value);
+                        else if (string.IsNullOrEmpty(user))
+                            ftpFm.Credentials = new System.Net.NetworkCredential(user, password);
+
                         ftpFm.Host = m.Groups[4].Value;
                         if (!string.IsNullOrEmpty(m.Groups[5].Value))
                             ftpFm.Port = int.Parse(m.Groups[5].Value.Remove(0, 1));
@@ -59,9 +63,13 @@ namespace MpbkpuLib.FileManagers
                 if (m.Success) {
                     if (m.Groups.Count == 7) {
                         var sftpFm = new Sftp();
-                        sftpFm.Credentials = new System.Net.NetworkCredential(m.Groups[2].Value, m.Groups[3].Value);
+                        if (!string.IsNullOrEmpty(m.Groups[2].Value) && !string.IsNullOrEmpty(m.Groups[3].Value))
+                            sftpFm.Credentials = new System.Net.NetworkCredential(m.Groups[2].Value, m.Groups[3].Value);
+                        else if (string.IsNullOrEmpty(user))
+                            sftpFm.Credentials = new System.Net.NetworkCredential(user, password);
+
                         sftpFm.Host = m.Groups[4].Value;
-                        if (sftpFm.Credentials.Password.StartsWith("keyfile=")) {
+                        if (sftpFm.Credentials != null && sftpFm.Credentials.Password.StartsWith("keyfile=")) {
                             sftpFm.PrivateKeyFile = sftpFm.Credentials.Password.Substring(8);
                             sftpFm.Credentials.Password = string.Empty;
                         }
@@ -84,7 +92,19 @@ namespace MpbkpuLib.FileManagers
                 var m = Regex.Match(path, $"{Smb.Scheme}((.+)?\\\\(.+):(.+)@)?([^/]+)?(.*)?$");
                 if (m.Success) {
                     if (m.Groups.Count == 7) {
-                        var smbFm = new Smb(m.Groups[2].Value, m.Groups[3].Value, m.Groups[4].Value, m.Groups[5].Value);
+                        Smb? smbFm = null;
+                        if (!string.IsNullOrEmpty(m.Groups[2].Value) && !string.IsNullOrEmpty(m.Groups[3].Value) && !string.IsNullOrEmpty(m.Groups[3].Value))
+                            smbFm = new Smb(m.Groups[2].Value, m.Groups[3].Value, m.Groups[4].Value, m.Groups[5].Value);
+                        else if (!string.IsNullOrEmpty(user)) {
+                            // Get domain
+                            if (user.Contains("\\")) {
+                                var idx = user.IndexOf("\\", StringComparison.InvariantCultureIgnoreCase);
+                                var domain = user.Substring(idx);
+                                smbFm = new Smb(domain, user.Substring(idx + 1), password ?? string.Empty, m.Groups[5].Value);
+                            } else {
+                                smbFm = new Smb(string.Empty, user, password ?? string.Empty, m.Groups[5].Value);
+                            }
+                        }
                         if (!string.IsNullOrEmpty(m.Groups[6].Value))
                             newPosition = $"{Smb.Scheme}{smbFm.Host}{m.Groups[6].Value}";
                         else
@@ -93,6 +113,7 @@ namespace MpbkpuLib.FileManagers
                     } else
                         throw new Exception("Invalid address");
                 }
+
                 throw new Exception("Invalid address");
             }
 
@@ -159,7 +180,7 @@ namespace MpbkpuLib.FileManagers
                 }
 
                 if (!string.IsNullOrEmpty(user)) {
-                    newPosition = path.Substring(11);
+                    newPosition = path.Substring(Dropbox.Scheme.Length);
                     return new Dropbox(user);
                 }
                 throw new Exception("Invalid address");
