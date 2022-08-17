@@ -2,7 +2,16 @@
   <PropertyGroup>
     <AssemblyTitle>Multi Platform Backup Utility</AssemblyTitle>
     <Description>A multi platform backup utility with encryption and compression feature.
-Support local and remote file system (FTP, SFTP, OneDrive)</Description>
+Support local and remote file system.
+
+Supported file system schemes:
+  dropbox://
+  ftp://
+  mediafire://
+  mega://
+  onedrive://
+  sftp://
+  smb://</Description>
     <Authors>Paolo Iommarini</Authors>
     <Copyright>Copyright © 2022, Paolo Iommarini</Copyright>
     <Version>0.1.0.0</Version>

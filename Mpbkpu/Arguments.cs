@@ -66,7 +66,7 @@ public class Arguments : IOptions
     public string? Password { get; set; }
     [Option("interactive", ShortName = 'i',
         MutuallyExclusive = "password",
-        Description = "Ask for password")]
+        Description = "Ask for encrypt/decrypt password")]
     public bool? InteractivePassword { get; set; }
 
     [Option("compress", ShortName = 'c',
@@ -79,6 +79,15 @@ public class Arguments : IOptions
         Description = "The path containing the backup",
         OnlyForVerbs = "Restore;Delete;List;Verify")]
     public string? BackupPath { get; set; }
+
+    [Option("backupuser",
+        Description = "The user for accessing the backup file system",
+        OnlyForVerbs = "Restore;Delete;List;Verify")]
+    public string? BackupUser { get; set; }
+    [Option("backuppassword",
+        Description = "The password for accessing the backup file system",
+        OnlyForVerbs = "Restore;Delete;List;Verify")]
+    public string? BackupPassword { get; set; }
 
     [Option("restore", ShortName = 'r',
         Required = true,

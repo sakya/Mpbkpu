@@ -104,7 +104,9 @@ namespace MpbkpuLib.FileManagers
                             } else {
                                 smbFm = new Smb(string.Empty, user, password ?? string.Empty, m.Groups[5].Value);
                             }
-                        }
+                        } else
+                            throw new Exception("Invalid address");
+
                         if (!string.IsNullOrEmpty(m.Groups[6].Value))
                             newPosition = $"{Smb.Scheme}{smbFm.Host}{m.Groups[6].Value}";
                         else
@@ -156,9 +158,9 @@ namespace MpbkpuLib.FileManagers
                         throw new Exception("Invalid address");
                 }
 
-                if (!string.IsNullOrEmpty(user) && !string.IsNullOrEmpty(password)) {
+                if (!string.IsNullOrEmpty(user)) {
                     newPosition = path.Substring(Mega.Scheme.Length);
-                    return new Mega(user, password);
+                    return new Mega(user, password ?? string.Empty);
                 }
                 throw new Exception("Invalid address");
             }
@@ -202,9 +204,9 @@ namespace MpbkpuLib.FileManagers
                         throw new Exception("Invalid address");
                 }
 
-                if (!string.IsNullOrEmpty(user) && !string.IsNullOrEmpty(password)) {
+                if (!string.IsNullOrEmpty(user)) {
                     newPosition = path.Substring(MediaFire.Scheme.Length);
-                    return new MediaFire(user, password);
+                    return new MediaFire(user, password ?? string.Empty);
                 }
                 throw new Exception("Invalid address");
             }
