@@ -218,8 +218,8 @@ public class MediaFire : IFileManager
         path = GetPath(path);
         var info = (await client.FileGetInfo(filePath: path))?.ToList();
         if (info?.Count == 1) {
-            await client.FolderDelete(new []{ info[0].QuickKey });
-            await client.FolderPurge( new []{ info[0].QuickKey });
+            await client.FileDelete(new []{ info[0].QuickKey });
+            await client.FilePurge( new []{ info[0].QuickKey });
             return true;
         }
 
@@ -296,7 +296,7 @@ public class MediaFire : IFileManager
 
         // Read folders
         var content = await client.FolderGetContent(folderPath: path, contentType: FolderContentType.Folders);
-        do {
+        while (content != null) {
             foreach (var f in content.Folders) {
                 var fInfo = new File()
                 {
@@ -309,10 +309,34 @@ public class MediaFire : IFileManager
                 };
                 yield return fInfo;
             }
-        } while (content.MoreChunks == YesNo.Yes);
+
+            if (content.MoreChunks == YesNo.Yes) {
+                content = await client.FolderGetContent(folderPath: path, contentType: FolderContentType.Folders, chunk: content.ChunkNumber + 1);
+            } else
+                content = null;
+        }
 
         // Read files
+        content = await client.FolderGetContent(folderPath: path, contentType: FolderContentType.Files);
+        while (content != null) {
+            foreach (var f in content.Files) {
+                var fInfo = new File()
+                {
+                    FullPath = $"{path}/{f.Filename}",
+                    Name = f.Filename,
+                    Type = File.FileTyes.File,
+                    Size = f.Size,
 
+                    Created = f.Created,
+                };
+                yield return fInfo;
+            }
+
+            if (content.MoreChunks == YesNo.Yes) {
+                content = await client.FolderGetContent(folderPath: path, contentType: FolderContentType.Files, chunk: content.ChunkNumber + 1);
+            } else
+                content = null;
+        }
     }
 
     public async Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null)
