@@ -15,8 +15,15 @@ public class BackupAction : BaseAction
         {
             BackupType = pArgs.BackupType!.Value,
             LogLevel = pArgs.LogLevel,
+
             Source = pArgs.SourcePath,
+            SourceUser = pArgs.SourceUser,
+            SourcePassword = pArgs.SourcePassword,
+
             Destination = pArgs.DestinationPath,
+            DestinationUser = pArgs.DestinationUser,
+            DestinationPassword = pArgs.DestinationPassword,
+
             Exclude = pArgs.Exclude,
             RetryOnError = pArgs.RetryOnError ?? 3,
             EncryptPassword = pArgs.Password,

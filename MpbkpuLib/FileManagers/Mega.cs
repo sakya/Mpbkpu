@@ -6,6 +6,8 @@ namespace MpbkpuLib.FileManagers;
 
 public class Mega : IFileManager
 {
+    public const string Scheme = "mega://";
+
     #region classes
     private class WriterStream : Stream
     {
@@ -119,6 +121,11 @@ public class Mega : IFileManager
                 // ignored
             }
         }
+    }
+
+    public string? GetScheme()
+    {
+        return Scheme;
     }
 
     public bool CanOpenDatabase()
@@ -297,7 +304,7 @@ public class Mega : IFileManager
 
     private string GetPath(string path)
     {
-        return Utility.Files.GetPath('/', "mega://", path);
+        return Utility.Files.GetPath('/', Scheme, path);
     }
 
     private string[] SplitPath(string position)

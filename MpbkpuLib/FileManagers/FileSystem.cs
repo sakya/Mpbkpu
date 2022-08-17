@@ -11,6 +11,11 @@ namespace MpbkpuLib.FileManagers
 
         }
 
+        public string? GetScheme()
+        {
+            return null;
+        }
+
         public bool CanOpenDatabase()
         {
             return true;

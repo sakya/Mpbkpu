@@ -6,6 +6,8 @@ namespace MpbkpuLib.FileManagers
 {
     public class Smb : IFileManager
     {
+        public const string Scheme = "smb://";
+        
         private readonly string? _domainName;
         private readonly string? _username;
         private readonly string? _password;
@@ -145,6 +147,11 @@ namespace MpbkpuLib.FileManagers
             Host = host;
         }
 
+        public string? GetScheme()
+        {
+            return Scheme;
+        }
+
         public bool CanOpenDatabase()
         {
             return false;
@@ -173,7 +180,7 @@ namespace MpbkpuLib.FileManagers
 
             var fInfo = new File()
             {
-                FullPath = $"smb://{node.FullPath.Replace("\\", "/")}",
+                FullPath = $"{Scheme}{node.FullPath.Replace("\\", "/")}",
                 Name = node.Name,
                 Type = File.FileTyes.File,
                 Size = node.Size ?? 0,
@@ -197,7 +204,7 @@ namespace MpbkpuLib.FileManagers
 
                 var fInfo = new File()
                 {
-                    FullPath = $"smb://{node.FullPath.Replace("\\", "/")}",
+                    FullPath = $"{Scheme}{node.FullPath.Replace("\\", "/")}",
                     Name = node.Name,
                     Size = node.Size ?? 0,
 
@@ -312,7 +319,7 @@ namespace MpbkpuLib.FileManagers
 
         private string GetPath(string path)
         {
-            return Utility.Files.GetPath('/', "smb://", path);
+            return Utility.Files.GetPath('/', Scheme, path);
         }
 
         private string GetParent(string position, out string? childName)

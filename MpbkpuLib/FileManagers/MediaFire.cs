@@ -8,6 +8,8 @@ namespace MpbkpuLib.FileManagers;
 
 public class MediaFire : IFileManager
 {
+    public const string Scheme = "mediafire://";
+
     #region classes
 
     private class ReaderStream : Stream
@@ -164,6 +166,11 @@ public class MediaFire : IFileManager
     public void Dispose()
     {
         _client?.Dispose();
+    }
+
+    public string? GetScheme()
+    {
+        return Scheme;
     }
 
     public bool CanOpenDatabase()
@@ -397,7 +404,7 @@ public class MediaFire : IFileManager
 
     private string GetPath(string path)
     {
-        return Utility.Files.GetPath('/', "mediafire://", path);
+        return Utility.Files.GetPath('/', Scheme, path);
     }
 
     private string GetParent(string position, out string? childName)

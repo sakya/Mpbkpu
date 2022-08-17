@@ -41,10 +41,31 @@ public class BackupJobSettings : BaseSettings
     /// <value></value>
     public string? Source { get; set; }
     /// <summary>
+    /// The user to access to the source
+    /// </summary>
+    /// <value></value>
+    public string? SourceUser { get; set; }
+    /// <summary>
+    /// The password to access to the source
+    /// </summary>
+    /// <value></value>
+    public string? SourcePassword { get; set; }
+
+    /// <summary>
     /// The backup destination
     /// </summary>
     /// <value></value>
     public string? Destination { get; set; }
+    /// <summary>
+    /// The user to access to the destination
+    /// </summary>
+    /// <value></value>
+    public string? DestinationUser { get; set; }
+    /// <summary>
+    /// The password to access to the destination
+    /// </summary>
+    /// <value></value>
+    public string? DestinationPassword { get; set; }
 
     public List<string>? Exclude { get; set; }
     public int MaxFilesPerDirectory { get; set; }

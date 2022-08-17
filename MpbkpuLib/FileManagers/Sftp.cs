@@ -8,16 +8,22 @@ namespace MpbkpuLib.FileManagers
 {
     public class Sftp : IFileManager
     {
-        private SftpClient? _client;
-
+        public const string Scheme = "sftp://";
         public string? Host { get; set; }
         public int Port { get; set; }
         public NetworkCredential? Credentials { get; set; }
         public string? PrivateKeyFile { get; set; }
 
+        private SftpClient? _client;
+
         public void Dispose()
         {
 
+        }
+
+        public string? GetScheme()
+        {
+            return Scheme;
         }
 
         public bool CanOpenDatabase()
@@ -48,7 +54,7 @@ namespace MpbkpuLib.FileManagers
 
             var fInfo = new File()
             {
-                FullPath = $"sftp://{Host}{f.FullName}",
+                FullPath = $"{Scheme}{Host}{f.FullName}",
                 Name = f.Name,
                 Type = File.FileTyes.File,
                 Size = f.Length,
@@ -67,7 +73,7 @@ namespace MpbkpuLib.FileManagers
             foreach (var f in await ListDirectoryAsync(client, path)) {
                 var fInfo = new File()
                 {
-                    FullPath = $"sftp://{Host}{f.FullName}",
+                    FullPath = $"{Scheme}{Host}{f.FullName}",
                     Name = f.Name,
                     Size = f.Length,
                     LastModified = f.Attributes.LastWriteTime
@@ -199,7 +205,7 @@ namespace MpbkpuLib.FileManagers
 
         private string GetPath(string path)
         {
-            return Utility.Files.GetPath('/', $"sftp://{Host}", path);
+            return Utility.Files.GetPath('/', $"{Scheme}{Host}", path);
         }
 
         private async Task<IEnumerable<SftpFile>> ListDirectoryAsync(SftpClient client, string path)

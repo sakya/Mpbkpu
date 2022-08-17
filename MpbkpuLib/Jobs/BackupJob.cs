@@ -104,7 +104,7 @@ public class BackupJob : BaseJob
         LogInfo("Starting with settings:");
         LogInfo(JsonConvert.SerializeObject(Settings, Formatting.Indented));
 
-        BackupFm = FileManagerFactory.GetFileManager(Settings.Destination, out BackupPath);
+        BackupFm = FileManagerFactory.GetFileManager(Settings.Destination, out BackupPath, Settings.DestinationUser, Settings.DestinationPassword);
 
         Step?.Invoke(this, Steps.OpenDatabase);
         await CheckDestination();

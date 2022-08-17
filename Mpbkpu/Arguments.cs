@@ -31,11 +31,29 @@ public class Arguments : IOptions
         OnlyForVerbs = "Backup")]
     public string? SourcePath { get; set; }
 
+    [Option("sourceuser",
+        Description = "The user for accessing the source file system",
+        OnlyForVerbs = "Backup")]
+    public string? SourceUser { get; set; }
+    [Option("sourcepassword",
+        Description = "The password for accessing the source file system",
+        OnlyForVerbs = "Backup")]
+    public string? SourcePassword { get; set; }
+
     [Option("destination", ShortName = 'd',
         Required = true,
         Description = "The destination path of a backup",
         OnlyForVerbs = "Backup")]
     public string? DestinationPath { get; set; }
+
+    [Option("destinationuser",
+        Description = "The user for accessing the destination file system",
+        OnlyForVerbs = "Backup")]
+    public string? DestinationUser { get; set; }
+    [Option("destinationpassword",
+        Description = "The password for accessing the destination file system",
+        OnlyForVerbs = "Backup")]
+    public string? DestinationPassword { get; set; }
 
     [Option("exclude", 'e',
         Description = "File or directory to exclude from the backup",

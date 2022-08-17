@@ -5,6 +5,12 @@ namespace MpbkpuLib.Interfaces
     public interface IFileManager : IDisposable
     {
         /// <summary>
+        /// Get the scheme of the file system
+        /// </summary>
+        /// <returns></returns>
+        public string? GetScheme();
+
+        /// <summary>
         /// Return if the database can b directly opend in this file system
         /// </summary>
         /// <returns>True/False</returns>

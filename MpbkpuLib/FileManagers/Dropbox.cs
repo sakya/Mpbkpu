@@ -12,6 +12,8 @@ namespace MpbkpuLib.FileManagers;
 // https://github.com/dropbox/dropbox-sdk-dotnet/blob/master/dropbox-sdk-dotnet/Examples/SimpleTest/Program.cs#L239
 public class Dropbox : IFileManager
 {
+    public const string Scheme = "dropbox://";
+
     #region classes
     internal class TokenCache
     {
@@ -191,6 +193,11 @@ public class Dropbox : IFileManager
     public void Dispose()
     {
         _client?.Dispose();
+    }
+
+    public string? GetScheme()
+    {
+        return Scheme;
     }
 
     public bool CanOpenDatabase()
@@ -502,7 +509,7 @@ public class Dropbox : IFileManager
 
     private string GetPath(string path)
     {
-        return Utility.Files.GetPath('/', "dropbox://", path);
+        return Utility.Files.GetPath('/', Scheme, path);
     }
 
     #endregion

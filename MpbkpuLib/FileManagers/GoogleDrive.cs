@@ -5,9 +5,15 @@ namespace MpbkpuLib.FileManagers;
 
 public class GoogleDrive : IFileManager
 {
+    public const string Scheme = "gdrive://";
+
     public void Dispose()
     {
         throw new NotImplementedException();
+    }
+    public string? GetScheme()
+    {
+        return Scheme;
     }
 
     public bool CanOpenDatabase()

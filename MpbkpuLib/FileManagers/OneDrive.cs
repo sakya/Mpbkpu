@@ -10,6 +10,8 @@ namespace MpbkpuLib.FileManagers
 {
     public class OneDrive : IFileManager
     {
+        public const string Scheme = "onedrive://";
+
         #region classes
         private class AuthenticationProvider : IAuthenticationProvider
         {
@@ -131,6 +133,11 @@ namespace MpbkpuLib.FileManagers
 
         public void Dispose()
         {
+        }
+
+        public string? GetScheme()
+        {
+            return Scheme;
         }
 
         public bool CanOpenDatabase()
@@ -366,7 +373,7 @@ namespace MpbkpuLib.FileManagers
 
         private string GetPath(string path)
         {
-            return Utility.Files.GetPath('/', "onedrive://", path);
+            return Utility.Files.GetPath('/', Scheme, path);
         }
 
         private string GetParent(string position, out string? childName)

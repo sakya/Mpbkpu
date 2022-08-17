@@ -8,6 +8,8 @@ namespace MpbkpuLib.FileManagers
 {
     public class Ftp : IFileManager
     {
+        public const string Scheme = "ftp://";
+
         private  FtpClient? _client;
 
         public string? Host { get; set; }
@@ -18,6 +20,11 @@ namespace MpbkpuLib.FileManagers
         public void Dispose()
         {
             _client?.Dispose();
+        }
+
+        public string? GetScheme()
+        {
+            return Scheme;
         }
 
         public bool CanOpenDatabase()
@@ -47,7 +54,7 @@ namespace MpbkpuLib.FileManagers
                 throw new Exception($"File {path} not found");
 
             return new File() {
-                FullPath = $"ftp://{Host}{f.FullName}",
+                FullPath = $"{Scheme}{Host}{f.FullName}",
                 Name = f.Name,
                 Type = File.FileTyes.File,
 
@@ -67,7 +74,7 @@ namespace MpbkpuLib.FileManagers
             foreach (var f in await client.GetListingAsync(path)) {
                 var fInfo = new File()
                 {
-                    FullPath = $"ftp://{Host}{f.FullName}",
+                    FullPath = $"{Scheme}{Host}{f.FullName}",
                     Name = f.Name,
                     Size = f.Size,
                     Created = f.Created,
@@ -197,7 +204,7 @@ namespace MpbkpuLib.FileManagers
 
         private string GetPath(string path)
         {
-            return Utility.Files.GetPath('/', $"ftp://{Host}", path);
+            return Utility.Files.GetPath('/', $"{Scheme}{Host}", path);
         }
         #endregion
     }
