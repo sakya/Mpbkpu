@@ -5,11 +5,8 @@ namespace Mpbkpu.Actions;
 
 public class VerifyAction : BaseAction
 {
-    private Arguments? _pArgs;
-
     public override async Task<bool> Run(Arguments pArgs)
     {
-        _pArgs = pArgs;
         var settings = new VerifyJobSettings()
         {
             LogLevel = pArgs.LogLevel,
