@@ -300,6 +300,7 @@ public class RestoreJob : BaseJob
             throw new ArgumentNullException(nameof(fileToRestore));
 
         var item = await backupFile.BackupItems.AsNoTracking()
+            .Include(i => i.Backup)
             .Include(i => i.Volume)
             .Where(i => i.Id == fileToRestore.BackupItemId)
             .FirstOrDefaultAsync();
@@ -314,7 +315,7 @@ public class RestoreJob : BaseJob
                     await _destinationFm.CreateDirectory(destFilePath);
                 break;
             case File.FileTyes.File:
-                using (var backupStream = await BackupFm.OpenFile(BackupFm.CombinePath(BackupPath!, Settings.BackupGuid!, item.Volume!.Name!, item.Name!))) {
+                using (var backupStream = await BackupFm.OpenFile(BackupFm.CombinePath(BackupPath!, item.Backup!.Guid, item.Volume!.Name!, item.Name!))) {
                     using (var destStream = await _destinationFm.OpenFile(destFilePath, true)) {
                         var progressAction = new Action<long>((copied) =>
                         {
