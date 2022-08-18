@@ -140,7 +140,7 @@ namespace MpbkpuLib.Utility
         /// <param name="destination">The destination <see cref="Stream"/></param>
         /// <param name="decompress">If set to true the <see cref="source"/> is decompressed after the encryption</param>
         /// <param name="progressAction">A <see cref="Action{T}"/> called to report progress</param>
-        /// <returns></returns>
+        /// <returns>The MD5 hash of the decrypted data</returns>
         /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="Exception"></exception>
         public async Task<string> Decrypt(Stream source, Stream destination, bool decompress, Action<long>? progressAction = null)
