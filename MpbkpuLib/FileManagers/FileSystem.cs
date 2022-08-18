@@ -28,15 +28,7 @@ namespace MpbkpuLib.FileManagers
 
         public string CombinePath(params string[] paths)
         {
-            string res = string.Empty;
-            foreach (var p in paths) {
-                if (string.IsNullOrEmpty(p))
-                    throw new Exception("Path cannot be empty");
-
-                res = Path.Combine(res, p);
-            }
-
-            return res;
+            return Utility.Files.CombinePath(Path.DirectorySeparatorChar, paths);
         }
 
         public Task<bool> CreateDirectory(string? path)

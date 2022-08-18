@@ -26,7 +26,9 @@ public static class Files
             if (string.IsNullOrEmpty(p))
                 throw new Exception("Path cannot be empty");
 
-            res = !string.IsNullOrEmpty(res) && !res.EndsWith("/") ? $"{res}{separator}{p}" : $"{res}{p}";
+            if (res.EndsWith($"{separator}") && p.StartsWith($"{separator}"))
+                res = res.Remove(res.Length - 1);
+            res = !string.IsNullOrEmpty(res) && !res.EndsWith($"{separator}") && !p.StartsWith($"{separator}") ? $"{res}{separator}{p}" : $"{res}{p}";
         }
 
         return res;

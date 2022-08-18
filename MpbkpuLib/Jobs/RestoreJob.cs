@@ -1,3 +1,5 @@
+using System.IO.Compression;
+using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using MpbkpuLib.Abstracts;
 using MpbkpuLib.FileManagers;
@@ -141,14 +143,16 @@ public class RestoreJob : BaseJob
         }
 
         var backupSettings = JsonConvert.DeserializeObject<BackupJobSettings>(bkp.Settings!);
-        if (backupSettings?.Source != Settings.Destination) {
-            LogWarning($"Restoring to a different destination (was {backupSettings?.Source})");
+        if (backupSettings == null)
+            throw new Exception("Cannot read backup settings");
+        if (backupSettings.Source != Settings.Destination) {
+            LogWarning($"Restoring to a different destination (was {backupSettings.Source})");
         }
 
         // Read destination
         Step?.Invoke(this, Steps.ReadDestination);
         LogInfo($"Reading destination {Settings.Destination}");
-        if (!ReadPathContent(backupFile, _destinationFm, _destinationPath, Settings.Destination, true, File.FileActions.Delete, _cancellationToken).Result) {
+        if (!ReadPathContent(backupFile, _destinationFm, _destinationPath, _destinationPath, true, File.FileActions.Delete, _cancellationToken).Result) {
             LogError("Failed to read destination");
             return false;
         }
@@ -224,7 +228,8 @@ public class RestoreJob : BaseJob
         }
 
         var filesToRestore = backupFile.Files.AsNoTracking()
-            .Where(f => f.FileAction == File.FileActions.Restore || f.FileAction == File.FileActions.Delete);
+            .Where(f => f.FileAction == File.FileActions.Restore || f.FileAction == File.FileActions.Delete)
+            .OrderByDescending(f => f.Type);
         foreach (var fileToRestore in filesToRestore) {
             if (_cancellationToken?.IsCancellationRequested == true) {
                 LogInfo("Cancelled by user");
@@ -235,7 +240,14 @@ public class RestoreJob : BaseJob
             int tryCount = 0;
             while (++tryCount <= Settings.RetryOnError) {
                 try {
-                    await RestoreFile(backupFile, fileToRestore, encrypter);
+                    if (fileToRestore.FileAction == File.FileActions.Delete) {
+                        await DeleteFile(fileToRestore);
+                    } else {
+                        await RestoreFile(backupFile, backupSettings, fileToRestore, encrypter);
+                    }
+
+                    //Progress?.Invoke(this, ++_progressData.FileIndex, cArgs.FilesToBackup, _progressData.Bytes, _progressData.TotalBytes);
+                    break;
                 } catch (Exception ex) {
                     if (tryCount == Settings.RetryOnError)
                         throw;
@@ -245,6 +257,7 @@ public class RestoreJob : BaseJob
             }
         }
 
+        LogInfo("Completed");
         return true;
     }
 
@@ -275,12 +288,107 @@ public class RestoreJob : BaseJob
             await _destinationFm.CreateDirectory(_destinationPath);
     }
 
-    private async Task RestoreFile(BackupFile? backupFile, File? fileToRestore, EncryptDecrypt? encrypter)
+    private async Task RestoreFile(BackupFile? backupFile, BackupJobSettings backupSettings, File? fileToRestore, EncryptDecrypt? encrypter)
     {
+        if (_destinationFm == null)
+            throw new Exception("Destination file manager not initialized");
+        if (BackupFm == null)
+            throw new Exception("Backup file manager not initialized");
         if (backupFile == null)
             throw new ArgumentNullException(nameof(backupFile));
         if (fileToRestore == null)
             throw new ArgumentNullException(nameof(fileToRestore));
+
+        var item = await backupFile.BackupItems.AsNoTracking()
+            .Include(i => i.Volume)
+            .Where(i => i.Id == fileToRestore.BackupItemId)
+            .FirstOrDefaultAsync();
+        if (item == null)
+            throw new Exception($"BackupItem with id {fileToRestore.Id} not found");
+
+        var destFilePath = _destinationFm.CombinePath(_destinationPath!, fileToRestore.RelativePath!);
+        LogDebug($"Restoring {fileToRestore.FullPath} to {destFilePath}");
+        switch (fileToRestore.Type) {
+            case File.FileTyes.Directory:
+                if (!await _destinationFm.DirectoryExists(destFilePath))
+                    await _destinationFm.CreateDirectory(destFilePath);
+                break;
+            case File.FileTyes.File:
+                using (var backupStream = await BackupFm.OpenFile(BackupFm.CombinePath(BackupPath!, Settings.BackupGuid!, item.Volume!.Name!, item.Name!))) {
+                    using (var destStream = await _destinationFm.OpenFile(destFilePath, true)) {
+                        var progressAction = new Action<long>((copied) =>
+                        {
+                            /*if (lastFileProgress == null || copied == sourceFile.Size ||
+                                (DateTime.UtcNow - lastFileProgress.Value).TotalMilliseconds >= 500) {
+                                FileProgress?.Invoke(this, sourceFile.FullPath!, copied, sourceFile.Size);
+                                Progress?.Invoke(this, _progressData!.FileIndex, _progressData.TotalFiles, _progressData.Bytes + copied, _progressData.TotalBytes);
+                                lastFileProgress = DateTime.UtcNow;
+                            }*/
+                        });
+
+                        if (encrypter != null)
+                            await encrypter.Decrypt(backupStream, destStream, backupSettings.Compress,
+                                progressAction);
+                        else if (backupSettings.Compress)
+                            await RestoreFileFromSourceDecompress(backupStream, destStream, progressAction);
+                        else
+                            await RestoreFileFromSourceCopy(backupStream, destStream, progressAction);
+                    }
+                }
+                break;
+        }
     }
+
+    private async Task RestoreFileFromSourceDecompress(Stream sourceStream, Stream destStream, Action<long>? progressAction = null)
+    {
+        using (var hasher = MD5.Create()) {
+            using (CryptoStream hashStream = new CryptoStream(destStream, hasher, CryptoStreamMode.Write, true)) {
+                using (var compressorStream = new GZipStream(hashStream, CompressionLevel.Optimal, true)) {
+                    long copied = 0;
+                    int read;
+                    byte[] buffer = new byte[32768];
+                    while ((read = await sourceStream.ReadAsync(buffer, 0, buffer.Length)) > 0) {
+                        await compressorStream.WriteAsync(buffer, 0, read);
+                        copied += read;
+                        progressAction?.Invoke(copied);
+                    }
+                }
+            }
+        }
+    }
+
+    private async Task RestoreFileFromSourceCopy(Stream sourceStream, Stream destStream, Action<long>? progressAction = null)
+    {
+        using (var hasher = MD5.Create()) {
+            using (CryptoStream hashStream = new CryptoStream(destStream, hasher, CryptoStreamMode.Write, true)) {
+                long copied = 0;
+                int read;
+                byte[] buffer = new byte[32768];
+                while ((read = await sourceStream.ReadAsync(buffer, 0, buffer.Length)) > 0) {
+                    await hashStream.WriteAsync(buffer, 0, read);
+                    copied += read;
+                    progressAction?.Invoke(copied);
+                }
+            }
+        }
+    }
+
+    private async Task DeleteFile(File? fileToRestore)
+    {
+        if (_destinationFm == null)
+            throw new Exception("Destination file manager not initialized");
+        if (fileToRestore == null)
+            throw new ArgumentNullException(nameof(fileToRestore));
+
+        var fullPath = _destinationFm.CombinePath(_destinationPath!, fileToRestore.RelativePath!);
+        if (fileToRestore.Type == File.FileTyes.Directory) {
+            if (await _destinationFm.DirectoryExists(fullPath))
+                await _destinationFm.DeleteDirectory(fullPath);
+        } else {
+            if (await _destinationFm.FileExists(fullPath))
+                await _destinationFm.DeleteFile(fullPath);
+        }
+    }
+
     #endregion
 }
