@@ -39,6 +39,8 @@ public class BackupItem : BaseModel
     [MaxLength(255)]
     public string? OriginalPath { get; set; }
     [MaxLength(255)]
+    public string? OriginalRelativePath { get; set; }
+    [MaxLength(255)]
     public string? OriginalName { get; set; }
     [MaxLength(255)]
     public string? OriginalExtension { get; set; }

@@ -106,6 +106,7 @@ namespace MpbkpuLib.Migrations
                     MD5 = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
                     Size = table.Column<long>(type: "INTEGER", nullable: false),
                     OriginalPath = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
+                    OriginalRelativePath = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
                     OriginalName = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
                     OriginalExtension = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
                     OriginalSize = table.Column<long>(type: "INTEGER", nullable: false),
@@ -126,8 +127,7 @@ namespace MpbkpuLib.Migrations
                         name: "FK_BackupItems_BackupVolumes_VolumeId",
                         column: x => x.VolumeId,
                         principalTable: "BackupVolumes",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateIndex(

@@ -424,6 +424,7 @@ public class BackupJob : BaseJob
         backupItem.OriginalLastModified = sourceFile.LastModified;
         backupItem.OriginalName = sourceFile.Name;
         backupItem.OriginalPath = sourceFile.FullPath;
+        backupItem.OriginalRelativePath = sourceFile.RelativePath;
         backupItem.OriginalSize = sourceFile.Size;
 
         var destFilePath = destFm.CombinePath(destPath, _backup.Guid, _lastUsedVolume!.Name!, backupItem.Name!);

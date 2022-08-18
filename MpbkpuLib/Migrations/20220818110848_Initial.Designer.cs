@@ -11,13 +11,13 @@ using MpbkpuLib.Context;
 namespace MpbkpuLib.Migrations
 {
     [DbContext(typeof(BackupContext))]
-    [Migration("20220807121733_Initial")]
+    [Migration("20220818110848_Initial")]
     partial class Initial
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "6.0.7");
+            modelBuilder.HasAnnotation("ProductVersion", "6.0.8");
 
             modelBuilder.Entity("MpbkpuLib.DataModel.Backup", b =>
                 {
@@ -97,6 +97,10 @@ namespace MpbkpuLib.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("OriginalRelativePath")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
                     b.Property<long>("OriginalSize")
                         .HasColumnType("INTEGER");
 
@@ -106,7 +110,7 @@ namespace MpbkpuLib.Migrations
                     b.Property<int>("Type")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("VolumeId")
+                    b.Property<int?>("VolumeId")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
@@ -225,9 +229,7 @@ namespace MpbkpuLib.Migrations
 
                     b.HasOne("MpbkpuLib.DataModel.BackupVolume", "Volume")
                         .WithMany("Items")
-                        .HasForeignKey("VolumeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("VolumeId");
 
                     b.Navigation("Backup");
 
