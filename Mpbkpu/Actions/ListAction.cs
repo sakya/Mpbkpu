@@ -15,6 +15,8 @@ public class ListAction : BaseAction
         {
             LogLevel = pArgs.LogLevel,
             BackupPath = pArgs.BackupPath,
+            BackupPathUser = pArgs.BackupUser,
+            BackupPathPassword = pArgs.BackupPassword,
             EncryptPassword = pArgs.Password
         };
 

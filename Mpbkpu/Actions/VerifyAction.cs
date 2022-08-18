@@ -11,6 +11,8 @@ public class VerifyAction : BaseAction
         {
             LogLevel = pArgs.LogLevel,
             BackupPath = pArgs.BackupPath,
+            BackupPathUser = pArgs.BackupUser,
+            BackupPathPassword = pArgs.BackupPassword,
             BackupGuid = pArgs.BackupGuid,
             EncryptPassword = pArgs.Password
         };

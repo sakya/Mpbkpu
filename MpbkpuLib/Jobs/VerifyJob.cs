@@ -77,7 +77,7 @@ public class VerifyJob: BaseJob
         LogInfo("Starting with settings:");
         LogInfo(JsonConvert.SerializeObject(Settings, Formatting.Indented));
 
-        BackupFm = FileManagerFactory.GetFileManager(Settings.BackupPath, out BackupPath);
+        BackupFm = FileManagerFactory.GetFileManager(Settings.BackupPath, out BackupPath, Settings.BackupPathUser, Settings.BackupPathPassword);
         Step?.Invoke(this, Steps.OpenDatabase);
         using (var openRes = await BackupFile.OpenBackupFile(BackupFm, BackupPath, Settings.EncryptPassword)) {
             var backupFile = openRes.BackupFile;
