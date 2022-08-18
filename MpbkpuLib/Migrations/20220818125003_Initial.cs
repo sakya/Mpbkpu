@@ -29,30 +29,6 @@ namespace MpbkpuLib.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Files",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    Type = table.Column<int>(type: "INTEGER", nullable: false),
-                    RootPath = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
-                    RelativePath = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
-                    FullPath = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
-                    Name = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
-                    Extension = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
-                    Size = table.Column<long>(type: "INTEGER", nullable: false),
-                    Hidden = table.Column<bool>(type: "INTEGER", nullable: false),
-                    Created = table.Column<DateTime>(type: "TEXT", nullable: true),
-                    LastModified = table.Column<DateTime>(type: "TEXT", nullable: true),
-                    FileAction = table.Column<int>(type: "INTEGER", nullable: false),
-                    Modified = table.Column<bool>(type: "INTEGER", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Files", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "BackupVolumes",
                 columns: table => new
                 {
@@ -130,10 +106,45 @@ namespace MpbkpuLib.Migrations
                         principalColumn: "Id");
                 });
 
+            migrationBuilder.CreateTable(
+                name: "Files",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Type = table.Column<int>(type: "INTEGER", nullable: false),
+                    RootPath = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
+                    RelativePath = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
+                    FullPath = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
+                    Name = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
+                    Extension = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
+                    Size = table.Column<long>(type: "INTEGER", nullable: false),
+                    Hidden = table.Column<bool>(type: "INTEGER", nullable: false),
+                    Created = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    LastModified = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    FileAction = table.Column<int>(type: "INTEGER", nullable: false),
+                    Modified = table.Column<bool>(type: "INTEGER", nullable: false),
+                    BackupItemId = table.Column<int>(type: "INTEGER", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Files", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Files_BackupItems_BackupItemId",
+                        column: x => x.BackupItemId,
+                        principalTable: "BackupItems",
+                        principalColumn: "Id");
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_BackupItems_BackupId_OriginalPath",
                 table: "BackupItems",
                 columns: new[] { "BackupId", "OriginalPath" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BackupItems_BackupId_OriginalRelativePath",
+                table: "BackupItems",
+                columns: new[] { "BackupId", "OriginalRelativePath" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_BackupItems_VolumeId",
@@ -158,6 +169,11 @@ namespace MpbkpuLib.Migrations
                 column: "BackupId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Files_BackupItemId",
+                table: "Files",
+                column: "BackupItemId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Files_FileAction",
                 table: "Files",
                 column: "FileAction");
@@ -171,13 +187,13 @@ namespace MpbkpuLib.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "BackupItems");
-
-            migrationBuilder.DropTable(
                 name: "BackupWarnings");
 
             migrationBuilder.DropTable(
                 name: "Files");
+
+            migrationBuilder.DropTable(
+                name: "BackupItems");
 
             migrationBuilder.DropTable(
                 name: "BackupVolumes");

@@ -78,7 +78,7 @@ public class BackupJobSettings : BaseSettings
     public bool Compress { get; set; }
 
     /// <summary>
-    /// Number of retries on error while backing up a file (Default: 3)
+    /// Number of retries on error while backing up a file
     /// </summary>
     public int RetryOnError { get; set; }
 }

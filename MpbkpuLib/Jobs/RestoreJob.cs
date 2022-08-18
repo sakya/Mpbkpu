@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using MpbkpuLib.Abstracts;
 using MpbkpuLib.FileManagers;
 using MpbkpuLib.Interfaces;
+using MpbkpuLib.Utility;
 using Newtonsoft.Json;
 using File = MpbkpuLib.DataModel.File;
 
@@ -147,7 +148,7 @@ public class RestoreJob : BaseJob
         // Read destination
         Step?.Invoke(this, Steps.ReadDestination);
         LogInfo($"Reading destination {Settings.Destination}");
-        if (!ReadPathContent(backupFile, _destinationFm, _destinationPath, Settings.Destination, true, _cancellationToken).Result) {
+        if (!ReadPathContent(backupFile, _destinationFm, _destinationPath, Settings.Destination, true, File.FileActions.Delete, _cancellationToken).Result) {
             LogError("Failed to read destination");
             return false;
         }
@@ -164,20 +165,39 @@ public class RestoreJob : BaseJob
 
         // Compute files to backup
         await foreach (var item in backupItems) {
-
+            var file = await backupFile.Files
+                .Where(f => f.RelativePath == item.OriginalRelativePath)
+                .FirstOrDefaultAsync();
+            if (file == null) {
+                file = new File()
+                {
+                    BackupItemId = item.Id,
+                    Type = item.Type,
+                    FileAction = File.FileActions.Restore,
+                    FullPath = item.OriginalPath,
+                    RelativePath = item.OriginalRelativePath,
+                    Name = item.OriginalName,
+                    Size = item.OriginalSize
+                };
+                backupFile.Files.Add(file);
+            } else if (file.Size != item.OriginalSize || file.LastModified != item.OriginalLastModified) {
+                file.BackupItemId = item.Id;
+                file.FileAction = File.FileActions.Restore;
+            }
         }
+        await backupFile.SaveChangesAsync();
 
         var cArgs = new ConfirmArgs()
         {
             FilesToRestore = await backupFile.Files.AsNoTracking()
-                .Where(f => f.FileAction == DataModel.File.FileActions.Restore)
+                .Where(f => f.FileAction == File.FileActions.Restore)
                 .CountAsync(),
             BytesToRestore = await backupFile.Files.AsNoTracking()
                 .Where(f => f.FileAction == File.FileActions.Restore)
                 .Select(f => f.Size)
                 .SumAsync(),
             FilesToDelete = await backupFile.Files.AsNoTracking()
-                .Where(f => f.FileAction == DataModel.File.FileActions.Delete)
+                .Where(f => f.FileAction == File.FileActions.Delete)
                 .CountAsync(),
             BytesToDelete = await backupFile.Files.AsNoTracking()
                 .Where(f => f.FileAction == File.FileActions.Delete)
@@ -195,6 +215,33 @@ public class RestoreJob : BaseJob
                 LogInfo("Cancelled by user");
                 _userCancelled = true;
                 return false;
+            }
+        }
+
+        EncryptDecrypt? encrypter = null;
+        if (!string.IsNullOrEmpty(Settings.EncryptPassword)) {
+            encrypter = new EncryptDecrypt(Settings.EncryptPassword);
+        }
+
+        var filesToRestore = backupFile.Files.AsNoTracking()
+            .Where(f => f.FileAction == File.FileActions.Restore || f.FileAction == File.FileActions.Delete);
+        foreach (var fileToRestore in filesToRestore) {
+            if (_cancellationToken?.IsCancellationRequested == true) {
+                LogInfo("Cancelled by user");
+                _userCancelled = true;
+                return false;
+            }
+
+            int tryCount = 0;
+            while (++tryCount <= Settings.RetryOnError) {
+                try {
+                    await RestoreFile(backupFile, fileToRestore, encrypter);
+                } catch (Exception ex) {
+                    if (tryCount == Settings.RetryOnError)
+                        throw;
+
+                    LogWarning($"Failed to restore {fileToRestore.FullPath}: {ex.Message}, retrying");
+                }
             }
         }
 
@@ -226,6 +273,14 @@ public class RestoreJob : BaseJob
 
         if (!await _destinationFm.DirectoryExists(_destinationPath))
             await _destinationFm.CreateDirectory(_destinationPath);
+    }
+
+    private async Task RestoreFile(BackupFile? backupFile, File? fileToRestore, EncryptDecrypt? encrypter)
+    {
+        if (backupFile == null)
+            throw new ArgumentNullException(nameof(backupFile));
+        if (fileToRestore == null)
+            throw new ArgumentNullException(nameof(fileToRestore));
     }
     #endregion
 }

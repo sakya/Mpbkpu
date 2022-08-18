@@ -49,6 +49,8 @@ namespace MpbkpuLib.Context
             {
                 e.HasIndex(e => new { e.BackupId, e.OriginalPath })
                     .IsUnique(false);
+                e.HasIndex(e => new { e.BackupId, e.OriginalRelativePath })
+                    .IsUnique(false);
             });
 
             modelBuilder.Entity<DataModel.BackupVolume>(e =>

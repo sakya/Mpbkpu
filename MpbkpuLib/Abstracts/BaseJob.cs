@@ -1,6 +1,7 @@
 ﻿using MpbkpuLib.FileManagers;
 using MpbkpuLib.Interfaces;
 using MpbkpuLib.Utility;
+using File = MpbkpuLib.DataModel.File;
 
 namespace MpbkpuLib.Abstracts;
 
@@ -78,7 +79,9 @@ public abstract class BaseJob : IDisposable
         }
     }
 
-    protected async Task<bool> ReadPathContent(BackupFile? bkpFile, IFileManager? fileManager, string? rootPath, string? path, bool includeHiddenFiles, CancellationToken? token)
+    protected async Task<bool> ReadPathContent(BackupFile? bkpFile, IFileManager? fileManager, string? rootPath, string? path, bool includeHiddenFiles,
+        File.FileActions defaultAction,
+        CancellationToken? token)
     {
         if (bkpFile == null)
             throw new ArgumentNullException(nameof(bkpFile));
@@ -97,12 +100,12 @@ public abstract class BaseJob : IDisposable
             if (token?.IsCancellationRequested == true)
                 return true;
 
-            file.FileAction = DataModel.File.FileActions.Backup;
+            file.FileAction = defaultAction;
             file.RootPath = rootPath;
             file.RelativePath = file.FullPath?.Substring(file.RootPath.Length);
             bkpFile.Files.Add(file);
-            if (file.Type == DataModel.File.FileTyes.Directory)
-                await ReadPathContent(bkpFile, fileManager, rootPath, file.FullPath, includeHiddenFiles, token);
+            if (file.Type == File.FileTyes.Directory)
+                await ReadPathContent(bkpFile, fileManager, rootPath, file.FullPath, includeHiddenFiles, defaultAction, token);
         }
         return true;
     }

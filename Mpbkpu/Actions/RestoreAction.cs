@@ -24,6 +24,7 @@ public class RestoreAction : BaseAction
             DestinationUser = pArgs.DestinationUser,
             DestinationPassword = pArgs.DestinationPassword,
 
+            RetryOnError = pArgs.RetryOnError ?? 3,
             LogToConsole = false,
             LogFile = pArgs.LogFile
         };

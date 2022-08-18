@@ -39,4 +39,9 @@ public class RestoreJobSettings : BaseSettings
     /// </summary>
     /// <value></value>
     public string? DestinationPassword { get; set; }
+
+    /// <summary>
+    /// Number of retries on error while restoring a file
+    /// </summary>
+    public int RetryOnError { get; set; }
 }

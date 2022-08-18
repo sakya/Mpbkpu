@@ -55,5 +55,8 @@ namespace MpbkpuLib.DataModel
 
         public FileActions FileAction { get; set; }
         public bool Modified { get; set; }
+
+        public int? BackupItemId { get; set; }
+        public BackupItem? BackupItem { get; set; }
     }
 }

@@ -11,7 +11,7 @@ using MpbkpuLib.Context;
 namespace MpbkpuLib.Migrations
 {
     [DbContext(typeof(BackupContext))]
-    [Migration("20220818110848_Initial")]
+    [Migration("20220818125003_Initial")]
     partial class Initial
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -119,6 +119,8 @@ namespace MpbkpuLib.Migrations
 
                     b.HasIndex("BackupId", "OriginalPath");
 
+                    b.HasIndex("BackupId", "OriginalRelativePath");
+
                     b.ToTable("BackupItems");
                 });
 
@@ -169,6 +171,9 @@ namespace MpbkpuLib.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("BackupItemId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime?>("Created")
                         .HasColumnType("TEXT");
 
@@ -211,6 +216,8 @@ namespace MpbkpuLib.Migrations
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BackupItemId");
 
                     b.HasIndex("FileAction");
 
@@ -256,6 +263,15 @@ namespace MpbkpuLib.Migrations
                         .IsRequired();
 
                     b.Navigation("Backup");
+                });
+
+            modelBuilder.Entity("MpbkpuLib.DataModel.File", b =>
+                {
+                    b.HasOne("MpbkpuLib.DataModel.BackupItem", "BackupItem")
+                        .WithMany()
+                        .HasForeignKey("BackupItemId");
+
+                    b.Navigation("BackupItem");
                 });
 
             modelBuilder.Entity("MpbkpuLib.DataModel.Backup", b =>

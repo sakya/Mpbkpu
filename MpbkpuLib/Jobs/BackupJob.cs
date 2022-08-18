@@ -199,7 +199,7 @@ public class BackupJob : BaseJob
         // Read source
         Step?.Invoke(this, Steps.ReadSource);
         LogInfo($"Reading source {Settings.Source}");
-        if (!ReadPathContent(backupFile, _sourceFm, _sourcePath, _sourcePath, Settings.IncludeHiddenFiles, _cancellationToken).Result) {
+        if (!ReadPathContent(backupFile, _sourceFm, _sourcePath, _sourcePath, Settings.IncludeHiddenFiles, File.FileActions.Backup, _cancellationToken).Result) {
             LogError("Failed to read source");
             if (!await SetBackupResult(backupFile, Backup.Results.Error))
                 LogWarning("Cannot set backup result");
@@ -327,7 +327,7 @@ public class BackupJob : BaseJob
                     try {
                         // Compute file size of the backup file if possible
                         long? backupFileSize = Files.GetDestinationFileSize(fileToBackup.Size, Settings.Compress, encrypter != null);
-                        await BackupFileFromSource(backupFile, _sourceFm!, BackupFm, BackupPath!, fileToBackup, encrypter, backupFileSize);
+                        await BackupFileFromSource(backupFile, fileToBackup, encrypter, backupFileSize);
                         _progressData.Bytes += fileToBackup.Size;
                         Progress?.Invoke(this, ++_progressData.FileIndex, cArgs.FilesToBackup, _progressData.Bytes, _progressData.TotalBytes);
                         break;
@@ -394,21 +394,19 @@ public class BackupJob : BaseJob
     /// Backup a <see cref="DataModel.File"/>
     /// </summary>
     /// <param name="backupFile">The <see cref="BackupFile"/></param>
-    /// <param name="sourceFm">The source <see cref="IFileManager"/></param>
-    /// <param name="destFm">The destination <see cref="IFileManager"/></param>
-    /// <param name="destPath">The destination path</param>
     /// <param name="sourceFile">The <see cref="DataModel.File"/> to backup</param>
     /// <param name="encrypter">The optional <see cref="Utility.EncryptDecrypt"/> to encrypt the file</param>
     /// <param name="backupFileSize">The size of the backup file, if known</param>
     /// <exception cref="ArgumentNullException"></exception>
     private async Task BackupFileFromSource(BackupFile? backupFile,
-        IFileManager sourceFm,
-        IFileManager destFm,
-        string destPath,
         File? sourceFile,
         EncryptDecrypt? encrypter,
         long? backupFileSize)
     {
+        if (_sourceFm == null)
+            throw new Exception("Source file manager not initialized");
+        if (BackupFm == null)
+            throw new Exception("Backup file manager not initialized");
         if (backupFile == null)
             throw new ArgumentNullException(nameof(backupFile));
         if (sourceFile == null)
@@ -427,18 +425,18 @@ public class BackupJob : BaseJob
         backupItem.OriginalRelativePath = sourceFile.RelativePath;
         backupItem.OriginalSize = sourceFile.Size;
 
-        var destFilePath = destFm.CombinePath(destPath, _backup.Guid, _lastUsedVolume!.Name!, backupItem.Name!);
+        var destFilePath = BackupFm.CombinePath(BackupPath!, _backup.Guid, _lastUsedVolume!.Name!, backupItem.Name!);
         switch (sourceFile.Type) {
             case File.FileTyes.Directory:
                 // Create a placeholder file
                 // We don't write a zero byte file because it would be not valid for some remote filesystems (like OneDrive)
-                if (!await sourceFm.DirectoryExists(sourceFile.FullPath)) {
+                if (!await _sourceFm.DirectoryExists(sourceFile.FullPath)) {
                     LogWarning($"Directory {sourceFile.FullPath} not found");
                     return;
                 }
 
                 using (var sourceStream = new MemoryStream(Encoding.ASCII.GetBytes("DIRECTORY"))) {
-                    await using (var destStream = await destFm.OpenFile(destFilePath, true, 9)) {
+                    await using (var destStream = await BackupFm.OpenFile(destFilePath, true, 9)) {
                         await sourceStream.CopyToAsync(destStream);
                     }
                 }
@@ -449,8 +447,8 @@ public class BackupJob : BaseJob
                 LogDebug($"Backing up {sourceFile.FullPath} to {destFilePath}");
                 FileProgress?.Invoke(this, sourceFile.FullPath!, 0, sourceFile.Size);
                 DateTime? lastFileProgress = null;
-                using (var sourceStream = await sourceFm.OpenFile(sourceFile.FullPath)) {
-                    using (var destStream = await destFm.OpenFile(destFilePath, true, backupFileSize)) {
+                using (var sourceStream = await _sourceFm.OpenFile(sourceFile.FullPath)) {
+                    using (var destStream = await BackupFm.OpenFile(destFilePath, true, backupFileSize)) {
                         var progressAction = new Action<long>((copied) =>
                         {
                             if (lastFileProgress == null || copied == sourceFile.Size ||
