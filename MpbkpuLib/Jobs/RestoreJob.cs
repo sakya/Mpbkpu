@@ -26,12 +26,24 @@ public class RestoreJob : BaseJob
     }
 
     #region classes
+    private class ProgressData
+    {
+        public int DeleteTotalFiles { get; set; }
+        public int DeleteFileIndex { get; set; }
+        public long DeleteTotalBytes { get; set; }
+        public long DeleteBytes { get; set; }
 
+        public int RestoreTotalFiles { get; set; }
+        public int RestoreFileIndex { get; set; }
+        public long RestoreTotalBytes { get; set; }
+        public long RestoreBytes { get; set; }
+    }
     #endregion
 
     #region private members
     private CancellationToken? _cancellationToken;
     private bool _userCancelled;
+    private ProgressData? _progressData;
     private IFileManager? _destinationFm;
     private string? _destinationPath;
     #endregion
@@ -223,6 +235,15 @@ public class RestoreJob : BaseJob
             }
         }
 
+        _progressData = new ProgressData()
+        {
+            DeleteTotalBytes = cArgs.BytesToDelete,
+            DeleteTotalFiles = cArgs.FilesToDelete,
+
+            RestoreTotalBytes = cArgs.BytesToRestore,
+            RestoreTotalFiles = cArgs.FilesToRestore
+        };
+
         EncryptDecrypt? encrypter = null;
         if (!string.IsNullOrEmpty(Settings.EncryptPassword)) {
             encrypter = new EncryptDecrypt(Settings.EncryptPassword);
@@ -273,7 +294,8 @@ public class RestoreJob : BaseJob
                 try {
                     await RestoreFile(backupFile, backupSettings, fileToRestore, encrypter);
 
-                    //Progress?.Invoke(this, ++_progressData.FileIndex, cArgs.FilesToBackup, _progressData.Bytes, _progressData.TotalBytes);
+                    _progressData.RestoreBytes += fileToRestore.Size;
+                    Progress?.Invoke(this, ++_progressData.RestoreFileIndex, cArgs.FilesToRestore, _progressData.RestoreBytes, _progressData.RestoreTotalBytes);
                     break;
                 } catch (Exception ex) {
                     if (tryCount == Settings.RetryOnError)
@@ -334,16 +356,17 @@ public class RestoreJob : BaseJob
                     await _destinationFm.CreateDirectory(destFilePath);
                 break;
             case File.FileTyes.File:
+                DateTime? lastFileProgress = null;
                 using (var backupStream = await BackupFm.OpenFile(BackupFm.CombinePath(BackupPath!, fileToRestore.BackupItem!.Backup!.Guid, fileToRestore.BackupItem.Volume!.Name!, fileToRestore.BackupItem.Name!))) {
                     using (var destStream = await _destinationFm.OpenFile(destFilePath, true)) {
                         var progressAction = new Action<long>((copied) =>
                         {
-                            /*if (lastFileProgress == null || copied == sourceFile.Size ||
+                            if (lastFileProgress == null || copied == fileToRestore.Size ||
                                 (DateTime.UtcNow - lastFileProgress.Value).TotalMilliseconds >= 500) {
-                                FileProgress?.Invoke(this, sourceFile.FullPath!, copied, sourceFile.Size);
-                                Progress?.Invoke(this, _progressData!.FileIndex, _progressData.TotalFiles, _progressData.Bytes + copied, _progressData.TotalBytes);
+                                FileProgress?.Invoke(this, fileToRestore.FullPath!, copied, fileToRestore.Size);
+                                Progress?.Invoke(this, _progressData!.RestoreFileIndex, _progressData.RestoreTotalFiles, _progressData.RestoreBytes + copied, _progressData.RestoreTotalBytes);
                                 lastFileProgress = DateTime.UtcNow;
-                            }*/
+                            }
                         });
 
                         string? md5;
