@@ -89,12 +89,6 @@ public class Arguments : IOptions
         OnlyForVerbs = "Restore;Delete;List;Verify")]
     public string? BackupPassword { get; set; }
 
-    [Option("restore", ShortName = 'r',
-        Required = true,
-        Description = "The path to restore a backup",
-        OnlyForVerbs = "Restore")]
-    public string? Restore { get; set; }
-
     [Option("guid", ShortName = 'g',
         Required = true,
         Description = "The backup GUID",

@@ -4,7 +4,7 @@ using MpbkpuLib.Utility;
 
 namespace MpbkpuLib.Abstracts;
 
-public abstract class BaseJob
+public abstract class BaseJob : IDisposable
 {
     #region private members
     private readonly StreamWriter? _logWriter;
@@ -23,10 +23,7 @@ public abstract class BaseJob
 
     protected BaseJob(BaseSettings? settings)
     {
-        if (settings == null)
-            throw new ArgumentNullException(nameof(settings));
-
-        Settings = settings;
+        Settings = settings ?? throw new ArgumentNullException(nameof(settings));
         // Open the log file
         if (!string.IsNullOrEmpty(Settings.LogFile)) {
             _logWriter = new StreamWriter(Settings.LogFile, false, System.Text.Encoding.UTF8);
@@ -39,6 +36,11 @@ public abstract class BaseJob
     public DateTime? Started { get; set; }
     public DateTime? Completed { get; set; }
     #endregion
+
+    public virtual void Dispose()
+    {
+        BackupFm?.Dispose();
+    }
 
     /// <summary>
     /// Run the job
@@ -76,10 +78,12 @@ public abstract class BaseJob
         }
     }
 
-    protected async Task<bool> ReadPathContent(BackupFile? bkpFile, string? rootPath, string? path, bool includeHiddenFiles, CancellationToken? token)
+    protected async Task<bool> ReadPathContent(BackupFile? bkpFile, IFileManager? fileManager, string? rootPath, string? path, bool includeHiddenFiles, CancellationToken? token)
     {
         if (bkpFile == null)
             throw new ArgumentNullException(nameof(bkpFile));
+        if (fileManager == null)
+            throw new ArgumentNullException(nameof(fileManager));
         if (string.IsNullOrEmpty(rootPath))
             throw new ArgumentNullException(nameof(rootPath));
         if (string.IsNullOrEmpty(path))
@@ -89,11 +93,7 @@ public abstract class BaseJob
             return true;
 
         LogDebug($"  {path}");
-        using var fm = FileManagerFactory.GetFileManager(path, out string newPath);
-        if (fm == null)
-            throw new Exception($"Cannot create FileManager for path {path}");
-
-        await foreach (var file in fm.GetDirectoryContent(newPath, includeHiddenFiles)) {
+        await foreach (var file in fileManager.GetDirectoryContent(path, includeHiddenFiles)) {
             if (token?.IsCancellationRequested == true)
                 return true;
 
@@ -102,7 +102,7 @@ public abstract class BaseJob
             file.RelativePath = file.FullPath?.Substring(file.RootPath.Length);
             bkpFile.Files.Add(file);
             if (file.Type == DataModel.File.FileTyes.Directory)
-                await ReadPathContent(bkpFile, rootPath, file.FullPath, includeHiddenFiles, token);
+                await ReadPathContent(bkpFile, fileManager, rootPath, file.FullPath, includeHiddenFiles, token);
         }
         return true;
     }

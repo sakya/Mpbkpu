@@ -46,6 +46,8 @@ public class BackupJob : BaseJob
     private Backup? _backup;
     private LastUsedVolume? _lastUsedVolume;
     private CancellationToken? _cancellationToken;
+    private IFileManager? _sourceFm;
+    private string? _sourcePath;
     private bool _userCancelled;
     private ProgressData? _progressData;
     #endregion
@@ -110,6 +112,7 @@ public class BackupJob : BaseJob
         LogInfo(JsonConvert.SerializeObject(Settings, Formatting.Indented));
 
         BackupFm = FileManagerFactory.GetFileManager(Settings.Destination, out BackupPath, Settings.DestinationUser, Settings.DestinationPassword);
+        _sourceFm = FileManagerFactory.GetFileManager(Settings.Source, out _sourcePath, Settings.SourceUser, Settings.SourcePassword);
 
         Step?.Invoke(this, Steps.OpenDatabase);
         await CheckDestination();
@@ -143,6 +146,12 @@ public class BackupJob : BaseJob
         }
 
         return true;
+    }
+
+    public override void Dispose()
+    {
+        _sourceFm?.Dispose();
+        base.Dispose();
     }
     #endregion
 
@@ -190,7 +199,7 @@ public class BackupJob : BaseJob
         // Read source
         Step?.Invoke(this, Steps.ReadSource);
         LogInfo($"Reading source {Settings.Source}");
-        if (!ReadPathContent(backupFile, Settings.Source, Settings.Source, Settings.IncludeHiddenFiles, _cancellationToken).Result) {
+        if (!ReadPathContent(backupFile, _sourceFm, _sourcePath, _sourcePath, Settings.IncludeHiddenFiles, _cancellationToken).Result) {
             LogError("Failed to read source");
             if (!await SetBackupResult(backupFile, Backup.Results.Error))
                 LogWarning("Cannot set backup result");
@@ -268,8 +277,6 @@ public class BackupJob : BaseJob
             }
         }
 
-        using var sourceFm = FileManagerFactory.GetFileManager(Settings.Source, out _);
-
         // Create the backup directory
         var backupDirectory = BackupFm.CombinePath(BackupPath!, _backup.Guid);
         if (await BackupFm.DirectoryExists(backupDirectory))
@@ -301,7 +308,7 @@ public class BackupJob : BaseJob
             if (fileToBackup.FileAction == File.FileActions.Backup) {
                 if (fileToBackup.Type == File.FileTyes.File) {
                     try {
-                        var fInfo = await sourceFm.GetFileInfo(fileToBackup.FullPath);
+                        var fInfo = await _sourceFm!.GetFileInfo(fileToBackup.FullPath);
                         if (fInfo.Size != fileToBackup.Size || fInfo.LastModified != fileToBackup.LastModified) {
                             LogWarning($"File {fileToBackup.FullPath} changed after the backup started");
                             fileToBackup.Size = fInfo.Size;
@@ -320,7 +327,7 @@ public class BackupJob : BaseJob
                     try {
                         // Compute file size of the backup file if possible
                         long? backupFileSize = Files.GetDestinationFileSize(fileToBackup.Size, Settings.Compress, encrypter != null);
-                        await BackupFileFromSource(backupFile, sourceFm, BackupFm, BackupPath!, fileToBackup, encrypter, backupFileSize);
+                        await BackupFileFromSource(backupFile, _sourceFm!, BackupFm, BackupPath!, fileToBackup, encrypter, backupFileSize);
                         _progressData.Bytes += fileToBackup.Size;
                         Progress?.Invoke(this, ++_progressData.FileIndex, cArgs.FilesToBackup, _progressData.Bytes, _progressData.TotalBytes);
                         break;
@@ -370,9 +377,7 @@ public class BackupJob : BaseJob
 
     /// <summary>
     /// Check the destination directory.
-    /// Search for an existing backup.
     /// </summary>
-    /// <returns>The path of the database file to use for this backup</returns>
     private async Task CheckDestination()
     {
         if (BackupFm == null)

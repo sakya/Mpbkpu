@@ -3,6 +3,7 @@ using MpbkpuLib.Abstracts;
 using MpbkpuLib.FileManagers;
 using MpbkpuLib.Interfaces;
 using Newtonsoft.Json;
+using File = MpbkpuLib.DataModel.File;
 
 namespace MpbkpuLib.Jobs;
 
@@ -26,6 +27,7 @@ public class RestoreJob : BaseJob
 
     #region private members
     private CancellationToken? _cancellationToken;
+    private bool _userCancelled;
     private IFileManager? _destinationFm;
     private string? _destinationPath;
     #endregion
@@ -95,12 +97,12 @@ public class RestoreJob : BaseJob
         _destinationFm = FileManagerFactory.GetFileManager(Settings.Destination, out _destinationPath, Settings.DestinationUser, Settings.DestinationPassword);
 
         Step?.Invoke(this, Steps.OpenDatabase);
+        await CheckDestination();
         using (var openRes = await BackupFile.OpenBackupFile(BackupFm, BackupPath, Settings.EncryptPassword, true)) {
             var backupFile = openRes.BackupFile;
             await backupFile.EmptyFiles();
             try {
-                await RunPrimitive(backupFile);
-                backupFile.Close();
+                return await RunPrimitive(backupFile);
             } catch (Exception ex) {
                 LogError(ex);
                 throw;
@@ -108,8 +110,12 @@ public class RestoreJob : BaseJob
                 Completed = DateTime.UtcNow;
             }
         }
+    }
 
-        return true;
+    public override void Dispose()
+    {
+        _destinationFm?.Dispose();
+        base.Dispose();
     }
     #endregion
 
@@ -133,15 +139,21 @@ public class RestoreJob : BaseJob
             return false;
         }
 
+        var backupSettings = JsonConvert.DeserializeObject<BackupJobSettings>(bkp.Settings!);
+        if (backupSettings?.Source != Settings.Destination) {
+            LogWarning($"Restoring to a different destination (was {backupSettings?.Source})");
+        }
+
         // Read destination
         Step?.Invoke(this, Steps.ReadDestination);
         LogInfo($"Reading destination {Settings.Destination}");
-        if (!ReadPathContent(backupFile, Settings.Destination, Settings.Destination, true, _cancellationToken).Result) {
+        if (!ReadPathContent(backupFile, _destinationFm, _destinationPath, Settings.Destination, true, _cancellationToken).Result) {
             LogError("Failed to read destination");
             return false;
         }
         if (_cancellationToken?.IsCancellationRequested == true) {
             LogInfo("Cancelled by user");
+            _userCancelled = true;
             return false;
         }
         await backupFile.SaveChangesAsync();
@@ -149,6 +161,42 @@ public class RestoreJob : BaseJob
         Step?.Invoke(this, Steps.CalculateFilesToRestore);
         // Get backup files
         var backupItems = backupFile.GetBackupItems(bkp.Id);
+
+        // Compute files to backup
+        await foreach (var item in backupItems) {
+
+        }
+
+        var cArgs = new ConfirmArgs()
+        {
+            FilesToRestore = await backupFile.Files.AsNoTracking()
+                .Where(f => f.FileAction == DataModel.File.FileActions.Restore)
+                .CountAsync(),
+            BytesToRestore = await backupFile.Files.AsNoTracking()
+                .Where(f => f.FileAction == File.FileActions.Restore)
+                .Select(f => f.Size)
+                .SumAsync(),
+            FilesToDelete = await backupFile.Files.AsNoTracking()
+                .Where(f => f.FileAction == DataModel.File.FileActions.Delete)
+                .CountAsync(),
+            BytesToDelete = await backupFile.Files.AsNoTracking()
+                .Where(f => f.FileAction == File.FileActions.Delete)
+                .Select(f => f.Size)
+                .SumAsync(),
+        };
+        if (cArgs.FilesToRestore == 0 && cArgs.FilesToDelete == 0) {
+            LogInfo("No files to restore");
+            _userCancelled = true;
+            return false;
+        }
+
+        if (ConfirmRestore != null) {
+            if (!await ConfirmRestore.Invoke(this, cArgs)) {
+                LogInfo("Cancelled by user");
+                _userCancelled = true;
+                return false;
+            }
+        }
 
         return true;
     }
@@ -168,5 +216,16 @@ public class RestoreJob : BaseJob
             throw new ArgumentNullException(nameof(Settings.BackupPath), "Destination path cannot be empty");
     }
 
+    /// <summary>
+    /// Check the destination directory.
+    /// </summary>
+    private async Task CheckDestination()
+    {
+        if (_destinationFm == null)
+            throw new Exception("Destination file manager not initialized");
+
+        if (!await _destinationFm.DirectoryExists(_destinationPath))
+            await _destinationFm.CreateDirectory(_destinationPath);
+    }
     #endregion
 }

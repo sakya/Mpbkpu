@@ -35,7 +35,6 @@ public static class Program
             return -1;
         }
 
-        PrintInfo();
         var pArgs = new Parser().Parse<Arguments>(args, out var errors);
         if (errors.Count > 0) {
             foreach (var e in errors) {
@@ -46,6 +45,7 @@ public static class Program
             return -1;
         }
 
+        PrintInfo();
         // Ask for password
         if (pArgs.InteractivePassword == true) {
             Console.Write(("Password: "));

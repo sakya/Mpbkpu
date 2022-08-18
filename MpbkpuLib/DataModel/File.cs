@@ -20,7 +20,8 @@ namespace MpbkpuLib.DataModel
         {
             None = 0,
             Delete,
-            Backup
+            Backup,
+            Restore
         }
 
         public FileTyes Type { get; set; }
