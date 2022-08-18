@@ -11,7 +11,7 @@ using MpbkpuLib.Context;
 namespace MpbkpuLib.Migrations
 {
     [DbContext(typeof(BackupContext))]
-    [Migration("20220818125003_Initial")]
+    [Migration("20220818151523_Initial")]
     partial class Initial
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -87,6 +87,10 @@ namespace MpbkpuLib.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime?>("OriginalLastModified")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("OriginalMD5")
+                        .HasMaxLength(255)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("OriginalName")

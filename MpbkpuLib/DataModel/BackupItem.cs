@@ -45,6 +45,12 @@ public class BackupItem : BaseModel
     [MaxLength(255)]
     public string? OriginalExtension { get; set; }
     /// <summary>
+    /// The MD5 hash of the original file
+    /// </summary>
+    [MaxLength(255)]
+    public string? OriginalMD5 { get; set; }
+
+    /// <summary>
     /// The size of the original file
     /// </summary>
     public long OriginalSize { get; set; }

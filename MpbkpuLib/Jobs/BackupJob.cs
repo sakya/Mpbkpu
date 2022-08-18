@@ -491,27 +491,34 @@ public class BackupJob : BaseJob
 
             backupItem.Size = destStream.Position;
             backupItem.MD5 = BitConverter.ToString(hasher.Hash!).Replace("-", "").ToLowerInvariant();
+            backupItem.OriginalMD5 = backupItem.MD5;
         }
     }
 
     private async Task BackupFileFromSourceCompress(BackupItem backupItem, Stream sourceStream, Stream destStream, Action<long>? progressAction = null)
     {
-        using (var hasher = MD5.Create()) {
-            using (CryptoStream hashStream = new CryptoStream(destStream, hasher, CryptoStreamMode.Write, true)) {
-                using (var compressorStream = new GZipStream(hashStream, CompressionLevel.Optimal, true)) {
-                    long copied = 0;
-                    int read;
-                    byte[] buffer = new byte[32768];
-                    while ((read = await sourceStream.ReadAsync(buffer, 0, buffer.Length)) > 0) {
-                        await compressorStream.WriteAsync(buffer, 0, read);
-                        copied += read;
-                        progressAction?.Invoke(copied);
+        using (var sourceHasher = MD5.Create()) {
+            using (var destHasher = MD5.Create()) {
+                using (CryptoStream hashStream = new CryptoStream(destStream, destHasher, CryptoStreamMode.Write, true)) {
+                    using (var compressorStream = new GZipStream(hashStream, CompressionLevel.Optimal, true)) {
+                        long copied = 0;
+                        int read;
+                        byte[] buffer = new byte[32768];
+                        while ((read = await sourceStream.ReadAsync(buffer, 0, buffer.Length)) > 0) {
+                            sourceHasher.TransformBlock(buffer, 0, read, null, 0);
+                            await compressorStream.WriteAsync(buffer, 0, read);
+                            copied += read;
+                            progressAction?.Invoke(copied);
+                        }
                     }
                 }
+
+                backupItem.Size = destStream.Position;
+                backupItem.MD5 = BitConverter.ToString(destHasher.Hash!).Replace("-", "").ToLowerInvariant();
             }
 
-            backupItem.Size = destStream.Position;
-            backupItem.MD5 = BitConverter.ToString(hasher.Hash!).Replace("-", "").ToLowerInvariant();
+            sourceHasher.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+            backupItem.OriginalMD5 = BitConverter.ToString(sourceHasher.Hash!).Replace("-", "").ToLowerInvariant();
         }
     }
 

@@ -87,6 +87,10 @@ namespace MpbkpuLib.Migrations
                     b.Property<DateTime?>("OriginalLastModified")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("OriginalMD5")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("OriginalName")
                         .HasMaxLength(255)
                         .HasColumnType("TEXT");

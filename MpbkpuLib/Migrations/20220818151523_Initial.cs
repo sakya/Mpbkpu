@@ -85,6 +85,7 @@ namespace MpbkpuLib.Migrations
                     OriginalRelativePath = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
                     OriginalName = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
                     OriginalExtension = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
+                    OriginalMD5 = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
                     OriginalSize = table.Column<long>(type: "INTEGER", nullable: false),
                     OriginalHidden = table.Column<bool>(type: "INTEGER", nullable: false),
                     OriginalCreated = table.Column<DateTime>(type: "TEXT", nullable: true),

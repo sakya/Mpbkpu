@@ -84,41 +84,49 @@ namespace MpbkpuLib.Utility
             using (var aesAlg = Aes.Create()) {
                 aesAlg.Mode = CipherMode.CBC;
                 aesAlg.Padding = PaddingMode.PKCS7;
-                using (var hasher = MD5.Create()) {
-                    hasher.TransformBlock(header, 0, header.Length, null, 0);
-                    using (var encryptor = aesAlg.CreateEncryptor(_keyBytes, aesAlg.IV)) {
-                        using (CryptoStream hashStream = new CryptoStream(destination, hasher, CryptoStreamMode.Write, true)) {
-                            using (var csEncrypt = new CryptoStream(hashStream, encryptor, CryptoStreamMode.Write)) {
-                                byte[] buffer = new byte[32768];
+                using (var sourceHasher = MD5.Create()) {
+                    using (var destHasher = MD5.Create()) {
+                        destHasher.TransformBlock(header, 0, header.Length, null, 0);
+                        using (var encryptor = aesAlg.CreateEncryptor(_keyBytes, aesAlg.IV)) {
+                            using (CryptoStream hashStream = new CryptoStream(destination, destHasher, CryptoStreamMode.Write, true)) {
+                                using (var csEncrypt = new CryptoStream(hashStream, encryptor, CryptoStreamMode.Write)) {
+                                    byte[] buffer = new byte[32768];
 
-                                await csEncrypt.WriteAsync(aesAlg.IV);
-                                long processed = 0;
-                                int read;
-                                if (compress) {
-                                    using (var gzipStream = new GZipStream(csEncrypt, CompressionLevel.Optimal, true)) {
+                                    await csEncrypt.WriteAsync(aesAlg.IV);
+                                    long processed = 0;
+                                    int read;
+                                    if (compress) {
+                                        using (var gzipStream =
+                                               new GZipStream(csEncrypt, CompressionLevel.Optimal, true)) {
+                                            while ((read = await source.ReadAsync(buffer)) > 0) {
+                                                sourceHasher.TransformBlock(buffer, 0, read, null, 0);
+                                                await gzipStream.WriteAsync(buffer, 0, read);
+
+                                                processed += read;
+                                                progressAction?.Invoke(processed);
+                                            }
+                                        }
+                                    } else {
                                         while ((read = await source.ReadAsync(buffer)) > 0) {
-                                            await gzipStream.WriteAsync(buffer, 0, read);
+                                            sourceHasher.TransformBlock(buffer, 0, read, null, 0);
+                                            await csEncrypt.WriteAsync(buffer, 0, read);
 
                                             processed += read;
                                             progressAction?.Invoke(processed);
                                         }
                                     }
-                                } else {
-                                    while ((read = await source.ReadAsync(buffer)) > 0) {
-                                        await csEncrypt.WriteAsync(buffer, 0, read);
-
-                                        processed += read;
-                                        progressAction?.Invoke(processed);
-                                    }
                                 }
                             }
                         }
+                        if (backupItem != null) {
+                            backupItem.Size = destination.Position;
+                            backupItem.MD5 = BitConverter.ToString(destHasher.Hash!).Replace("-", "").ToLowerInvariant();
+                        }
                     }
 
-                    if (backupItem != null) {
-                        backupItem.Size = destination.Position;
-                        backupItem.MD5 = BitConverter.ToString(hasher.Hash!).Replace("-", "").ToLowerInvariant();
-                    }
+                    sourceHasher.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+                    if (backupItem != null)
+                        backupItem.OriginalMD5 = BitConverter.ToString(sourceHasher.Hash!).Replace("-", "").ToLowerInvariant();
                 }
             }
 
@@ -135,7 +143,7 @@ namespace MpbkpuLib.Utility
         /// <returns></returns>
         /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="Exception"></exception>
-        public async Task<bool> Decrypt(Stream source, Stream destination, bool decompress, Action<long>? progressAction = null)
+        public async Task<string> Decrypt(Stream source, Stream destination, bool decompress, Action<long>? progressAction = null)
         {
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
@@ -154,37 +162,45 @@ namespace MpbkpuLib.Utility
             if (await source.ReadAsync(iv, 0, iv.Length) != 16)
                 throw new Exception("Cannot read IV");
 
+            string? res = null;
             using (var aesAlg = Aes.Create()) {
                 aesAlg.Mode = CipherMode.CBC;
                 aesAlg.Padding = PaddingMode.PKCS7;
-                using (var decrypter = aesAlg.CreateDecryptor(_keyBytes, iv)) {
-                    using (var csDecrypt = new CryptoStream(source, decrypter, CryptoStreamMode.Read)) {
-                        byte[] buffer = new byte[32768];
+                using (var hasher = MD5.Create()) {
+                    using (var decrypter = aesAlg.CreateDecryptor(_keyBytes, iv)) {
+                        using (var csDecrypt = new CryptoStream(source, decrypter, CryptoStreamMode.Read)) {
+                            byte[] buffer = new byte[32768];
 
-                        long processed = 0;
-                        int read;
-                        if (decompress) {
-                            using (var gzipStream = new GZipStream(csDecrypt, CompressionMode.Decompress, true)) {
-                                while ((read = await gzipStream.ReadAsync(buffer)) > 0) {
+                            long processed = 0;
+                            int read;
+                            if (decompress) {
+                                using (var gzipStream = new GZipStream(csDecrypt, CompressionMode.Decompress, true)) {
+                                    while ((read = await gzipStream.ReadAsync(buffer)) > 0) {
+                                        hasher.TransformBlock(buffer, 0, read, null, 0);
+                                        await destination.WriteAsync(buffer, 0, read);
+
+                                        processed += read;
+                                        progressAction?.Invoke(processed);
+                                    }
+                                }
+                            } else {
+                                while ((read = await csDecrypt.ReadAsync(buffer)) > 0) {
+                                    hasher.TransformBlock(buffer, 0, read, null, 0);
                                     await destination.WriteAsync(buffer, 0, read);
 
                                     processed += read;
                                     progressAction?.Invoke(processed);
                                 }
                             }
-                        } else {
-                            while ((read = await csDecrypt.ReadAsync(buffer)) > 0) {
-                                await destination.WriteAsync(buffer, 0, read);
-
-                                processed += read;
-                                progressAction?.Invoke(processed);
-                            }
                         }
                     }
+
+                    hasher.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+                    res = BitConverter.ToString(hasher.Hash!).Replace("-", "").ToLowerInvariant();
                 }
             }
 
-            return true;
+            return res;
         } // Decrypt
     }
 }

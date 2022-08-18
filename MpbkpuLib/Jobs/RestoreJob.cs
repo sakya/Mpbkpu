@@ -327,20 +327,24 @@ public class RestoreJob : BaseJob
                             }*/
                         });
 
+                        string? md5 = null;
                         if (encrypter != null)
-                            await encrypter.Decrypt(backupStream, destStream, backupSettings.Compress,
+                            md5 = await encrypter.Decrypt(backupStream, destStream, backupSettings.Compress,
                                 progressAction);
                         else if (backupSettings.Compress)
-                            await RestoreFileFromSourceDecompress(backupStream, destStream, progressAction);
+                            md5 = await RestoreFileFromSourceDecompress(backupStream, destStream, progressAction);
                         else
-                            await RestoreFileFromSourceCopy(backupStream, destStream, progressAction);
+                            md5 = await RestoreFileFromSourceCopy(backupStream, destStream, progressAction);
+
+                        if (md5 != item.OriginalMD5)
+                            throw new Exception($"MD5 mismatch for file {item.OriginalPath}");
                     }
                 }
                 break;
         }
     }
 
-    private async Task RestoreFileFromSourceDecompress(Stream sourceStream, Stream destStream, Action<long>? progressAction = null)
+    private async Task<string> RestoreFileFromSourceDecompress(Stream sourceStream, Stream destStream, Action<long>? progressAction = null)
     {
         using (var hasher = MD5.Create()) {
             using (CryptoStream hashStream = new CryptoStream(destStream, hasher, CryptoStreamMode.Write, true)) {
@@ -355,10 +359,11 @@ public class RestoreJob : BaseJob
                     }
                 }
             }
+            return BitConverter.ToString(hasher.Hash!).Replace("-", "").ToLowerInvariant();
         }
     }
 
-    private async Task RestoreFileFromSourceCopy(Stream sourceStream, Stream destStream, Action<long>? progressAction = null)
+    private async Task<string> RestoreFileFromSourceCopy(Stream sourceStream, Stream destStream, Action<long>? progressAction = null)
     {
         using (var hasher = MD5.Create()) {
             using (CryptoStream hashStream = new CryptoStream(destStream, hasher, CryptoStreamMode.Write, true)) {
@@ -371,6 +376,7 @@ public class RestoreJob : BaseJob
                     progressAction?.Invoke(copied);
                 }
             }
+            return BitConverter.ToString(hasher.Hash!).Replace("-", "").ToLowerInvariant();
         }
     }
 
