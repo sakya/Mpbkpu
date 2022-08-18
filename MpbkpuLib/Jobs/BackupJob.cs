@@ -16,9 +16,6 @@ namespace MpbkpuLib.Jobs;
 /// </summary>
 public class BackupJob : BaseJob
 {
-    private bool _userCancelled;
-    private ProgressData? _progressData;
-
     public enum Steps
     {
         OpenDatabase,
@@ -49,6 +46,8 @@ public class BackupJob : BaseJob
     private Backup? _backup;
     private LastUsedVolume? _lastUsedVolume;
     private CancellationToken? _cancellationToken;
+    private bool _userCancelled;
+    private ProgressData? _progressData;
     #endregion
 
     #region delegates

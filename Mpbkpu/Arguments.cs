@@ -43,16 +43,16 @@ public class Arguments : IOptions
     [Option("destination", ShortName = 'd',
         Required = true,
         Description = "The destination path of a backup",
-        OnlyForVerbs = "Backup")]
+        OnlyForVerbs = "Backup;Restore")]
     public string? DestinationPath { get; set; }
 
     [Option("destinationuser",
         Description = "The user for accessing the destination file system",
-        OnlyForVerbs = "Backup")]
+        OnlyForVerbs = "Backup;Restore")]
     public string? DestinationUser { get; set; }
     [Option("destinationpassword",
         Description = "The password for accessing the destination file system",
-        OnlyForVerbs = "Backup")]
+        OnlyForVerbs = "Backup;Restore")]
     public string? DestinationPassword { get; set; }
 
     [Option("exclude", 'e',
