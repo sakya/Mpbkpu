@@ -20,6 +20,7 @@ public class RestoreJob : BaseJob
         OpenDatabase,
         ReadDestination,
         CalculateFilesToRestore,
+        DeleteFiles,
         RestoreFiles,
         CopyDatabase
     }
@@ -54,7 +55,7 @@ public class RestoreJob : BaseJob
         /// </summary>
         public int FilesToRestore { get; set; }
         /// <summary>
-        /// Number of bytes that will be restored to the destnation
+        /// Number of bytes that will be restored to the destination
         /// </summary>
         public long BytesToRestore { get; set; }
     }
@@ -227,8 +228,36 @@ public class RestoreJob : BaseJob
             encrypter = new EncryptDecrypt(Settings.EncryptPassword);
         }
 
+        Step?.Invoke(this, Steps.DeleteFiles);
+        var filesToDelete = backupFile.Files.AsNoTracking()
+            .Where(f => f.FileAction == File.FileActions.Restore)
+            .OrderByDescending(f => f.Type);
+        foreach (var fileToDelete in filesToDelete) {
+            if (_cancellationToken?.IsCancellationRequested == true) {
+                LogInfo("Cancelled by user");
+                _userCancelled = true;
+                return false;
+            }
+
+            int tryCount = 0;
+            while (++tryCount <= Settings.RetryOnError) {
+                try {
+                    await DeleteFile(fileToDelete);
+                    break;
+                } catch (Exception ex) {
+                    if (tryCount == Settings.RetryOnError)
+                        throw;
+
+                    LogWarning($"Failed to delete {fileToDelete.FullPath}: {ex.Message}, retrying");
+                }
+            }
+        }
+
         var filesToRestore = backupFile.Files.AsNoTracking()
-            .Where(f => f.FileAction == File.FileActions.Restore || f.FileAction == File.FileActions.Delete)
+            .Include(f => f.BackupItem)
+            .ThenInclude(i => i!.Volume)
+            .ThenInclude(v => v!.Backup)
+            .Where(f => f.FileAction == File.FileActions.Restore)
             .OrderByDescending(f => f.Type);
         foreach (var fileToRestore in filesToRestore) {
             if (_cancellationToken?.IsCancellationRequested == true) {
@@ -240,11 +269,7 @@ public class RestoreJob : BaseJob
             int tryCount = 0;
             while (++tryCount <= Settings.RetryOnError) {
                 try {
-                    if (fileToRestore.FileAction == File.FileActions.Delete) {
-                        await DeleteFile(fileToRestore);
-                    } else {
-                        await RestoreFile(backupFile, backupSettings, fileToRestore, encrypter);
-                    }
+                    await RestoreFile(backupFile, backupSettings, fileToRestore, encrypter);
 
                     //Progress?.Invoke(this, ++_progressData.FileIndex, cArgs.FilesToBackup, _progressData.Bytes, _progressData.TotalBytes);
                     break;
@@ -299,14 +324,6 @@ public class RestoreJob : BaseJob
         if (fileToRestore == null)
             throw new ArgumentNullException(nameof(fileToRestore));
 
-        var item = await backupFile.BackupItems.AsNoTracking()
-            .Include(i => i.Backup)
-            .Include(i => i.Volume)
-            .Where(i => i.Id == fileToRestore.BackupItemId)
-            .FirstOrDefaultAsync();
-        if (item == null)
-            throw new Exception($"BackupItem with id {fileToRestore.Id} not found");
-
         var destFilePath = _destinationFm.CombinePath(_destinationPath!, fileToRestore.RelativePath!);
         LogDebug($"Restoring {fileToRestore.FullPath} to {destFilePath}");
         switch (fileToRestore.Type) {
@@ -315,7 +332,7 @@ public class RestoreJob : BaseJob
                     await _destinationFm.CreateDirectory(destFilePath);
                 break;
             case File.FileTyes.File:
-                using (var backupStream = await BackupFm.OpenFile(BackupFm.CombinePath(BackupPath!, item.Backup!.Guid, item.Volume!.Name!, item.Name!))) {
+                using (var backupStream = await BackupFm.OpenFile(BackupFm.CombinePath(BackupPath!, fileToRestore.BackupItem!.Backup!.Guid, fileToRestore.BackupItem.Volume!.Name!, fileToRestore.BackupItem.Name!))) {
                     using (var destStream = await _destinationFm.OpenFile(destFilePath, true)) {
                         var progressAction = new Action<long>((copied) =>
                         {
@@ -327,7 +344,7 @@ public class RestoreJob : BaseJob
                             }*/
                         });
 
-                        string? md5 = null;
+                        string? md5;
                         if (encrypter != null)
                             md5 = await encrypter.Decrypt(backupStream, destStream, backupSettings.Compress,
                                 progressAction);
@@ -336,8 +353,8 @@ public class RestoreJob : BaseJob
                         else
                             md5 = await RestoreFileFromSourceCopy(backupStream, destStream, progressAction);
 
-                        if (md5 != item.OriginalMD5)
-                            throw new Exception($"MD5 mismatch for file {item.OriginalPath}");
+                        if (md5 != fileToRestore.BackupItem.OriginalMD5)
+                            throw new Exception($"MD5 mismatch for file {fileToRestore.BackupItem.OriginalPath}");
                     }
                 }
                 break;

@@ -73,6 +73,12 @@ public class RestoreAction : BaseAction
             case RestoreJob.Steps.CalculateFilesToRestore:
                 Console.WriteLine("Calculating files to restore");
                 break;
+            case RestoreJob.Steps.DeleteFiles:
+                Console.WriteLine("Deleting files");
+                break;
+            case RestoreJob.Steps.RestoreFiles:
+                Console.WriteLine("Restoring files");
+                break;
         }
 
         Console.ForegroundColor = DefaultColor;
@@ -83,7 +89,7 @@ public class RestoreAction : BaseAction
         if (_pArgs!.AlwaysYes == true)
             return Task.FromResult(true);
         Console.CursorVisible = true;
-        var res = Utility.Console.Confirm($"Restore {e.FilesToRestore} files ({MpbkpuLib.Utility.String.BytesToString(e.BytesToRestore)})?", true, true);
+        var res = Utility.Console.Confirm($"Delete {e.FilesToDelete} ({MpbkpuLib.Utility.String.BytesToString(e.BytesToDelete)}), restore {e.FilesToRestore} files ({MpbkpuLib.Utility.String.BytesToString(e.BytesToRestore)})?", true, true);
         Console.CursorVisible = false;
         return Task.FromResult(res);
     }
