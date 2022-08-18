@@ -253,10 +253,12 @@ public class RestoreJob : BaseJob
             }
         }
 
+        Step?.Invoke(this, Steps.RestoreFiles);
         var filesToRestore = backupFile.Files.AsNoTracking()
             .Include(f => f.BackupItem)
             .ThenInclude(i => i!.Volume)
-            .ThenInclude(v => v!.Backup)
+            .Include(f => f.BackupItem)
+            .ThenInclude(i => i!.Backup)
             .Where(f => f.FileAction == File.FileActions.Restore)
             .OrderByDescending(f => f.Type);
         foreach (var fileToRestore in filesToRestore) {
