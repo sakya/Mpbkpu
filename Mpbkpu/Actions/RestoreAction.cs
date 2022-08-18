@@ -66,6 +66,12 @@ public class RestoreAction : BaseAction
             case RestoreJob.Steps.OpenDatabase:
                 Console.WriteLine("Opening backup");
                 break;
+            case RestoreJob.Steps.ReadDestination:
+                Console.WriteLine("Reading destination files");
+                break;
+            case RestoreJob.Steps.CalculateFilesToRestore:
+                Console.WriteLine("Calculating files to restore");
+                break;
         }
 
         Console.ForegroundColor = DefaultColor;

@@ -53,7 +53,13 @@ public class BackupJob : BaseJob
     #region delegates
     public class ConfirmArgs : EventArgs
     {
+        /// <summary>
+        /// Number of files that will be backed up
+        /// </summary>
         public int FilesToBackup { get; set; }
+        /// <summary>
+        /// Number of bytes that will be backed up
+        /// </summary>
         public long BytesToBackup { get; set; }
     }
     public delegate Task<bool> ConfirmHandler(object sender, ConfirmArgs e);
@@ -184,7 +190,7 @@ public class BackupJob : BaseJob
         // Read source
         Step?.Invoke(this, Steps.ReadSource);
         LogInfo($"Reading source {Settings.Source}");
-        if (!ReadPathContent(backupFile, Settings.Source, Settings.Source).Result) {
+        if (!ReadPathContent(backupFile, Settings.Source, Settings.Source, Settings.IncludeHiddenFiles, _cancellationToken).Result) {
             LogError("Failed to read source");
             if (!await SetBackupResult(backupFile, Backup.Results.Error))
                 LogWarning("Cannot set backup result");
@@ -580,37 +586,6 @@ public class BackupJob : BaseJob
         if (!await BackupFm.DirectoryExists(volumePath))
             await BackupFm.CreateDirectory(volumePath);
         return res;
-    }
-
-    private async Task<bool> ReadPathContent(BackupFile? bkpFile, string? rootPath, string? path)
-    {
-        if (bkpFile == null)
-            throw new ArgumentNullException(nameof(bkpFile));
-        if (string.IsNullOrEmpty(rootPath))
-            throw new ArgumentNullException(nameof(rootPath));
-        if (string.IsNullOrEmpty(path))
-            throw new ArgumentNullException(nameof(path));
-
-        if (_cancellationToken?.IsCancellationRequested == true)
-            return true;
-
-        LogDebug($"  {path}");
-        using var fm = FileManagerFactory.GetFileManager(path, out string newPath);
-        if (fm == null)
-            throw new Exception($"Cannot create FileManager for path {path}");
-
-        await foreach (var file in fm.GetDirectoryContent(newPath, Settings.IncludeHiddenFiles)) {
-            if (_cancellationToken?.IsCancellationRequested == true)
-                return true;
-
-            file.FileAction = File.FileActions.Backup;
-            file.RootPath = rootPath;
-            file.RelativePath = file.FullPath?.Substring(file.RootPath.Length);
-            bkpFile.Files.Add(file);
-            if (file.Type == File.FileTyes.Directory)
-                await ReadPathContent(bkpFile, rootPath, file.FullPath);
-        }
-        return true;
     }
 
     private async Task<bool> SetBackupResult(BackupFile bkpFile, Backup.Results result)

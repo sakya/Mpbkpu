@@ -76,6 +76,37 @@ public abstract class BaseJob
         }
     }
 
+    protected async Task<bool> ReadPathContent(BackupFile? bkpFile, string? rootPath, string? path, bool includeHiddenFiles, CancellationToken? token)
+    {
+        if (bkpFile == null)
+            throw new ArgumentNullException(nameof(bkpFile));
+        if (string.IsNullOrEmpty(rootPath))
+            throw new ArgumentNullException(nameof(rootPath));
+        if (string.IsNullOrEmpty(path))
+            throw new ArgumentNullException(nameof(path));
+
+        if (token?.IsCancellationRequested == true)
+            return true;
+
+        LogDebug($"  {path}");
+        using var fm = FileManagerFactory.GetFileManager(path, out string newPath);
+        if (fm == null)
+            throw new Exception($"Cannot create FileManager for path {path}");
+
+        await foreach (var file in fm.GetDirectoryContent(newPath, includeHiddenFiles)) {
+            if (token?.IsCancellationRequested == true)
+                return true;
+
+            file.FileAction = DataModel.File.FileActions.Backup;
+            file.RootPath = rootPath;
+            file.RelativePath = file.FullPath?.Substring(file.RootPath.Length);
+            bkpFile.Files.Add(file);
+            if (file.Type == DataModel.File.FileTyes.Directory)
+                await ReadPathContent(bkpFile, rootPath, file.FullPath, includeHiddenFiles, token);
+        }
+        return true;
+    }
+
     protected void LogDebug(string message)
     {
         Log(BaseSettings.LogLevels.Debug, message);
