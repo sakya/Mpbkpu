@@ -22,7 +22,6 @@
     <PackageReference Include="Microsoft.Graph" Version="4.36.0" />
     <PackageReference Include="Microsoft.Identity.Client.Extensions.Msal" Version="2.23.0" />
     <PackageReference Include="MegaApiClient" Version="1.10.2" />
-    <PackageReference Include="Google.Apis.Drive.v3" Version="1.57.0.2746" />
     <PackageReference Include="Dropbox.Api" Version="6.32.0" />
   </ItemGroup>
 
