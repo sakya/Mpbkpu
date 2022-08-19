@@ -1,7 +1,7 @@
 ﻿using MpbkpuLib.Abstracts;
 
 namespace MpbkpuLib.Jobs;
-public class BackupJobSettings : BaseSettings
+public class BackupJobSettings : BaseJobSettings
 {
     /// <summary>
     /// The backup type

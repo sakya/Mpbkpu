@@ -19,7 +19,7 @@ public abstract class BaseJob : IDisposable
 
     #region delegates
 
-    public delegate void LogHandler(object sender, BaseSettings.LogLevels level, string message);
+    public delegate void LogHandler(object sender, BaseJobSettings.LogLevels level, string message);
 
     /// <summary>
     /// Emitted when a log message is added to the log
@@ -28,7 +28,7 @@ public abstract class BaseJob : IDisposable
 
     #endregion
 
-    protected BaseJob(BaseSettings? settings)
+    protected BaseJob(BaseJobSettings? settings)
     {
         Settings = settings ?? throw new ArgumentNullException(nameof(settings));
         // Open the log file
@@ -39,7 +39,7 @@ public abstract class BaseJob : IDisposable
 
     #region properties
 
-    public BaseSettings Settings { get; private set; }
+    public BaseJobSettings Settings { get; private set; }
 
     public DateTime? Started { get; set; }
     public DateTime? Completed { get; set; }
@@ -56,7 +56,7 @@ public abstract class BaseJob : IDisposable
     /// </summary>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/></param>
     /// <returns>True on success</returns>
-    public abstract Task<bool> Run(CancellationToken cancellationToken);
+    public abstract Task<BaseJobResult> Run(CancellationToken cancellationToken);
 
     /// <summary>
     /// Validate the job settings
@@ -133,22 +133,22 @@ public abstract class BaseJob : IDisposable
 
     protected void LogDebug(string message)
     {
-        Log(BaseSettings.LogLevels.Debug, message);
+        Log(BaseJobSettings.LogLevels.Debug, message);
     }
 
     protected  void LogInfo(string message)
     {
-        Log(BaseSettings.LogLevels.Info, message);
+        Log(BaseJobSettings.LogLevels.Info, message);
     }
 
     protected  void LogWarning(string message)
     {
-        Log(BaseSettings.LogLevels.Warning, message);
+        Log(BaseJobSettings.LogLevels.Warning, message);
     }
 
     protected  void LogError(string message)
     {
-        Log(BaseSettings.LogLevels.Error, message);
+        Log(BaseJobSettings.LogLevels.Error, message);
     }
 
     protected void LogError(Exception exception)
@@ -165,9 +165,9 @@ public abstract class BaseJob : IDisposable
     /// <summary>
     /// Log a message
     /// </summary>
-    /// <param name="level">The <see cref="BaseSettings.LogLevels"/></param>
+    /// <param name="level">The <see cref="BaseJobSettings.LogLevels"/></param>
     /// <param name="message">The message to log</param>
-    private void Log(BaseSettings.LogLevels level, string message)
+    private void Log(BaseJobSettings.LogLevels level, string message)
     {
         if (level < Settings.LogLevel)
             return;
@@ -176,19 +176,19 @@ public abstract class BaseJob : IDisposable
         var color = ConsoleColor.Gray;
 
         switch (level) {
-            case BaseSettings.LogLevels.Debug:
+            case BaseJobSettings.LogLevels.Debug:
                 levelStr = "DBG";
                 color = ConsoleColor.DarkGray;
                 break;
-            case BaseSettings.LogLevels.Info:
+            case BaseJobSettings.LogLevels.Info:
                 levelStr = "INF";
                 color = ConsoleColor.White;
                 break;
-            case BaseSettings.LogLevels.Warning:
+            case BaseJobSettings.LogLevels.Warning:
                 levelStr = "WRN";
                 color = ConsoleColor.Yellow;
                 break;
-            case BaseSettings.LogLevels.Error:
+            case BaseJobSettings.LogLevels.Error:
                 levelStr = "ERR";
                 color = ConsoleColor.Red;
                 break;

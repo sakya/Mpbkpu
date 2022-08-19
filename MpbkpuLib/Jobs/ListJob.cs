@@ -37,7 +37,7 @@ public class ListJob : BaseJob
     }
     #endregion
 
-    public override async Task<bool> Run(CancellationToken cancellationToken)
+    public override async Task<BaseJobResult> Run(CancellationToken cancellationToken)
     {
         _cancellationToken = cancellationToken;
         ValidateSettings();
@@ -61,7 +61,10 @@ public class ListJob : BaseJob
             }
         }
 
-        return true;
+        return new ListJobResult()
+        {
+            Success = true
+        };
     }
 
     /// <summary>

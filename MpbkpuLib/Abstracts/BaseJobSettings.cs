@@ -1,6 +1,6 @@
 ﻿namespace MpbkpuLib.Abstracts;
 
-public abstract class BaseSettings
+public abstract class BaseJobSettings
 {
     public enum LogLevels
     {

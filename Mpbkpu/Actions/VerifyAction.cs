@@ -60,7 +60,7 @@ public class VerifyAction : BaseAction
         Console.ForegroundColor = DefaultColor;
     }
 
-    private void OnLog(object sender, BaseSettings.LogLevels level, string message)
+    private void OnLog(object sender, BaseJobSettings.LogLevels level, string message)
     {
         Utility.Console.ClearLine();
         WriteLog(level, message);

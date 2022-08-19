@@ -123,7 +123,7 @@ public class RestoreAction : BaseAction
         Console.Write($"[{_totalPerc,5:0.0}%]");
     }
 
-    private void OnLog(object sender, BaseSettings.LogLevels level, string message)
+    private void OnLog(object sender, BaseJobSettings.LogLevels level, string message)
     {
         Utility.Console.ClearLine();
         WriteLog(level, message);

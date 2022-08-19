@@ -2,7 +2,7 @@ using MpbkpuLib.Abstracts;
 
 namespace MpbkpuLib.Jobs;
 
-public class VerifyJobSettings : BaseSettings
+public class VerifyJobSettings : BaseJobSettings
 {
     /// <summary>
     /// The path containing the backup

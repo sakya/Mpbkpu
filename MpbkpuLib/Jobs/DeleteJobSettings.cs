@@ -2,7 +2,7 @@
 
 namespace MpbkpuLib.Jobs;
 
-public class DeleteJobSettings : BaseSettings
+public class DeleteJobSettings : BaseJobSettings
 {
     /// <summary>
     /// The path containing the backup

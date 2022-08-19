@@ -97,7 +97,7 @@ public class Arguments : IOptions
 
     [Option("loglevel", 'l',
         Description = "The log level")]
-    public BaseSettings.LogLevels LogLevel { get; set; } = BaseSettings.LogLevels.Warning;
+    public BaseJobSettings.LogLevels LogLevel { get; set; } = BaseJobSettings.LogLevels.Warning;
 
     [Option("log",
         Description = "Path of the logfile")]

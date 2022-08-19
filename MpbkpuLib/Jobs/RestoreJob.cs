@@ -100,7 +100,7 @@ public class RestoreJob : BaseJob
     #endregion
 
     #region public operations
-    public override async Task<bool> Run(CancellationToken cancellationToken)
+    public override async Task<BaseJobResult> Run(CancellationToken cancellationToken)
     {
         _cancellationToken = cancellationToken;
         ValidateSettings();
@@ -118,7 +118,7 @@ public class RestoreJob : BaseJob
             var backupFile = openRes.BackupFile;
             await backupFile.EmptyFiles();
             try {
-                return await RunPrimitive(backupFile);
+                await RunPrimitive(backupFile);
             } catch (Exception ex) {
                 LogError(ex);
                 throw;
@@ -126,6 +126,11 @@ public class RestoreJob : BaseJob
                 Completed = DateTime.UtcNow;
             }
         }
+
+        return new RestoreJobResult()
+        {
+            Success = true
+        };
     }
 
     public override void Dispose()

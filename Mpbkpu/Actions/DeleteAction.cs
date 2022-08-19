@@ -75,7 +75,7 @@ public class DeleteAction : BaseAction
         return Task.FromResult(res);
     }
 
-    private void OnLog(object sender, BaseSettings.LogLevels level, string message)
+    private void OnLog(object sender, BaseJobSettings.LogLevels level, string message)
     {
         WriteLog(level, message);
     }

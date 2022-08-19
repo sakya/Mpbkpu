@@ -52,7 +52,7 @@ public class DeleteJob : BaseJob
     /// </summary>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/></param>
     /// <returns>True on success</returns>
-    public override async Task<bool> Run(CancellationToken cancellationToken)
+    public override async Task<BaseJobResult> Run(CancellationToken cancellationToken)
     {
         _cancellationToken = cancellationToken;
         ValidateSettings();
@@ -90,7 +90,10 @@ public class DeleteJob : BaseJob
             }
         }
 
-        return true;
+        return new DeleteJobResult()
+        {
+            Success = true
+        };
     }
     #endregion
 

@@ -102,7 +102,7 @@ public class BackupJob : BaseJob
     /// </summary>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/></param>
     /// <returns>True on success</returns>
-    public override async Task<bool> Run(CancellationToken cancellationToken)
+    public override async Task<BaseJobResult> Run(CancellationToken cancellationToken)
     {
         _cancellationToken = cancellationToken;
         ValidateSettings();
@@ -145,7 +145,11 @@ public class BackupJob : BaseJob
             }
         }
 
-        return true;
+        return new BackupJobJobResult()
+        {
+            Success = true,
+            Guid = _backup!.Guid
+        };
     }
 
     public override void Dispose()

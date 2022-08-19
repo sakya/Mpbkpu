@@ -44,14 +44,14 @@ public abstract class BaseAction : IAction
         return backupFile;
     }
 
-    protected void WriteLog(BaseSettings.LogLevels level, string message)
+    protected void WriteLog(BaseJobSettings.LogLevels level, string message)
     {
         Console.ForegroundColor = level switch
         {
-            BaseSettings.LogLevels.Debug => ConsoleColor.DarkGray,
-            BaseSettings.LogLevels.Info => ConsoleColor.White,
-            BaseSettings.LogLevels.Warning => ConsoleColor.Yellow,
-            BaseSettings.LogLevels.Error => ConsoleColor.Red,
+            BaseJobSettings.LogLevels.Debug => ConsoleColor.DarkGray,
+            BaseJobSettings.LogLevels.Info => ConsoleColor.White,
+            BaseJobSettings.LogLevels.Warning => ConsoleColor.Yellow,
+            BaseJobSettings.LogLevels.Error => ConsoleColor.Red,
             _ => Console.ForegroundColor
         };
         Console.WriteLine(message);

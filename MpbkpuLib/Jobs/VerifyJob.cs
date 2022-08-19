@@ -68,7 +68,7 @@ public class VerifyJob: BaseJob
     #endregion
 
     #region public operations
-    public override async Task<bool> Run(CancellationToken cancellationToken)
+    public override async Task<BaseJobResult> Run(CancellationToken cancellationToken)
     {
         _cancellationToken = cancellationToken;
         ValidateSettings();
@@ -79,13 +79,14 @@ public class VerifyJob: BaseJob
 
         BackupFm = FileManagerFactory.GetFileManager(Settings.BackupPath, out BackupPath, Settings.BackupPathUser, Settings.BackupPathPassword);
         Step?.Invoke(this, Steps.OpenDatabase);
+        VerifyJobResult? res = null;
         using (var openRes = await BackupFile.OpenBackupFile(BackupFm, BackupPath, Settings.EncryptPassword)) {
             var backupFile = openRes.BackupFile;
             await backupFile.EmptyFiles();
             var transaction = backupFile.BeginTransaction();
 
             try {
-                await RunPrimitive(backupFile);
+                res = await RunPrimitive(backupFile);
                 await transaction.CommitAsync();
             } catch (Exception ex) {
                 LogError(ex);
@@ -97,8 +98,7 @@ public class VerifyJob: BaseJob
             }
         }
 
-        return true;
-
+        return res;
     }
     #endregion
 
@@ -109,7 +109,7 @@ public class VerifyJob: BaseJob
     /// </summary>
     /// <param name="backupFile">The <see cref="BackupFile"/> to use</param>
     /// <returns>True on success</returns>
-    private async Task<bool> RunPrimitive(BackupFile backupFile)
+    private async Task<VerifyJobResult> RunPrimitive(BackupFile backupFile)
     {
         if (BackupFm == null)
             throw new Exception("Backup file manager not initialized");
@@ -121,7 +121,11 @@ public class VerifyJob: BaseJob
         if (bkp == null) {
             Errors.Add(new Error(ErrorCodes.BackupNotFound, $"Backup with GUID {Settings.BackupGuid} not found"));
             LogError($"Backup with GUID {Settings.BackupGuid} not found");
-            return false;
+            return new VerifyJobResult()
+            {
+                Success = false,
+                ErrorMessage = $"Backup with GUID {Settings.BackupGuid} not found"
+            };
         }
 
         if (bkp.Result != Backup.Results.Completed)
@@ -157,7 +161,11 @@ public class VerifyJob: BaseJob
             foreach (var item in items) {
                 if (_cancellationToken?.IsCancellationRequested == true) {
                     LogInfo("Cancelled by user");
-                    return false;
+                    return new VerifyJobResult()
+                    {
+                        Success = false,
+                        ErrorMessage = "Cancelled by user"
+                    };
                 }
 
                 if (!await VerifyBackupItem(BackupFm, backupRoot, item))
@@ -169,7 +177,10 @@ public class VerifyJob: BaseJob
                 LogWarning($"Errors: {filesError}");
         }
 
-        return true;
+        return new VerifyJobResult()
+        {
+            Success = true
+        };
     }
 
     /// <summary>
