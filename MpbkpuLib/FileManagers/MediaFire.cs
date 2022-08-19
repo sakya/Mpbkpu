@@ -173,6 +173,11 @@ public class MediaFire : IFileManager
         return Scheme;
     }
 
+    public char GetPathSeparator()
+    {
+        return '/';
+    }
+
     public bool CanOpenDatabase()
     {
         return false;
@@ -185,7 +190,7 @@ public class MediaFire : IFileManager
 
     public string CombinePath(params string[] paths)
     {
-        return Utility.Files.CombinePath('/', paths);
+        return Utility.Files.CombinePath(GetPathSeparator(), paths);
     }
 
     public async Task<bool> CreateDirectory(string? path)
@@ -404,12 +409,12 @@ public class MediaFire : IFileManager
 
     private string GetPath(string path)
     {
-        return Utility.Files.GetPath('/', Scheme, path);
+        return Utility.Files.GetPath(GetPathSeparator(), Scheme, path);
     }
 
     private string GetParent(string position, out string? childName)
     {
-        return Utility.Files.GetParent('/', GetPath(position), out childName);
+        return Utility.Files.GetParent(GetPathSeparator(), GetPath(position), out childName);
     }
     #endregion
 }

@@ -11,6 +11,12 @@ namespace MpbkpuLib.Interfaces
         public string? GetScheme();
 
         /// <summary>
+        /// Get the char used to separate directories in path
+        /// </summary>
+        /// <returns></returns>
+        public char GetPathSeparator();
+
+        /// <summary>
         /// Return if the database can b directly opend in this file system
         /// </summary>
         /// <returns>True/False</returns>

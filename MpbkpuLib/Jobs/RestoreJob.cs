@@ -42,7 +42,6 @@ public class RestoreJob : BaseJob
 
     #region private members
     private CancellationToken? _cancellationToken;
-    private bool _userCancelled;
     private ProgressData? _progressData;
     private IFileManager? _destinationFm;
     private string? _destinationPath;
@@ -76,7 +75,8 @@ public class RestoreJob : BaseJob
     public event ConfirmHandler? ConfirmRestore;
 
     public delegate void ProgressHandler(object sender, int file, int totalFiles, long bytes, long totalBytes);
-    public event ProgressHandler? Progress;
+    public event ProgressHandler? DeleteProgress;
+    public event ProgressHandler? RestoreProgress;
 
     public delegate void FileProgressHandler(object sender, string filePath, long bytes, long totalBytes);
     /// <summary>
@@ -171,17 +171,13 @@ public class RestoreJob : BaseJob
         }
         if (_cancellationToken?.IsCancellationRequested == true) {
             LogInfo("Cancelled by user");
-            _userCancelled = true;
             return false;
         }
         await backupFile.SaveChangesAsync();
 
         Step?.Invoke(this, Steps.CalculateFilesToRestore);
-        // Get backup files
-        var backupItems = backupFile.GetBackupItems(bkp.Id);
-
-        // Compute files to backup
-        await foreach (var item in backupItems) {
+        // Compute files to restore
+        await foreach (var item in backupFile.GetBackupItems(bkp.Id)) {
             var file = await backupFile.Files
                 .Where(f => f.RelativePath == item.OriginalRelativePath)
                 .FirstOrDefaultAsync();
@@ -223,14 +219,12 @@ public class RestoreJob : BaseJob
         };
         if (cArgs.FilesToRestore == 0 && cArgs.FilesToDelete == 0) {
             LogInfo("No files to restore");
-            _userCancelled = true;
             return false;
         }
 
         if (ConfirmRestore != null) {
             if (!await ConfirmRestore.Invoke(this, cArgs)) {
                 LogInfo("Cancelled by user");
-                _userCancelled = true;
                 return false;
             }
         }
@@ -256,7 +250,6 @@ public class RestoreJob : BaseJob
         foreach (var fileToDelete in filesToDelete) {
             if (_cancellationToken?.IsCancellationRequested == true) {
                 LogInfo("Cancelled by user");
-                _userCancelled = true;
                 return false;
             }
 
@@ -264,6 +257,9 @@ public class RestoreJob : BaseJob
             while (++tryCount <= Settings.RetryOnError) {
                 try {
                     await DeleteFile(fileToDelete);
+
+                    _progressData.DeleteBytes += fileToDelete.Size;
+                    DeleteProgress?.Invoke(this, ++_progressData.DeleteFileIndex, _progressData.DeleteTotalFiles, _progressData.DeleteBytes, _progressData.DeleteTotalBytes);
                     break;
                 } catch (Exception ex) {
                     if (tryCount == Settings.RetryOnError)
@@ -275,27 +271,27 @@ public class RestoreJob : BaseJob
         }
 
         Step?.Invoke(this, Steps.RestoreFiles);
-        var filesToRestore = backupFile.Files.AsNoTracking()
+        var filesToRestore = backupFile.Files
             .Include(f => f.BackupItem)
             .ThenInclude(i => i!.Volume)
             .Include(f => f.BackupItem)
             .ThenInclude(i => i!.Backup)
+            .AsNoTracking()
             .Where(f => f.FileAction == File.FileActions.Restore)
             .OrderByDescending(f => f.Type);
         foreach (var fileToRestore in filesToRestore) {
             if (_cancellationToken?.IsCancellationRequested == true) {
                 LogInfo("Cancelled by user");
-                _userCancelled = true;
                 return false;
             }
 
             int tryCount = 0;
             while (++tryCount <= Settings.RetryOnError) {
                 try {
-                    await RestoreFile(backupFile, backupSettings, fileToRestore, encrypter);
+                    await RestoreFile(backupSettings, fileToRestore, encrypter);
 
                     _progressData.RestoreBytes += fileToRestore.Size;
-                    Progress?.Invoke(this, ++_progressData.RestoreFileIndex, cArgs.FilesToRestore, _progressData.RestoreBytes, _progressData.RestoreTotalBytes);
+                    RestoreProgress?.Invoke(this, ++_progressData.RestoreFileIndex, cArgs.FilesToRestore, _progressData.RestoreBytes, _progressData.RestoreTotalBytes);
                     break;
                 } catch (Exception ex) {
                     if (tryCount == Settings.RetryOnError)
@@ -337,14 +333,12 @@ public class RestoreJob : BaseJob
             await _destinationFm.CreateDirectory(_destinationPath);
     }
 
-    private async Task RestoreFile(BackupFile? backupFile, BackupJobSettings backupSettings, File? fileToRestore, EncryptDecrypt? encrypter)
+    private async Task RestoreFile(BackupJobSettings backupSettings, File? fileToRestore, EncryptDecrypt? encrypter)
     {
         if (_destinationFm == null)
             throw new Exception("Destination file manager not initialized");
         if (BackupFm == null)
             throw new Exception("Backup file manager not initialized");
-        if (backupFile == null)
-            throw new ArgumentNullException(nameof(backupFile));
         if (fileToRestore == null)
             throw new ArgumentNullException(nameof(fileToRestore));
 
@@ -364,7 +358,7 @@ public class RestoreJob : BaseJob
                             if (lastFileProgress == null || copied == fileToRestore.Size ||
                                 (DateTime.UtcNow - lastFileProgress.Value).TotalMilliseconds >= 500) {
                                 FileProgress?.Invoke(this, fileToRestore.FullPath!, copied, fileToRestore.Size);
-                                Progress?.Invoke(this, _progressData!.RestoreFileIndex, _progressData.RestoreTotalFiles, _progressData.RestoreBytes + copied, _progressData.RestoreTotalBytes);
+                                RestoreProgress?.Invoke(this, _progressData!.RestoreFileIndex, _progressData.RestoreTotalFiles, _progressData.RestoreBytes + copied, _progressData.RestoreTotalBytes);
                                 lastFileProgress = DateTime.UtcNow;
                             }
                         });

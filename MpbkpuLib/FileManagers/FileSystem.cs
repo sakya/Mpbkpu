@@ -16,6 +16,11 @@ namespace MpbkpuLib.FileManagers
             return null;
         }
 
+        public char GetPathSeparator()
+        {
+            return Path.DirectorySeparatorChar;
+        }
+
         public bool CanOpenDatabase()
         {
             return true;
@@ -28,7 +33,7 @@ namespace MpbkpuLib.FileManagers
 
         public string CombinePath(params string[] paths)
         {
-            return Utility.Files.CombinePath(Path.DirectorySeparatorChar, paths);
+            return Utility.Files.CombinePath(GetPathSeparator(), paths);
         }
 
         public Task<bool> CreateDirectory(string? path)

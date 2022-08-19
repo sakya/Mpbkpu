@@ -200,6 +200,11 @@ public class Dropbox : IFileManager
         return Scheme;
     }
 
+    public char GetPathSeparator()
+    {
+        return '/';
+    }
+
     public bool CanOpenDatabase()
     {
         return false;
@@ -212,7 +217,7 @@ public class Dropbox : IFileManager
 
     public string CombinePath(params string[] paths)
     {
-        return Utility.Files.CombinePath('/', paths);
+        return Utility.Files.CombinePath(GetPathSeparator(), paths);
     }
 
     public async Task<bool> CreateDirectory(string? path)
@@ -509,7 +514,7 @@ public class Dropbox : IFileManager
 
     private string GetPath(string path)
     {
-        return Utility.Files.GetPath('/', Scheme, path);
+        return Utility.Files.GetPath(GetPathSeparator(), Scheme, path);
     }
 
     #endregion

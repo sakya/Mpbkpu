@@ -34,7 +34,8 @@ public class RestoreAction : BaseAction
         job.ConfirmRestore += OnConfirm;
         job.LogEmitted += OnLog;
         job.FileProgress += OnFileProgress;
-        job.Progress += OnProgress;
+        job.DeleteProgress += OnDeleteProgress;
+        job.RestoreProgress += OnRestoreProgress;
 
         var cts = new CancellationTokenSource();
         try {
@@ -94,6 +95,12 @@ public class RestoreAction : BaseAction
         return Task.FromResult(res);
     }
 
+    private void OnDeleteProgress(object sender, int file, int totalFiles, long bytes, long totalBytes)
+    {
+        Console.CursorLeft = 0;
+        Console.Write($"[{(file / (double)totalFiles * 100.0),5:0.0}%]");
+    }
+
     private void OnFileProgress(object sender, string filePath, long bytes, long totalBytes)
     {
         var perc = bytes / (double)totalBytes * 100.0;
@@ -108,7 +115,7 @@ public class RestoreAction : BaseAction
         Console.Write(progress.PadRight(Console.WindowWidth - 1));
     }
 
-    private void OnProgress(object sender, int file, int totalFiles, long bytes, long totalBytes)
+    private void OnRestoreProgress(object sender, int file, int totalFiles, long bytes, long totalBytes)
     {
         _totalPerc = file / (double)totalFiles * 100.0;
         Console.CursorLeft = 0;

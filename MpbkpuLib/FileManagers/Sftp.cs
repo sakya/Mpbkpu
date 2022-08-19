@@ -26,6 +26,11 @@ namespace MpbkpuLib.FileManagers
             return Scheme;
         }
 
+        public char GetPathSeparator()
+        {
+            return Path.DirectorySeparatorChar;
+        }
+
         public bool CanOpenDatabase()
         {
             return false;
@@ -38,7 +43,7 @@ namespace MpbkpuLib.FileManagers
 
         public string CombinePath(params string[] paths)
         {
-            return Utility.Files.CombinePath('/', paths);
+            return Utility.Files.CombinePath(GetPathSeparator(), paths);
         }
 
         public async Task<File> GetFileInfo(string? path)
@@ -205,7 +210,7 @@ namespace MpbkpuLib.FileManagers
 
         private string GetPath(string path)
         {
-            return Utility.Files.GetPath('/', $"{Scheme}{Host}", path);
+            return Utility.Files.GetPath(GetPathSeparator(), $"{Scheme}{Host}", path);
         }
 
         private async Task<IEnumerable<SftpFile>> ListDirectoryAsync(SftpClient client, string path)

@@ -7,7 +7,7 @@ namespace MpbkpuLib.FileManagers
     public class Smb : IFileManager
     {
         public const string Scheme = "smb://";
-        
+
         private readonly string? _domainName;
         private readonly string? _username;
         private readonly string? _password;
@@ -152,6 +152,11 @@ namespace MpbkpuLib.FileManagers
             return Scheme;
         }
 
+        public char GetPathSeparator()
+        {
+            return '/';
+        }
+
         public bool CanOpenDatabase()
         {
             return false;
@@ -164,7 +169,7 @@ namespace MpbkpuLib.FileManagers
 
         public string CombinePath(params string[] paths)
         {
-            return Utility.Files.CombinePath('/', paths);
+            return Utility.Files.CombinePath(GetPathSeparator(), paths);
         }
 
         public string? Host { get; }
@@ -319,12 +324,12 @@ namespace MpbkpuLib.FileManagers
 
         private string GetPath(string path)
         {
-            return Utility.Files.GetPath('/', Scheme, path);
+            return Utility.Files.GetPath(GetPathSeparator(), Scheme, path);
         }
 
         private string GetParent(string position, out string? childName)
         {
-            return Utility.Files.GetParent('/', GetPath(position), out childName);
+            return Utility.Files.GetParent(GetPathSeparator(), GetPath(position), out childName);
         }
         #endregion
     }

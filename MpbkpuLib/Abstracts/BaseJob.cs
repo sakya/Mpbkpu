@@ -95,6 +95,8 @@ public abstract class BaseJob : IDisposable
         if (token?.IsCancellationRequested == true)
             return true;
 
+        if (!rootPath.EndsWith(fileManager.GetPathSeparator()))
+            rootPath = $"{rootPath}{fileManager.GetPathSeparator()}";
         LogDebug($"  {path}");
         await foreach (var file in fileManager.GetDirectoryContent(path, includeHiddenFiles)) {
             if (token?.IsCancellationRequested == true)
