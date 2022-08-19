@@ -2,7 +2,7 @@
   <PropertyGroup>
     <AssemblyTitle>Multi Platform Backup Utility</AssemblyTitle>
     <Description>A multi platform backup utility with encryption and compression feature.
-Support local and remote file system.
+Supports local and remote file system.
 
 Supported file system schemes:
   dropbox://
