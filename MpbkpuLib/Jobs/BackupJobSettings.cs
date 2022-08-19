@@ -81,4 +81,9 @@ public class BackupJobSettings : BaseSettings
     /// Number of retries on error while backing up a file
     /// </summary>
     public int RetryOnError { get; set; }
+
+    /// <summary>
+    /// Skip MD5 check on existing file in the destination directory
+    /// </summary>
+    public bool SkipMD5Check { get; set; } = false;
 }

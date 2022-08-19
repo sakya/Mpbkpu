@@ -226,9 +226,23 @@ public class BackupJob : BaseJob
                 var sourceFile = await backupFile.Files.Where(f => f.FullPath == item.OriginalPath)
                     .FirstOrDefaultAsync();
                 if (sourceFile != null) {
-                    if (sourceFile.Size != item.OriginalSize || sourceFile.LastModified != item.OriginalLastModified) {
-                        sourceFile.FileAction = File.FileActions.Backup;
-                        sourceFile.Modified = true;
+                    if (item.Type == File.FileTyes.File) {
+                        if (Settings.SkipMD5Check) {
+                            if (sourceFile.Size != item.OriginalSize || sourceFile.LastModified != item.OriginalLastModified) {
+                                sourceFile.FileAction = File.FileActions.Backup;
+                                sourceFile.Modified = true;
+                            } else {
+                                sourceFile.FileAction = File.FileActions.None;
+                            }
+                        } else {
+                            var md5 = await Utility.Files.GetMD5(_sourceFm, sourceFile.FullPath);
+                            if (md5 != item.OriginalMD5) {
+                                sourceFile.FileAction = File.FileActions.Backup;
+                                sourceFile.Modified = true;
+                            } else {
+                                sourceFile.FileAction = File.FileActions.None;
+                            }
+                        }
                     } else {
                         sourceFile.FileAction = File.FileActions.None;
                     }
