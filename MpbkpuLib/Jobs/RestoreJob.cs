@@ -106,7 +106,7 @@ public class RestoreJob : BaseJob
         _cancellationToken = cancellationToken;
         ValidateSettings();
 
-        Started = DateTime.UtcNow;
+        var started = DateTime.UtcNow;
         LogInfo("Starting with settings:");
         LogInfo(JsonConvert.SerializeObject(Settings, Formatting.Indented));
 
@@ -124,13 +124,14 @@ public class RestoreJob : BaseJob
                 LogError(ex);
                 throw;
             } finally {
-                Completed = DateTime.UtcNow;
             }
         }
 
         return new RestoreJobResult()
         {
-            Success = true
+            Success = true,
+            Started = started,
+            Completed = DateTime.UtcNow
         };
     }
 

@@ -47,11 +47,12 @@ public class BackupAction : BaseAction
         job.FileProgress += OnFileProgress;
         job.Progress += OnProgress;
 
+        BaseJobResult? jobRes = null;
         var cts = new CancellationTokenSource();
         try {
             Console.CursorVisible = false;
             var task = Task.Run(() => job.Run(cts.Token));
-            await task;
+            jobRes = await task;
             Console.WriteLine();
         } catch (Exception ex) {
             Console.ForegroundColor = ErrorColor;
@@ -63,8 +64,8 @@ public class BackupAction : BaseAction
             cts.Dispose();
         }
 
-        Started = job.Started;
-        Completed = job.Completed;
+        Started = jobRes?.Started;
+        Completed = jobRes?.Completed;
 
         return true;
     }
@@ -121,7 +122,7 @@ public class BackupAction : BaseAction
 
     private void OnProgress(object sender, int file, int totalFiles, long bytes, long totalBytes)
     {
-        _totalPerc = file / (double)totalFiles * 100.0;
+        _totalPerc = bytes / (double)totalBytes * 100.0;
         Console.CursorLeft = 0;
         Console.Write($"[{_totalPerc,5:0.0}%]");
     }

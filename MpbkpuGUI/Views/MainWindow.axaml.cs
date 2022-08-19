@@ -3,16 +3,15 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using System.Threading;
 using System.Threading.Tasks;
-using MpbkpuLib;
 using Avalonia.Threading;
 using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
+using MpbkpuLib.Abstracts;
 using MpbkpuLib.Jobs;
 
 namespace MpbkpuGUI.Views
 {
-    public partial class MainWindow : BaseView
+    public class MainWindow : BaseView
     {
         private Task? _backupTask;
         private CancellationTokenSource? _cts;
@@ -22,7 +21,7 @@ namespace MpbkpuGUI.Views
             InitializeComponent();
         }
 
-        protected override void InitializeComponent()
+        protected sealed override void InitializeComponent()
         {
             AvaloniaXamlLoader.Load(this);
             base.InitializeComponent();
@@ -47,7 +46,7 @@ namespace MpbkpuGUI.Views
             {
                 Name = "Test",
                 BackupType = BackupJobSettings.BackupTypes.Incremental,
-                LogLevel = BackupJobSettings.LogLevels.Debug,
+                LogLevel = BaseJobSettings.LogLevels.Debug,
                 Source = this.FindControl<TextBox>("_source").Text,
                 Destination = this.FindControl<TextBox>("_destination").Text,
                 EncryptPassword = "ciccioPasticcio",

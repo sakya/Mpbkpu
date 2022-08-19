@@ -107,7 +107,7 @@ public class BackupJob : BaseJob
         _cancellationToken = cancellationToken;
         ValidateSettings();
 
-        Started = DateTime.UtcNow;
+        var started = DateTime.UtcNow;
         LogInfo("Starting with settings:");
         LogInfo(JsonConvert.SerializeObject(Settings, Formatting.Indented));
 
@@ -140,7 +140,6 @@ public class BackupJob : BaseJob
                 await transaction.RollbackAsync();
                 throw;
             } finally {
-                Completed = DateTime.UtcNow;
                 transaction.Dispose();
             }
         }
@@ -148,6 +147,8 @@ public class BackupJob : BaseJob
         return new BackupJobJobResult()
         {
             Success = true,
+            Started = started,
+            Completed = DateTime.UtcNow,
             Guid = _backup!.Guid
         };
     }

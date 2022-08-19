@@ -50,7 +50,7 @@ public class VerifyJob: BaseJob
         _cancellationToken = cancellationToken;
         ValidateSettings();
 
-        Started = DateTime.UtcNow;
+        var started = DateTime.UtcNow;
         LogInfo("Starting with settings:");
         LogInfo(JsonConvert.SerializeObject(Settings, Formatting.Indented));
 
@@ -70,11 +70,12 @@ public class VerifyJob: BaseJob
                 await transaction.RollbackAsync();
                 throw;
             } finally {
-                Completed = DateTime.UtcNow;
                 transaction.Dispose();
             }
         }
 
+        res.Started = started;
+        res.Completed = DateTime.UtcNow;
         res.Errors = _errors;
         return res;
     }

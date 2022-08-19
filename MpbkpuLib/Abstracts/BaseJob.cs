@@ -38,12 +38,7 @@ public abstract class BaseJob : IDisposable
     }
 
     #region properties
-
     public BaseJobSettings Settings { get; private set; }
-
-    public DateTime? Started { get; set; }
-    public DateTime? Completed { get; set; }
-
     #endregion
 
     public virtual void Dispose()

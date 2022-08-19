@@ -39,10 +39,11 @@ public class RestoreAction : BaseAction
         job.RestoreProgress += OnRestoreProgress;
 
         var cts = new CancellationTokenSource();
+        BaseJobResult? jobRes = null;
         try {
             Console.CursorVisible = false;
             var task = Task.Run(() => job.Run(cts.Token));
-            await task;
+            jobRes = await task;
             Console.WriteLine();
         } catch (Exception ex) {
             Console.ForegroundColor = ErrorColor;
@@ -54,8 +55,8 @@ public class RestoreAction : BaseAction
             cts.Dispose();
         }
 
-        Started = job.Started;
-        Completed = job.Completed;
+        Started = jobRes?.Started;
+        Completed = jobRes?.Completed;
 
         return true;
     }

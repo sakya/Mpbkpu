@@ -23,10 +23,11 @@ public class VerifyAction : BaseAction
         job.Progress += OnProgress;
 
         var cts = new CancellationTokenSource();
+        BaseJobResult? jobRes = null;
         try {
             Console.CursorVisible = false;
             var task = Task.Run(() => job.Run(cts.Token));
-            await task;
+            jobRes = await task;
             Console.WriteLine();
         } catch (Exception ex) {
             Console.ForegroundColor = ErrorColor;
@@ -38,8 +39,8 @@ public class VerifyAction : BaseAction
             cts.Dispose();
         }
 
-        Started = job.Started;
-        Completed = job.Completed;
+        Started = jobRes?.Started;
+        Completed = jobRes?.Completed;
 
         return true;
     }
@@ -69,7 +70,7 @@ public class VerifyAction : BaseAction
     private void OnProgress(object sender, int file, int totalFiles)
     {
         var perc = file / (double)totalFiles * 100.0;
-        var progress = $"[{perc.ToString("0.0").PadLeft(5)}%]";
+        var progress = $"[{perc,5:0.0}%]";
 
         Console.CursorLeft = 0;
         Console.Write(progress.PadRight(Console.WindowWidth - 1));
