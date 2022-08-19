@@ -165,7 +165,7 @@ public class RestoreJob : BaseJob
         // Read destination
         Step?.Invoke(this, Steps.ReadDestination);
         LogInfo($"Reading destination {Settings.Destination}");
-        if (!ReadPathContent(backupFile, _destinationFm, _destinationPath, _destinationPath, true, File.FileActions.Delete, _cancellationToken).Result) {
+        if (!ReadPathContent(backupFile, _destinationFm, _destinationPath, true, File.FileActions.Delete, _cancellationToken).Result) {
             LogError("Failed to read destination");
             return false;
         }
@@ -375,7 +375,7 @@ public class RestoreJob : BaseJob
                 break;
             case File.FileTyes.File:
                 DateTime? lastFileProgress = null;
-                using (var backupStream = await BackupFm.OpenFile(BackupFm.CombinePath(BackupPath!, fileToRestore.BackupItem!.Backup!.Guid, fileToRestore.BackupItem.Volume!.Name!, fileToRestore.BackupItem.Name!))) {
+                using (var backupStream = await BackupFm.OpenFile(GetBackupItemPath(BackupFm, BackupPath, fileToRestore.BackupItem))) {
                     using (var destStream = await _destinationFm.OpenFile(destFilePath, true)) {
                         var progressAction = new Action<long>((copied) =>
                         {
@@ -396,7 +396,7 @@ public class RestoreJob : BaseJob
                         else
                             md5 = await RestoreFileFromSourceCopy(backupStream, destStream, progressAction);
 
-                        if (md5 != fileToRestore.BackupItem.OriginalMD5)
+                        if (md5 != fileToRestore.BackupItem!.OriginalMD5)
                             throw new Exception($"MD5 mismatch for file {fileToRestore.BackupItem.OriginalPath}");
                     }
                 }

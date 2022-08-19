@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query;
 using MpbkpuLib.Abstracts;
 using MpbkpuLib.FileManagers;
 using Newtonsoft.Json;
@@ -131,8 +132,10 @@ public class DeleteJob : BaseJob
         // Delete files
         Step?.Invoke(this, Steps.DeleteFiles);
 
-        var items = backupFile.BackupItems.AsNoTracking()
+        var items = backupFile.BackupItems
             .Include(i => i.Volume)
+            .Include(i => i.Backup)
+            .AsNoTracking()
             .Where(i => i.BackupId == bkp.Id);
         foreach (var item in items) {
             if (_cancellationToken?.IsCancellationRequested == true) {
@@ -140,8 +143,7 @@ public class DeleteJob : BaseJob
                 return;
             }
 
-            var filePath = BackupFm.CombinePath(BackupPath!, bkp.Guid, item.Volume!.Name!, item.Name!);
-            await BackupFm.DeleteFile(filePath);
+            await BackupFm.DeleteFile(GetBackupItemPath(BackupFm, BackupPath, item));
         }
 
         // Delete data

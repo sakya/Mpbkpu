@@ -260,7 +260,9 @@ public class BackupFile : IDisposable
             throw new Exception($"Backup with id {backupId} not found");
 
         if (bkp.Type == BackupJobSettings.BackupTypes.Full) {
-            var items = _context!.BackupItems.AsNoTracking()
+            var items = _context!.BackupItems
+                .Include(i => i.Volume)
+                .AsNoTracking()
                 .Where(i => i.BackupId == backupId);
             foreach (var item in items) {
                 yield return item;
@@ -273,11 +275,15 @@ public class BackupFile : IDisposable
             if (fullBkp == null)
                 throw new Exception($"Full backup not found");
 
-            var items = _context!.BackupItems.AsNoTracking()
+            var items = _context!.BackupItems
+                .Include(i => i.Volume)
+                .AsNoTracking()
                 .Where(i => i.BackupId == fullBkp.Id);
             foreach (var item in items) {
                 // Read the same items from subsequent backups
-                var itemLastBackup = await _context!.BackupItems.AsNoTracking()
+                var itemLastBackup = await _context!.BackupItems
+                    .Include(i => i.Volume)
+                    .AsNoTracking()
                     .Where(i => i.Backup!.Type == BackupJobSettings.BackupTypes.Incremental && i.BackupId <= backupId &&
                                 i.BackupId >= fullBkp.Id && i.OriginalPath == item.OriginalPath)
                     .OrderBy(i => i.Id)
@@ -297,7 +303,9 @@ public class BackupFile : IDisposable
             if (fullBkp == null)
                 throw new Exception($"Full backup not found");
 
-            var items = _context!.BackupItems.AsNoTracking()
+            var items = _context!.BackupItems
+                .Include(i => i.Volume)
+                .AsNoTracking()
                 .Where(i => i.BackupId == fullBkp.Id);
             foreach (var item in items) {
                 yield return item;

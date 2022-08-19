@@ -1,4 +1,6 @@
-﻿using MpbkpuLib.FileManagers;
+﻿using Dropbox.Api.Users;
+using MpbkpuLib.DataModel;
+using MpbkpuLib.FileManagers;
 using MpbkpuLib.Interfaces;
 using MpbkpuLib.Utility;
 using File = MpbkpuLib.DataModel.File;
@@ -8,18 +10,22 @@ namespace MpbkpuLib.Abstracts;
 public abstract class BaseJob : IDisposable
 {
     #region private members
+
     private readonly StreamWriter? _logWriter;
     protected IFileManager? BackupFm;
     protected string? BackupPath;
+
     #endregion
 
     #region delegates
+
     public delegate void LogHandler(object sender, BaseSettings.LogLevels level, string message);
 
     /// <summary>
     /// Emitted when a log message is added to the log
     /// </summary>
     public event LogHandler? LogEmitted;
+
     #endregion
 
     protected BaseJob(BaseSettings? settings)
@@ -32,10 +38,12 @@ public abstract class BaseJob : IDisposable
     }
 
     #region properties
+
     public BaseSettings Settings { get; private set; }
 
     public DateTime? Started { get; set; }
     public DateTime? Completed { get; set; }
+
     #endregion
 
     public virtual void Dispose()
@@ -68,7 +76,8 @@ public abstract class BaseJob : IDisposable
         if (await BackupFm.FileExists(openRes.BackupFilePath))
             await BackupFm.DeleteFile(openRes.BackupFilePath);
 
-        var destFileSize = Files.GetDestinationFileSize(sourceStream.Length, BackupFm.SupportCompression(), !string.IsNullOrEmpty(password));
+        var destFileSize = Files.GetDestinationFileSize(sourceStream.Length, BackupFm.SupportCompression(),
+            !string.IsNullOrEmpty(password));
         await using var destStream = await BackupFm.OpenFile(openRes.BackupFilePath, true, destFileSize);
 
         if (string.IsNullOrEmpty(password))
@@ -79,37 +88,47 @@ public abstract class BaseJob : IDisposable
         }
     }
 
-    protected async Task<bool> ReadPathContent(BackupFile? bkpFile, IFileManager? fileManager, string? rootPath, string? path, bool includeHiddenFiles,
+    /// <summary>
+    /// Get the full path of a backup item
+    /// </summary>
+    /// <param name="fm">The <see cref="IFileManager"/></param>
+    /// <param name="backupPath">The backup path</param>
+    /// <param name="item">The <see cref="BackupItem"/></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentNullException"></exception>
+    protected string GetBackupItemPath(IFileManager? fm, string? backupPath, BackupItem? item)
+    {
+        if (fm == null)
+            throw new ArgumentNullException(nameof(fm));
+        if (string.IsNullOrEmpty(backupPath))
+            throw new ArgumentNullException(nameof(backupPath));
+        if (item == null)
+            throw new ArgumentNullException(nameof(item));
+        if (item.Backup == null)
+            throw new ArgumentException("The item must contain Backup information", nameof(item));
+        if (item.Volume == null)
+            throw new ArgumentException("The item must contain Volume information", nameof(item));
+
+        return fm.CombinePath(backupPath, item.Backup.Guid, item.Volume.Name!, item.Name!);
+    }
+
+    /// <summary>
+    /// Read content of a directory
+    /// </summary>
+    /// <param name="bkpFile">The <see cref="BackupFile"/> the information are saved</param>
+    /// <param name="fileManager">The <see cref="IFileManager"/> to use to access <see cref="rootPath"/></param>
+    /// <param name="rootPath">The path to read content</param>
+    /// <param name="includeHiddenFiles">If set to true also hidden files are included</param>
+    /// <param name="defaultAction">The <see cref="DataModel.File"/> default action</param>
+    /// <param name="token">The <see cref="CancellationToken"/></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentNullException"></exception>
+    protected Task<bool> ReadPathContent(BackupFile? bkpFile, IFileManager? fileManager, string? rootPath,
+        bool includeHiddenFiles,
         File.FileActions defaultAction,
         CancellationToken? token)
     {
-        if (bkpFile == null)
-            throw new ArgumentNullException(nameof(bkpFile));
-        if (fileManager == null)
-            throw new ArgumentNullException(nameof(fileManager));
-        if (string.IsNullOrEmpty(rootPath))
-            throw new ArgumentNullException(nameof(rootPath));
-        if (string.IsNullOrEmpty(path))
-            throw new ArgumentNullException(nameof(path));
-
-        if (token?.IsCancellationRequested == true)
-            return true;
-
-        if (!rootPath.EndsWith(fileManager.GetPathSeparator()))
-            rootPath = $"{rootPath}{fileManager.GetPathSeparator()}";
-        LogDebug($"  {path}");
-        await foreach (var file in fileManager.GetDirectoryContent(path, includeHiddenFiles)) {
-            if (token?.IsCancellationRequested == true)
-                return true;
-
-            file.FileAction = defaultAction;
-            file.RootPath = rootPath;
-            file.RelativePath = file.FullPath?.Substring(file.RootPath.Length);
-            bkpFile.Files.Add(file);
-            if (file.Type == File.FileTyes.Directory)
-                await ReadPathContent(bkpFile, fileManager, rootPath, file.FullPath, includeHiddenFiles, defaultAction, token);
-        }
-        return true;
+        return ReadPathContent(bkpFile, fileManager, rootPath, rootPath, includeHiddenFiles, defaultAction, token);
     }
 
     protected void LogDebug(string message)
@@ -148,7 +167,7 @@ public abstract class BaseJob : IDisposable
     /// </summary>
     /// <param name="level">The <see cref="BaseSettings.LogLevels"/></param>
     /// <param name="message">The message to log</param>
-    protected  void Log(BaseSettings.LogLevels level, string message)
+    private void Log(BaseSettings.LogLevels level, string message)
     {
         if (level < Settings.LogLevel)
             return;
@@ -188,5 +207,39 @@ public abstract class BaseJob : IDisposable
         }
 
         LogEmitted?.Invoke(this, level, message);
+    }
+
+    private async Task<bool> ReadPathContent(BackupFile? bkpFile, IFileManager? fileManager, string? rootPath,
+        string? path, bool includeHiddenFiles,
+        File.FileActions defaultAction,
+        CancellationToken? token)
+    {
+        if (bkpFile == null)
+            throw new ArgumentNullException(nameof(bkpFile));
+        if (fileManager == null)
+            throw new ArgumentNullException(nameof(fileManager));
+        if (string.IsNullOrEmpty(rootPath))
+            throw new ArgumentNullException(nameof(rootPath));
+        if (string.IsNullOrEmpty(path))
+            throw new ArgumentNullException(nameof(path));
+
+        if (token?.IsCancellationRequested == true)
+            return true;
+
+        if (!rootPath.EndsWith(fileManager.GetPathSeparator()))
+            rootPath = $"{rootPath}{fileManager.GetPathSeparator()}";
+        LogDebug($"  {path}");
+        await foreach (var file in fileManager.GetDirectoryContent(path, includeHiddenFiles)) {
+            if (token?.IsCancellationRequested == true)
+                return true;
+
+            file.FileAction = defaultAction;
+            file.RootPath = rootPath;
+            file.RelativePath = file.FullPath?.Substring(file.RootPath.Length);
+            bkpFile.Files.Add(file);
+            if (file.Type == File.FileTyes.Directory)
+                await ReadPathContent(bkpFile, fileManager, rootPath, file.FullPath, includeHiddenFiles, defaultAction, token);
+        }
+        return true;
     }
 }

@@ -199,7 +199,7 @@ public class BackupJob : BaseJob
         // Read source
         Step?.Invoke(this, Steps.ReadSource);
         LogInfo($"Reading source {Settings.Source}");
-        if (!ReadPathContent(backupFile, _sourceFm, _sourcePath, _sourcePath, Settings.IncludeHiddenFiles, File.FileActions.Backup, _cancellationToken).Result) {
+        if (!ReadPathContent(backupFile, _sourceFm, _sourcePath, Settings.IncludeHiddenFiles, File.FileActions.Backup, _cancellationToken).Result) {
             LogError("Failed to read source");
             if (!await SetBackupResult(backupFile, Backup.Results.Error))
                 LogWarning("Cannot set backup result");
