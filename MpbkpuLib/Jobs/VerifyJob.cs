@@ -17,30 +17,9 @@ public class VerifyJob: BaseJob
         VerifyFiles
     }
 
-    public enum ErrorCodes
-    {
-        BackupNotFound,
-        BackupDirectoryNotFound,
-        FileNotFound,
-        Md5Mismatch
-    }
-
-    #region classes
-    public class Error
-    {
-        public Error(ErrorCodes code, string message)
-        {
-            Code = code;
-            Message = message;
-        }
-
-        public ErrorCodes Code { get; set; }
-        public string Message { get; set; }
-    }
-    #endregion
-
     #region private members
     private CancellationToken? _cancellationToken;
+    private List<VerifyJobResult.Error>? _errors;
     #endregion
 
     #region delegates
@@ -64,7 +43,6 @@ public class VerifyJob: BaseJob
         get { return (base.Settings as VerifyJobSettings)!; }
     }
 
-    public List<Error>? Errors { get; set; }
     #endregion
 
     #region public operations
@@ -98,6 +76,7 @@ public class VerifyJob: BaseJob
             }
         }
 
+        res.Errors = _errors;
         return res;
     }
     #endregion
@@ -114,12 +93,12 @@ public class VerifyJob: BaseJob
         if (BackupFm == null)
             throw new Exception("Backup file manager not initialized");
 
-        Errors = new List<Error>();
+        _errors = new List<VerifyJobResult.Error>();
         var bkp = await backupFile.Backups.AsNoTracking()
             .Where(b => b.Guid == Settings.BackupGuid)
             .FirstOrDefaultAsync();
         if (bkp == null) {
-            Errors.Add(new Error(ErrorCodes.BackupNotFound, $"Backup with GUID {Settings.BackupGuid} not found"));
+            _errors.Add(new VerifyJobResult.Error(VerifyJobResult.Error.ErrorCodes.BackupNotFound, $"Backup with GUID {Settings.BackupGuid} not found"));
             LogError($"Backup with GUID {Settings.BackupGuid} not found");
             return new VerifyJobResult()
             {
@@ -151,7 +130,7 @@ public class VerifyJob: BaseJob
         // Verify backup directory
         var backupRoot = BackupFm.CombinePath(BackupPath!, bkp.Guid);
         if (!await BackupFm.DirectoryExists(backupRoot)) {
-            Errors.Add(new Error(ErrorCodes.BackupDirectoryNotFound, $"Backup directory {backupRoot} does not exists"));
+            _errors.Add(new VerifyJobResult.Error(VerifyJobResult.Error.ErrorCodes.BackupDirectoryNotFound, $"Backup directory {backupRoot} does not exists"));
             LogWarning("Backup directory does not exists");
         } else {
             // Verify backup items
@@ -200,7 +179,7 @@ public class VerifyJob: BaseJob
     {
         var filePath = fm.CombinePath(backupRoot, item.Volume!.Name!, item.Name!);
         if (!await fm.FileExists(filePath)) {
-            Errors!.Add(new Error(ErrorCodes.FileNotFound, $"File {filePath} not found"));
+            _errors!.Add(new VerifyJobResult.Error(VerifyJobResult.Error.ErrorCodes.FileNotFound, $"File {filePath} not found"));
             LogWarning($"File {filePath} not found");
             return false;
         }
@@ -213,7 +192,7 @@ public class VerifyJob: BaseJob
             } else {
                 var md5 = await Utility.Files.GetMD5(fm, filePath);
                 if (md5 != item.MD5) {
-                    Errors!.Add(new Error(ErrorCodes.Md5Mismatch, $"MD5 mismatch for file {item.OriginalPath}"));
+                    _errors!.Add(new VerifyJobResult.Error(VerifyJobResult.Error.ErrorCodes.Md5Mismatch, $"MD5 mismatch for file {item.OriginalPath}"));
                     LogWarning($"MD5 mismatch for file {item.OriginalPath}");
                     return false;
                 }
