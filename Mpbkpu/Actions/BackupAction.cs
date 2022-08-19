@@ -23,7 +23,7 @@ public class BackupAction : BaseAction
             Destination = pArgs.DestinationPath,
             DestinationUser = pArgs.DestinationUser,
             DestinationPassword = pArgs.DestinationPassword,
-            SkipMD5Check = pArgs.SkipMD5Check ?? false,
+            SkipHashCheck = pArgs.SkipHashCheck ?? false,
 
             Exclude = pArgs.Exclude,
             RetryOnError = pArgs.RetryOnError ?? 3,

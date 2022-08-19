@@ -66,10 +66,6 @@ namespace MpbkpuLib.Migrations
                     b.Property<int>("BackupId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("MD5")
-                        .HasMaxLength(255)
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Name")
                         .HasMaxLength(255)
                         .HasColumnType("TEXT");
@@ -87,10 +83,6 @@ namespace MpbkpuLib.Migrations
                     b.Property<DateTime?>("OriginalLastModified")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("OriginalMD5")
-                        .HasMaxLength(255)
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("OriginalName")
                         .HasMaxLength(255)
                         .HasColumnType("TEXT");
@@ -103,8 +95,16 @@ namespace MpbkpuLib.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("OriginalSha256")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
                     b.Property<long>("OriginalSize")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("Sha256")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
 
                     b.Property<long>("Size")
                         .HasColumnType("INTEGER");

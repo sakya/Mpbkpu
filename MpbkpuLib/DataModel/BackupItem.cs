@@ -27,10 +27,10 @@ public class BackupItem : BaseModel
     public string? Name { get; set; }
 
     /// <summary>
-    /// The MD5 hash of the backup file
+    /// The SHA256 hash of the backup file
     /// </summary>
     [MaxLength(255)]
-    public string? MD5 { get; set; }
+    public string? Sha256 { get; set; }
     /// <summary>
     /// The size of the backup file
     /// </summary>
@@ -45,10 +45,10 @@ public class BackupItem : BaseModel
     [MaxLength(255)]
     public string? OriginalExtension { get; set; }
     /// <summary>
-    /// The MD5 hash of the original file
+    /// The SHA256 hash of the original file
     /// </summary>
     [MaxLength(255)]
-    public string? OriginalMD5 { get; set; }
+    public string? OriginalSha256 { get; set; }
 
     /// <summary>
     /// The size of the original file

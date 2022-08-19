@@ -46,7 +46,7 @@ public class RestoreJobSettings : BaseJobSettings
     public int RetryOnError { get; set; }
 
     /// <summary>
-    /// Skip MD5 check on existing file in the destination directory
+    /// Skip hash check on existing file in the destination directory
     /// </summary>
-    public bool SkipMD5Check { get; set; } = false;
+    public bool SkipHashCheck { get; set; } = false;
 }

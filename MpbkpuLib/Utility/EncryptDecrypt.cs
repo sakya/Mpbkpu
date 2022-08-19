@@ -1,8 +1,10 @@
 ﻿using System.IO.Compression;
+using System.Runtime.Intrinsics.Arm;
 using System.Text;
 using System.Security.Cryptography;
 using Microsoft.Graph.SecurityNamespace;
 using MpbkpuLib.DataModel;
+using Aes = System.Security.Cryptography.Aes;
 
 namespace MpbkpuLib.Utility
 {
@@ -19,7 +21,7 @@ namespace MpbkpuLib.Utility
             if (string.IsNullOrEmpty(key))
                 throw new ArgumentNullException(nameof(key));
 
-            using (HashAlgorithm hash = MD5.Create()) {
+            using (HashAlgorithm hash = SHA256.Create()) {
                 _keyBytes = hash.ComputeHash(Encoding.Unicode.GetBytes(key));
             }
         }
@@ -84,8 +86,8 @@ namespace MpbkpuLib.Utility
             using (var aesAlg = Aes.Create()) {
                 aesAlg.Mode = CipherMode.CBC;
                 aesAlg.Padding = PaddingMode.PKCS7;
-                using (var sourceHasher = MD5.Create()) {
-                    using (var destHasher = MD5.Create()) {
+                using (var sourceHasher = SHA256.Create()) {
+                    using (var destHasher = SHA256.Create()) {
                         destHasher.TransformBlock(header, 0, header.Length, null, 0);
                         using (var encryptor = aesAlg.CreateEncryptor(_keyBytes, aesAlg.IV)) {
                             using (CryptoStream hashStream = new CryptoStream(destination, destHasher, CryptoStreamMode.Write, true)) {
@@ -120,13 +122,13 @@ namespace MpbkpuLib.Utility
                         }
                         if (backupItem != null) {
                             backupItem.Size = destination.Position;
-                            backupItem.MD5 = BitConverter.ToString(destHasher.Hash!).Replace("-", "").ToLowerInvariant();
+                            backupItem.Sha256 = BitConverter.ToString(destHasher.Hash!).Replace("-", "").ToLowerInvariant();
                         }
                     }
 
                     sourceHasher.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
                     if (backupItem != null)
-                        backupItem.OriginalMD5 = BitConverter.ToString(sourceHasher.Hash!).Replace("-", "").ToLowerInvariant();
+                        backupItem.OriginalSha256 = BitConverter.ToString(sourceHasher.Hash!).Replace("-", "").ToLowerInvariant();
                 }
             }
 
@@ -140,7 +142,7 @@ namespace MpbkpuLib.Utility
         /// <param name="destination">The destination <see cref="Stream"/></param>
         /// <param name="decompress">If set to true the <see cref="source"/> is decompressed after the encryption</param>
         /// <param name="progressAction">A <see cref="Action{T}"/> called to report progress</param>
-        /// <returns>The MD5 hash of the decrypted data</returns>
+        /// <returns>The SHA356 hash of the decrypted data</returns>
         /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="Exception"></exception>
         public async Task<string> Decrypt(Stream source, Stream destination, bool decompress, Action<long>? progressAction = null)
@@ -166,7 +168,7 @@ namespace MpbkpuLib.Utility
             using (var aesAlg = Aes.Create()) {
                 aesAlg.Mode = CipherMode.CBC;
                 aesAlg.Padding = PaddingMode.PKCS7;
-                using (var hasher = MD5.Create()) {
+                using (var hasher = SHA256.Create()) {
                     using (var decrypter = aesAlg.CreateDecryptor(_keyBytes, iv)) {
                         using (var csDecrypt = new CryptoStream(source, decrypter, CryptoStreamMode.Read)) {
                             byte[] buffer = new byte[32768];

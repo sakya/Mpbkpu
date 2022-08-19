@@ -12,7 +12,7 @@ public class VerifyJobResult : BaseJobResult
             BackupNotFound,
             BackupDirectoryNotFound,
             FileNotFound,
-            Md5Mismatch
+            HashMismatch
         }
 
         public Error(ErrorCodes code, string message)

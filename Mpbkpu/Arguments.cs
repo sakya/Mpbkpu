@@ -119,8 +119,8 @@ public class Arguments : IOptions
         Description = "Auto reply YES to any question")]
     public bool? AlwaysYes { get; set; }
 
-    [Option("skipmd5",
-        Description = "Skip MD5 check on existing file in the destination directory",
+    [Option("skiphash",
+        Description = "Skip SHA256 hash check on existing file in the destination directory",
         OnlyForVerbs = "Backup;Restore")]
-    public bool? SkipMD5Check { get; set; }
+    public bool? SkipHashCheck { get; set; }
 }

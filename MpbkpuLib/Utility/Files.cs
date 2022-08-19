@@ -81,7 +81,7 @@ public static class Files
         return destFileSize;
     }
 
-    public static async Task<string> GetMD5(IFileManager? fm, string? filePath)
+    public static async Task<string> GetSha256(IFileManager? fm, string? filePath)
     {
         if (fm == null)
             throw new ArgumentNullException(nameof(fm));
@@ -89,7 +89,7 @@ public static class Files
             throw new ArgumentNullException(nameof(filePath));
 
         using (var source = await fm.OpenFile(filePath)) {
-            using (var hasher = MD5.Create()) {
+            using (var hasher = SHA256.Create()) {
                 var hash = await hasher.ComputeHashAsync(source);
                 return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
             }

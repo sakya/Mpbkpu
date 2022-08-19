@@ -231,7 +231,7 @@ public class BackupJob : BaseJob
                     .FirstOrDefaultAsync();
                 if (sourceFile != null) {
                     if (item.Type == File.FileTyes.File) {
-                        if (Settings.SkipMD5Check) {
+                        if (Settings.SkipHashCheck) {
                             if (sourceFile.Size != item.OriginalSize || sourceFile.LastModified != item.OriginalLastModified) {
                                 sourceFile.FileAction = File.FileActions.Backup;
                                 sourceFile.Modified = true;
@@ -239,8 +239,8 @@ public class BackupJob : BaseJob
                                 sourceFile.FileAction = File.FileActions.None;
                             }
                         } else {
-                            var md5 = await Utility.Files.GetMD5(_sourceFm, sourceFile.FullPath);
-                            if (md5 != item.OriginalMD5) {
+                            var hash = await Utility.Files.GetSha256(_sourceFm, sourceFile.FullPath);
+                            if (hash != item.OriginalSha256) {
                                 sourceFile.FileAction = File.FileActions.Backup;
                                 sourceFile.Modified = true;
                             } else {
@@ -495,7 +495,7 @@ public class BackupJob : BaseJob
 
     private async Task BackupFileFromSourceCopy(BackupItem backupItem, Stream sourceStream, Stream destStream, Action<long>? progressAction = null)
     {
-        using (var hasher = MD5.Create()) {
+        using (var hasher = SHA256.Create()) {
             using (CryptoStream hashStream = new CryptoStream(destStream, hasher, CryptoStreamMode.Write, true)) {
                 long copied = 0;
                 int read;
@@ -508,15 +508,15 @@ public class BackupJob : BaseJob
             }
 
             backupItem.Size = destStream.Position;
-            backupItem.MD5 = BitConverter.ToString(hasher.Hash!).Replace("-", "").ToLowerInvariant();
-            backupItem.OriginalMD5 = backupItem.MD5;
+            backupItem.Sha256 = BitConverter.ToString(hasher.Hash!).Replace("-", "").ToLowerInvariant();
+            backupItem.OriginalSha256 = backupItem.Sha256;
         }
     }
 
     private async Task BackupFileFromSourceCompress(BackupItem backupItem, Stream sourceStream, Stream destStream, Action<long>? progressAction = null)
     {
-        using (var sourceHasher = MD5.Create()) {
-            using (var destHasher = MD5.Create()) {
+        using (var sourceHasher = SHA256.Create()) {
+            using (var destHasher = SHA256.Create()) {
                 using (CryptoStream hashStream = new CryptoStream(destStream, destHasher, CryptoStreamMode.Write, true)) {
                     using (var compressorStream = new GZipStream(hashStream, CompressionLevel.Optimal, true)) {
                         long copied = 0;
@@ -532,11 +532,11 @@ public class BackupJob : BaseJob
                 }
 
                 backupItem.Size = destStream.Position;
-                backupItem.MD5 = BitConverter.ToString(destHasher.Hash!).Replace("-", "").ToLowerInvariant();
+                backupItem.Sha256 = BitConverter.ToString(destHasher.Hash!).Replace("-", "").ToLowerInvariant();
             }
 
             sourceHasher.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
-            backupItem.OriginalMD5 = BitConverter.ToString(sourceHasher.Hash!).Replace("-", "").ToLowerInvariant();
+            backupItem.OriginalSha256 = BitConverter.ToString(sourceHasher.Hash!).Replace("-", "").ToLowerInvariant();
         }
     }
 

@@ -199,7 +199,7 @@ public class RestoreJob : BaseJob
                 };
                 backupFile.Files.Add(file);
             } else if (file.Type == File.FileTyes.File) {
-                if (Settings.SkipMD5Check) {
+                if (Settings.SkipHashCheck) {
                     if (file.Size != item.OriginalSize || file.LastModified != item.OriginalLastModified) {
                         file.BackupItemId = item.Id;
                         file.FileAction = File.FileActions.Restore;
@@ -207,8 +207,8 @@ public class RestoreJob : BaseJob
                         file.FileAction = File.FileActions.None;
                     }
                 } else {
-                    var md5 = await Utility.Files.GetMD5(_destinationFm, file.FullPath);
-                    if (md5 != item.OriginalMD5) {
+                    var hash = await Utility.Files.GetSha256(_destinationFm, file.FullPath);
+                    if (hash != item.OriginalSha256) {
                         file.BackupItemId = item.Id;
                         file.FileAction = File.FileActions.Restore;
                     } else {
@@ -392,17 +392,17 @@ public class RestoreJob : BaseJob
                             }
                         });
 
-                        string? md5;
+                        string? hash;
                         if (encrypter != null)
-                            md5 = await encrypter.Decrypt(backupStream, destStream, backupSettings.Compress,
+                            hash = await encrypter.Decrypt(backupStream, destStream, backupSettings.Compress,
                                 progressAction);
                         else if (backupSettings.Compress)
-                            md5 = await RestoreFileFromSourceDecompress(backupStream, destStream, progressAction);
+                            hash = await RestoreFileFromSourceDecompress(backupStream, destStream, progressAction);
                         else
-                            md5 = await RestoreFileFromSourceCopy(backupStream, destStream, progressAction);
+                            hash = await RestoreFileFromSourceCopy(backupStream, destStream, progressAction);
 
-                        if (md5 != fileToRestore.BackupItem!.OriginalMD5)
-                            throw new Exception($"MD5 mismatch for file {fileToRestore.BackupItem.OriginalPath}");
+                        if (hash != fileToRestore.BackupItem!.OriginalSha256)
+                            throw new Exception($"Hash mismatch for file {fileToRestore.BackupItem.OriginalPath}");
                     }
                 }
 
@@ -416,7 +416,7 @@ public class RestoreJob : BaseJob
 
     private async Task<string> RestoreFileFromSourceDecompress(Stream sourceStream, Stream destStream, Action<long>? progressAction = null)
     {
-        using (var hasher = MD5.Create()) {
+        using (var hasher = SHA256.Create()) {
             using (CryptoStream hashStream = new CryptoStream(destStream, hasher, CryptoStreamMode.Write, true)) {
                 using (var compressorStream = new GZipStream(hashStream, CompressionLevel.Optimal, true)) {
                     long copied = 0;
@@ -435,7 +435,7 @@ public class RestoreJob : BaseJob
 
     private async Task<string> RestoreFileFromSourceCopy(Stream sourceStream, Stream destStream, Action<long>? progressAction = null)
     {
-        using (var hasher = MD5.Create()) {
+        using (var hasher = SHA256.Create()) {
             using (CryptoStream hashStream = new CryptoStream(destStream, hasher, CryptoStreamMode.Write, true)) {
                 long copied = 0;
                 int read;

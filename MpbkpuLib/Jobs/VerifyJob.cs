@@ -184,16 +184,16 @@ public class VerifyJob: BaseJob
             return false;
         }
 
-        // Check MD5
+        // Check hash
         if (item.Type == File.FileTyes.File) {
-            if (string.IsNullOrEmpty(item.MD5)) {
-                LogWarning($"Missing MD5 for file {item.OriginalPath}");
+            if (string.IsNullOrEmpty(item.Sha256)) {
+                LogWarning($"Missing hash for file {item.OriginalPath}");
                 return false;
             } else {
-                var md5 = await Utility.Files.GetMD5(fm, filePath);
-                if (md5 != item.MD5) {
-                    _errors!.Add(new VerifyJobResult.Error(VerifyJobResult.Error.ErrorCodes.Md5Mismatch, $"MD5 mismatch for file {item.OriginalPath}"));
-                    LogWarning($"MD5 mismatch for file {item.OriginalPath}");
+                var hash = await Utility.Files.GetSha256(fm, filePath);
+                if (hash != item.Sha256) {
+                    _errors!.Add(new VerifyJobResult.Error(VerifyJobResult.Error.ErrorCodes.HashMismatch, $"Hash mismatch for file {item.OriginalPath}"));
+                    LogWarning($"Hash mismatch for file {item.OriginalPath}");
                     return false;
                 }
             }
