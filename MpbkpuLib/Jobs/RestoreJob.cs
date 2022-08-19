@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using MpbkpuLib.Abstracts;
+using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
 using MpbkpuLib.Interfaces;
 using MpbkpuLib.Utility;
@@ -157,6 +158,10 @@ public class RestoreJob : BaseJob
             .FirstOrDefaultAsync();
         if (bkp == null) {
             LogError($"Backup with GUID {Settings.BackupGuid} not found");
+            return false;
+        }
+        if (bkp.Result != Backup.Results.Completed) {
+            LogError($"Cannot restore a backup with {bkp.Result} result");
             return false;
         }
 

@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using MpbkpuLib.Abstracts;
 using MpbkpuLib.DataModel;
@@ -57,7 +56,7 @@ public class VerifyJob: BaseJob
 
         BackupFm = FileManagerFactory.GetFileManager(Settings.BackupPath, out BackupPath, Settings.BackupPathUser, Settings.BackupPathPassword);
         Step?.Invoke(this, Steps.OpenDatabase);
-        VerifyJobResult? res = null;
+        VerifyJobResult? res;
         using (var openRes = await BackupFile.OpenBackupFile(BackupFm, BackupPath, Settings.EncryptPassword)) {
             var backupFile = openRes.BackupFile;
             await backupFile.EmptyFiles();
@@ -110,8 +109,10 @@ public class VerifyJob: BaseJob
         if (bkp.Result != Backup.Results.Completed)
             LogWarning($"Database result is { bkp.Result }");
 
-        var items = backupFile.BackupItems.AsNoTracking()
+        var items = backupFile.BackupItems
             .Include(i => i.Volume)
+            .Include(i => i.Backup)
+            .AsNoTracking()
             .Where(i => i.BackupId == bkp.Id)
             .OrderBy(i => i.Id);
 
@@ -147,7 +148,7 @@ public class VerifyJob: BaseJob
                     };
                 }
 
-                if (!await VerifyBackupItem(BackupFm, backupRoot, item))
+                if (!await VerifyBackupItem(BackupFm, item))
                     filesError++;
                 Progress?.Invoke(this, ++fileIdx, filesCount);
             }
@@ -175,9 +176,9 @@ public class VerifyJob: BaseJob
             throw new ArgumentNullException(nameof(Settings.BackupGuid), "Backup GUID cannot be empty");
     }
 
-    private async Task<bool> VerifyBackupItem(IFileManager fm, string backupRoot, BackupItem item)
+    private async Task<bool> VerifyBackupItem(IFileManager fm, BackupItem item)
     {
-        var filePath = fm.CombinePath(backupRoot, item.Volume!.Name!, item.Name!);
+        var filePath = GetBackupItemPath(fm, BackupPath, item);
         if (!await fm.FileExists(filePath)) {
             _errors!.Add(new VerifyJobResult.Error(VerifyJobResult.Error.ErrorCodes.FileNotFound, $"File {filePath} not found"));
             LogWarning($"File {filePath} not found");
