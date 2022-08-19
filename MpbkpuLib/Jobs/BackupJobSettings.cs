@@ -5,7 +5,6 @@ public class BackupJobSettings : BaseJobSettings
 {
     /// <summary>
     /// The backup type
-    /// https://phoenixnap.com/kb/full-vs-incremental-vs-differential-backup
     /// </summary>
     public enum BackupTypes
     {
@@ -34,7 +33,12 @@ public class BackupJobSettings : BaseJobSettings
     /// </summary>
     /// <value></value>
     public string? Name { get; set; }
+
+    /// <summary>
+    /// The backup <see cref="BackupTypes"/>
+    /// </summary>
     public BackupTypes BackupType { get; set; }
+
     /// <summary>
     /// The backup source
     /// </summary>
@@ -67,8 +71,19 @@ public class BackupJobSettings : BaseJobSettings
     /// <value></value>
     public string? DestinationPassword { get; set; }
 
+    /// <summary>
+    /// A list of files/directories to exclude from the backup
+    /// </summary>
     public List<string>? Exclude { get; set; }
+
+    /// <summary>
+    /// Maximum number of files to keep in each directory
+    /// </summary>
     public int MaxFilesPerDirectory { get; set; }
+
+    /// <summary>
+    /// If set to true also hidden files are included in the backup
+    /// </summary>
     public bool IncludeHiddenFiles { get; set; }
 
     /// <summary>
