@@ -1,4 +1,7 @@
-﻿namespace MpbkpuLib.Utility;
+﻿using System.Security.Cryptography;
+using MpbkpuLib.Interfaces;
+
+namespace MpbkpuLib.Utility;
 
 public static class Files
 {
@@ -76,5 +79,20 @@ public static class Files
         }
 
         return destFileSize;
+    }
+
+    public static async Task<string> GetMD5(IFileManager? fm, string? filePath)
+    {
+        if (fm == null)
+            throw new ArgumentNullException(nameof(fm));
+        if (string.IsNullOrEmpty(filePath))
+            throw new ArgumentNullException(nameof(filePath));
+
+        using (var source = await fm.OpenFile(filePath)) {
+            using (var hasher = MD5.Create()) {
+                var hash = await hasher.ComputeHashAsync(source);
+                return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+            }
+        }
     }
 }

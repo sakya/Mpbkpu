@@ -118,4 +118,9 @@ public class Arguments : IOptions
     [Option("yes", 'y',
         Description = "Auto reply YES to any question")]
     public bool? AlwaysYes { get; set; }
+
+    [Option("skipmd5",
+        Description = "Skip MD5 check on existing file in the destination directory",
+        OnlyForVerbs = "Backup;Restore")]
+    public bool? SkipMD5Check { get; set; }
 }

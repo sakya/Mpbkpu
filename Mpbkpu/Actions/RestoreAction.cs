@@ -23,6 +23,7 @@ public class RestoreAction : BaseAction
             Destination = pArgs.DestinationPath,
             DestinationUser = pArgs.DestinationUser,
             DestinationPassword = pArgs.DestinationPassword,
+            SkipMD5Check = pArgs.SkipMD5Check ?? false,
 
             RetryOnError = pArgs.RetryOnError ?? 3,
             LogToConsole = false,

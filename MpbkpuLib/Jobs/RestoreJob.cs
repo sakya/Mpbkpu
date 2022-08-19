@@ -193,9 +193,25 @@ public class RestoreJob : BaseJob
                     Size = item.OriginalSize
                 };
                 backupFile.Files.Add(file);
-            } else if (file.Size != item.OriginalSize || file.LastModified != item.OriginalLastModified) {
-                file.BackupItemId = item.Id;
-                file.FileAction = File.FileActions.Restore;
+            } else if (file.Type == File.FileTyes.File) {
+                if (Settings.SkipMD5Check) {
+                    if (file.Size != item.OriginalSize || file.LastModified != item.OriginalLastModified) {
+                        file.BackupItemId = item.Id;
+                        file.FileAction = File.FileActions.Restore;
+                    } else {
+                        file.FileAction = File.FileActions.None;
+                    }
+                } else {
+                    var md5 = await Utility.Files.GetMD5(_destinationFm, file.FullPath);
+                    if (md5 != item.OriginalMD5) {
+                        file.BackupItemId = item.Id;
+                        file.FileAction = File.FileActions.Restore;
+                    } else {
+                        file.FileAction = File.FileActions.None;
+                    }
+                }
+            } else {
+                file.FileAction = File.FileActions.None;
             }
         }
         await backupFile.SaveChangesAsync();
@@ -243,29 +259,32 @@ public class RestoreJob : BaseJob
             encrypter = new EncryptDecrypt(Settings.EncryptPassword);
         }
 
-        Step?.Invoke(this, Steps.DeleteFiles);
-        var filesToDelete = backupFile.Files.AsNoTracking()
-            .Where(f => f.FileAction == File.FileActions.Restore)
-            .OrderByDescending(f => f.Type);
-        foreach (var fileToDelete in filesToDelete) {
-            if (_cancellationToken?.IsCancellationRequested == true) {
-                LogInfo("Cancelled by user");
-                return false;
-            }
+        if (cArgs.FilesToDelete > 0) {
+            Step?.Invoke(this, Steps.DeleteFiles);
+            var filesToDelete = backupFile.Files.AsNoTracking()
+                .Where(f => f.FileAction == File.FileActions.Restore)
+                .OrderByDescending(f => f.Type);
+            foreach (var fileToDelete in filesToDelete) {
+                if (_cancellationToken?.IsCancellationRequested == true) {
+                    LogInfo("Cancelled by user");
+                    return false;
+                }
 
-            int tryCount = 0;
-            while (++tryCount <= Settings.RetryOnError) {
-                try {
-                    await DeleteFile(fileToDelete);
+                int tryCount = 0;
+                while (++tryCount <= Settings.RetryOnError) {
+                    try {
+                        await DeleteFile(fileToDelete);
 
-                    _progressData.DeleteBytes += fileToDelete.Size;
-                    DeleteProgress?.Invoke(this, ++_progressData.DeleteFileIndex, _progressData.DeleteTotalFiles, _progressData.DeleteBytes, _progressData.DeleteTotalBytes);
-                    break;
-                } catch (Exception ex) {
-                    if (tryCount == Settings.RetryOnError)
-                        throw;
+                        _progressData.DeleteBytes += fileToDelete.Size;
+                        DeleteProgress?.Invoke(this, ++_progressData.DeleteFileIndex, _progressData.DeleteTotalFiles,
+                            _progressData.DeleteBytes, _progressData.DeleteTotalBytes);
+                        break;
+                    } catch (Exception ex) {
+                        if (tryCount == Settings.RetryOnError)
+                            throw;
 
-                    LogWarning($"Failed to delete {fileToDelete.FullPath}: {ex.Message}, retrying");
+                        LogWarning($"Failed to delete {fileToDelete.FullPath}: {ex.Message}, retrying");
+                    }
                 }
             }
         }
@@ -348,6 +367,11 @@ public class RestoreJob : BaseJob
             case File.FileTyes.Directory:
                 if (!await _destinationFm.DirectoryExists(destFilePath))
                     await _destinationFm.CreateDirectory(destFilePath);
+
+                // Restore last modified date (only on local file system)
+                if (_destinationFm is FileSystem && fileToRestore.BackupItem!.OriginalLastModified.HasValue) {
+                    Directory.SetLastWriteTime(destFilePath, fileToRestore.BackupItem.OriginalLastModified.Value);
+                }
                 break;
             case File.FileTyes.File:
                 DateTime? lastFileProgress = null;
@@ -357,7 +381,7 @@ public class RestoreJob : BaseJob
                         {
                             if (lastFileProgress == null || copied == fileToRestore.Size ||
                                 (DateTime.UtcNow - lastFileProgress.Value).TotalMilliseconds >= 500) {
-                                FileProgress?.Invoke(this, fileToRestore.FullPath!, copied, fileToRestore.Size);
+                                FileProgress?.Invoke(this, destFilePath, copied, fileToRestore.Size);
                                 RestoreProgress?.Invoke(this, _progressData!.RestoreFileIndex, _progressData.RestoreTotalFiles, _progressData.RestoreBytes + copied, _progressData.RestoreTotalBytes);
                                 lastFileProgress = DateTime.UtcNow;
                             }
@@ -375,6 +399,11 @@ public class RestoreJob : BaseJob
                         if (md5 != fileToRestore.BackupItem.OriginalMD5)
                             throw new Exception($"MD5 mismatch for file {fileToRestore.BackupItem.OriginalPath}");
                     }
+                }
+
+                // Restore last modified date (only on local file system)
+                if (_destinationFm is FileSystem && fileToRestore.BackupItem.OriginalLastModified.HasValue) {
+                    System.IO.File.SetLastWriteTime(destFilePath, fileToRestore.BackupItem.OriginalLastModified.Value);
                 }
                 break;
         }

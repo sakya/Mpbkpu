@@ -200,16 +200,11 @@ public class VerifyJob: BaseJob
                 LogWarning($"Missing MD5 for file {item.OriginalPath}");
                 return false;
             } else {
-                using (var source = await fm.OpenFile(filePath)) {
-                    using (var hasher = MD5.Create()) {
-                        var hash = await hasher.ComputeHashAsync(source);
-                        var md5 = BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
-                        if (md5 != item.MD5) {
-                            Errors!.Add(new Error(ErrorCodes.Md5Mismatch, $"MD5 mismatch for file {item.OriginalPath}"));
-                            LogWarning($"MD5 mismatch for file {item.OriginalPath}");
-                            return false;
-                        }
-                    }
+                var md5 = await Utility.Files.GetMD5(fm, filePath);
+                if (md5 != item.MD5) {
+                    Errors!.Add(new Error(ErrorCodes.Md5Mismatch, $"MD5 mismatch for file {item.OriginalPath}"));
+                    LogWarning($"MD5 mismatch for file {item.OriginalPath}");
+                    return false;
                 }
             }
         }
