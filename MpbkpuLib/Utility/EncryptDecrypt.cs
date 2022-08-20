@@ -1,8 +1,6 @@
 ﻿using System.IO.Compression;
-using System.Runtime.Intrinsics.Arm;
 using System.Text;
 using System.Security.Cryptography;
-using Microsoft.Graph.SecurityNamespace;
 using MpbkpuLib.DataModel;
 using Aes = System.Security.Cryptography.Aes;
 
@@ -30,7 +28,7 @@ namespace MpbkpuLib.Utility
         {
             using var source = new MemoryStream(Encoding.UTF8.GetBytes(text));
             using var dest = new MemoryStream();
-            await Encrypt(null, source, dest, false);
+            await Encrypt(null, source, dest, CompressionLevel.NoCompression);
             dest.Position = 0;
             return Convert.ToBase64String(dest.ToArray());
         }
@@ -49,14 +47,14 @@ namespace MpbkpuLib.Utility
         /// </summary>
         /// <param name="source">The source <see cref="Stream"/></param>
         /// <param name="destination">The destination <see cref="Stream"/></param>
-        /// <param name="compress">If set to true the <see cref="source"/> is compressed before the encryption</param>
+        /// <param name="compressionLevel">The <see cref="CompressionLevel"/> to use on <see cref="source"/> before the encryption</param>
         /// <param name="progressAction">A <see cref="Action{T}"/> called to report progress</param>
         /// <returns>True on success</returns>
         /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="Exception"></exception>
-        public Task<bool> Encrypt(Stream source, Stream destination, bool compress, Action<long>? progressAction = null)
+        public Task<bool> Encrypt(Stream source, Stream destination, CompressionLevel compressionLevel, Action<long>? progressAction = null)
         {
-            return Encrypt(null, source, destination, compress, progressAction);
+            return Encrypt(null, source, destination, compressionLevel, progressAction);
         }
 
         /// <summary>
@@ -65,12 +63,12 @@ namespace MpbkpuLib.Utility
         /// <param name="backupItem">The <see cref="BackupItem"/></param>
         /// <param name="source">The source <see cref="Stream"/></param>
         /// <param name="destination">The destination <see cref="Stream"/></param>
-        /// <param name="compress">If set to true the <see cref="source"/> is compressed before the encryption</param>
+        /// <param name="compressionLevel">The <see cref="CompressionLevel"/> to use on <see cref="source"/> before the encryption</param>
         /// <param name="progressAction">A <see cref="Action{T}"/> called to report progress</param>
         /// <returns>True on success</returns>
         /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="Exception"></exception>
-        public async Task<bool> Encrypt(BackupItem? backupItem, Stream source, Stream destination, bool compress, Action<long>? progressAction = null)
+        public async Task<bool> Encrypt(BackupItem? backupItem, Stream source, Stream destination, CompressionLevel compressionLevel, Action<long>? progressAction = null)
         {
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
@@ -97,9 +95,9 @@ namespace MpbkpuLib.Utility
                                     await csEncrypt.WriteAsync(aesAlg.IV);
                                     long processed = 0;
                                     int read;
-                                    if (compress) {
+                                    if (compressionLevel != CompressionLevel.NoCompression) {
                                         using (var gzipStream =
-                                               new GZipStream(csEncrypt, CompressionLevel.Optimal, true)) {
+                                               new GZipStream(csEncrypt, compressionLevel, true)) {
                                             while ((read = await source.ReadAsync(buffer)) > 0) {
                                                 sourceHasher.TransformBlock(buffer, 0, read, null, 0);
                                                 await gzipStream.WriteAsync(buffer, 0, read);

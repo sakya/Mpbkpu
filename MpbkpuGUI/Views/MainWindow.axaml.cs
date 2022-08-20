@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Avalonia.Threading;
 using System;
 using System.Collections.Generic;
+using System.IO.Compression;
 using MpbkpuLib.Abstracts;
 using MpbkpuLib.Jobs;
 
@@ -50,7 +51,7 @@ namespace MpbkpuGUI.Views
                 Source = this.FindControl<TextBox>("_source").Text,
                 Destination = this.FindControl<TextBox>("_destination").Text,
                 EncryptPassword = "ciccioPasticcio",
-                Compress = true,
+                CompressionLevel = CompressionLevel.SmallestSize,
                 LogToConsole = true,
             };
             var bkp = new BackupJob(settings);

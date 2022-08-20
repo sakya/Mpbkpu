@@ -400,9 +400,9 @@ public class RestoreJob : BaseJob
 
                         string? hash;
                         if (encrypter != null)
-                            hash = await encrypter.Decrypt(backupStream, destStream, backupSettings.Compress,
+                            hash = await encrypter.Decrypt(backupStream, destStream, backupSettings.CompressionLevel != CompressionLevel.NoCompression,
                                 progressAction);
-                        else if (backupSettings.Compress)
+                        else if (backupSettings.CompressionLevel != CompressionLevel.NoCompression)
                             hash = await RestoreFileFromSourceDecompress(backupStream, destStream, progressAction);
                         else
                             hash = await RestoreFileFromSourceCopy(backupStream, destStream, progressAction);
@@ -424,7 +424,7 @@ public class RestoreJob : BaseJob
     {
         using (var hasher = SHA256.Create()) {
             using (CryptoStream hashStream = new CryptoStream(destStream, hasher, CryptoStreamMode.Write, true)) {
-                using (var compressorStream = new GZipStream(hashStream, CompressionLevel.Optimal, true)) {
+                using (var compressorStream = new GZipStream(hashStream, CompressionMode.Decompress, true)) {
                     long copied = 0;
                     int read;
                     byte[] buffer = new byte[32768];

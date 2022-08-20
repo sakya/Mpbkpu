@@ -1,4 +1,5 @@
-﻿using System.Security.Cryptography;
+﻿using System.IO.Compression;
+using System.Security.Cryptography;
 using MpbkpuLib.Interfaces;
 
 namespace MpbkpuLib.Utility;
@@ -66,10 +67,10 @@ public static class Files
         throw new Exception($"Cannot get parent of {path}");
     }
 
-    public static long? GetDestinationFileSize(long sourceFileSize, bool compress, bool encrypt)
+    public static long? GetDestinationFileSize(long sourceFileSize, CompressionLevel compressionLevel, bool encrypt)
     {
         long? destFileSize = sourceFileSize;
-        if (compress) {
+        if (compressionLevel != CompressionLevel.NoCompression) {
             // Unknown file size
             destFileSize = null;
         } else if (encrypt) {

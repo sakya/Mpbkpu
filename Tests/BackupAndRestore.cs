@@ -1,4 +1,5 @@
 using System.IO;
+using System.IO.Compression;
 using System.Threading;
 using System.Threading.Tasks;
 using MpbkpuLib.Jobs;
@@ -57,7 +58,7 @@ public class BackupAndRestore : BaseTest
         {
             BackupType = BackupJobSettings.BackupTypes.Full,
             Source = BackupSource,
-            Compress = true,
+            CompressionLevel = CompressionLevel.SmallestSize,
             Destination = BackupDestination,
         };
         var bJob = new BackupJob(bSettings);
@@ -120,7 +121,7 @@ public class BackupAndRestore : BaseTest
         {
             BackupType = BackupJobSettings.BackupTypes.Full,
             Source = BackupSource,
-            Compress = true,
+            CompressionLevel = CompressionLevel.SmallestSize,
             EncryptPassword = EncryptionPassword,
             Destination = BackupDestination,
         };

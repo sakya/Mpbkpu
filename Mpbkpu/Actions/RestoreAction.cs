@@ -23,7 +23,7 @@ public class RestoreAction : BaseAction
             Destination = pArgs.DestinationPath,
             DestinationUser = pArgs.DestinationUser,
             DestinationPassword = pArgs.DestinationPassword,
-            SkipHashCheck = pArgs.SkipHashCheck ?? false,
+            SkipHashCheck = pArgs.SkipHashCheck,
 
             RetryOnError = pArgs.RetryOnError ?? 3,
             LogToConsole = false,

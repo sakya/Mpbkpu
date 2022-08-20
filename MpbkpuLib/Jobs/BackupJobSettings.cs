@@ -1,4 +1,5 @@
-﻿using MpbkpuLib.Abstracts;
+﻿using System.IO.Compression;
+using MpbkpuLib.Abstracts;
 
 namespace MpbkpuLib.Jobs;
 public class BackupJobSettings : BaseJobSettings
@@ -87,10 +88,10 @@ public class BackupJobSettings : BaseJobSettings
     public bool IncludeHiddenFiles { get; set; }
 
     /// <summary>
-    /// If set to true files are compressed during backup
+    /// The compression level used during backup
     /// </summary>
     /// <value></value>
-    public bool Compress { get; set; }
+    public CompressionLevel CompressionLevel { get; set; }
 
     /// <summary>
     /// Number of retries on error while backing up a file

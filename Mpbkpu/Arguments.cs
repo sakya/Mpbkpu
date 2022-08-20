@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using CmdLineArgsParser;
 using CmdLineArgsParser.Attributes;
 using Microsoft.Graph;
@@ -67,12 +68,13 @@ public class Arguments : IOptions
     [Option("interactive", ShortName = 'i',
         MutuallyExclusive = "password",
         Description = "Ask for encrypt/decrypt password")]
-    public bool? InteractivePassword { get; set; }
+    public bool InteractivePassword { get; set; }
 
-    [Option("compress", ShortName = 'c',
-        Description = "If set the files are compressed during backup",
-        OnlyForVerbs = "Backup")]
-    public bool Compress { get; set; }
+    [Option("compressionlevel", 'c',
+        Description = "Set the file compression level",
+        OnlyForVerbs = "Backup",
+        DefaultValue = "NoCompression")]
+    public CompressionLevel CompressionLevel { get; set; }
 
     [Option("backup", ShortName = 'b',
         Required = true,
@@ -117,10 +119,10 @@ public class Arguments : IOptions
 
     [Option("yes", 'y',
         Description = "Auto reply YES to any question")]
-    public bool? AlwaysYes { get; set; }
+    public bool AlwaysYes { get; set; }
 
     [Option("skiphash",
         Description = "Skip SHA256 hash check on existing file in the destination directory",
         OnlyForVerbs = "Backup;Restore")]
-    public bool? SkipHashCheck { get; set; }
+    public bool SkipHashCheck { get; set; }
 }

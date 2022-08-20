@@ -1,4 +1,5 @@
-﻿using MpbkpuLib.Abstracts;
+﻿using System.IO.Compression;
+using MpbkpuLib.Abstracts;
 using MpbkpuLib.Jobs;
 
 namespace Mpbkpu.Actions;
@@ -23,19 +24,19 @@ public class BackupAction : BaseAction
             Destination = pArgs.DestinationPath,
             DestinationUser = pArgs.DestinationUser,
             DestinationPassword = pArgs.DestinationPassword,
-            SkipHashCheck = pArgs.SkipHashCheck ?? false,
+            SkipHashCheck = pArgs.SkipHashCheck,
 
             Exclude = pArgs.Exclude,
             RetryOnError = pArgs.RetryOnError ?? 3,
             EncryptPassword = pArgs.Password,
-            Compress = pArgs.Compress,
+            CompressionLevel = pArgs.CompressionLevel,
             LogToConsole = false,
             LogFile = pArgs.LogFile
         };
 
         Console.WriteLine($"Type       : { pArgs.BackupType }");
         Console.Write("Compression: ");
-        WriteEnabled(pArgs.Compress);
+        WriteEnabled(pArgs.CompressionLevel != CompressionLevel.NoCompression);
         Console.Write("Encryption : ");
         WriteEnabled(!string.IsNullOrEmpty(pArgs.Password));
         Console.WriteLine();

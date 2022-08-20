@@ -10,6 +10,7 @@ Supported backup type:
 Supported remote file systems:
 - FTP
 - SFTP
+toEncrypt- Dropbox
 - MediaFire
 - Mega
 - OneDrive

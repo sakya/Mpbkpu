@@ -345,7 +345,7 @@ public class BackupJob : BaseJob
                 while (++tryCount <= Settings.RetryOnError) {
                     try {
                         // Compute file size of the backup file if possible
-                        long? backupFileSize = Files.GetDestinationFileSize(fileToBackup.Size, Settings.Compress, encrypter != null);
+                        long? backupFileSize = Files.GetDestinationFileSize(fileToBackup.Size, Settings.CompressionLevel, encrypter != null);
                         await BackupFileFromSource(backupFile, fileToBackup, encrypter, backupFileSize);
                         _progressData.Bytes += fileToBackup.Size;
                         Progress?.Invoke(this, ++_progressData.FileIndex, cArgs.FilesToBackup, _progressData.Bytes, _progressData.TotalBytes);
@@ -402,7 +402,7 @@ public class BackupJob : BaseJob
         if (BackupFm == null)
             throw new Exception("Backup file manager not initialized");
 
-        if (Settings.Compress && !BackupFm.SupportCompression())
+        if (Settings.CompressionLevel != CompressionLevel.NoCompression && !BackupFm.SupportCompression())
             throw new Exception("Destination doesn't support compression");
 
         if (!await BackupFm.DirectoryExists(BackupPath))
@@ -479,10 +479,10 @@ public class BackupJob : BaseJob
                         });
 
                         if (encrypter != null)
-                            await encrypter.Encrypt(backupItem, sourceStream, destStream, Settings.Compress,
+                            await encrypter.Encrypt(backupItem, sourceStream, destStream, Settings.CompressionLevel,
                                 progressAction);
-                        else if (Settings.Compress)
-                            await BackupFileFromSourceCompress(backupItem, sourceStream, destStream, progressAction);
+                        else if (Settings.CompressionLevel != CompressionLevel.NoCompression)
+                            await BackupFileFromSourceCompress(backupItem, sourceStream, destStream, Settings.CompressionLevel, progressAction);
                         else
                             await BackupFileFromSourceCopy(backupItem, sourceStream, destStream, progressAction);
                     }
@@ -514,12 +514,12 @@ public class BackupJob : BaseJob
         }
     }
 
-    private async Task BackupFileFromSourceCompress(BackupItem backupItem, Stream sourceStream, Stream destStream, Action<long>? progressAction = null)
+    private async Task BackupFileFromSourceCompress(BackupItem backupItem, Stream sourceStream, Stream destStream, CompressionLevel compressionLevel, Action<long>? progressAction = null)
     {
         using (var sourceHasher = SHA256.Create()) {
             using (var destHasher = SHA256.Create()) {
                 using (CryptoStream hashStream = new CryptoStream(destStream, destHasher, CryptoStreamMode.Write, true)) {
-                    using (var compressorStream = new GZipStream(hashStream, CompressionLevel.Optimal, true)) {
+                    using (var compressorStream = new GZipStream(hashStream, compressionLevel, true)) {
                         long copied = 0;
                         int read;
                         byte[] buffer = new byte[32768];

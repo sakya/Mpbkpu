@@ -1,4 +1,5 @@
-﻿using Dropbox.Api.Users;
+﻿using System.IO.Compression;
+using Dropbox.Api.Users;
 using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
 using MpbkpuLib.Interfaces;
@@ -71,7 +72,7 @@ public abstract class BaseJob : IDisposable
         if (await BackupFm.FileExists(openRes.BackupFilePath))
             await BackupFm.DeleteFile(openRes.BackupFilePath);
 
-        var destFileSize = Files.GetDestinationFileSize(sourceStream.Length, BackupFm.SupportCompression(),
+        var destFileSize = Files.GetDestinationFileSize(sourceStream.Length, BackupFm.SupportCompression() ? CompressionLevel.SmallestSize : CompressionLevel.NoCompression,
             !string.IsNullOrEmpty(password));
         await using var destStream = await BackupFm.OpenFile(openRes.BackupFilePath, true, destFileSize);
 
@@ -79,7 +80,7 @@ public abstract class BaseJob : IDisposable
             await Files.Copy(sourceStream, destStream);
         else {
             var encrypt = new EncryptDecrypt(password);
-            await encrypt.Encrypt(sourceStream, destStream, BackupFm.SupportCompression());
+            await encrypt.Encrypt(sourceStream, destStream, BackupFm.SupportCompression() ? CompressionLevel.SmallestSize : CompressionLevel.NoCompression);
         }
     }
 
