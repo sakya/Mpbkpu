@@ -1,4 +1,5 @@
 ﻿using System.IO.Compression;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Security.Cryptography;
 using MpbkpuLib.DataModel;
@@ -12,16 +13,21 @@ namespace MpbkpuLib.Utility
     internal class EncryptDecrypt
     {
         public const string Header = "MPBKPU_ENCRYPTED";
-        private static byte[]? _keyBytes;
+        public static readonly int HeaderSize = Header.Length;
+        private readonly string? _password;
 
-        public EncryptDecrypt(string? key)
+        public const int AesBlockByteSize = 128 / 8;
+        public const int PasswordSaltByteSize = 128 / 8;
+        private const int PasswordByteSize = 256 / 8;
+        private const int PasswordIterationCount = 100000;
+        private readonly RandomNumberGenerator _random = RandomNumberGenerator.Create();
+
+        public EncryptDecrypt(string? password)
         {
-            if (string.IsNullOrEmpty(key))
-                throw new ArgumentNullException(nameof(key));
+            if (string.IsNullOrEmpty(password))
+                throw new ArgumentNullException(nameof(password));
 
-            using (HashAlgorithm hash = SHA256.Create()) {
-                _keyBytes = hash.ComputeHash(Encoding.Unicode.GetBytes(key));
-            }
+            _password = password;
         }
 
         public async Task<string> Encrypt(string text)
@@ -74,25 +80,31 @@ namespace MpbkpuLib.Utility
                 throw new ArgumentNullException(nameof(source));
             if (destination == null)
                 throw new ArgumentNullException(nameof(destination));
-            if (_keyBytes == null)
-                throw new Exception("Cannot encrypt without a key");
+            if (string.IsNullOrEmpty(_password))
+                throw new Exception("Cannot encrypt without a password");
 
             // Header
             byte[] header = Encoding.ASCII.GetBytes(Header);
             await destination.WriteAsync(header);
 
-            using (var aesAlg = Aes.Create()) {
-                aesAlg.Mode = CipherMode.CBC;
-                aesAlg.Padding = PaddingMode.PKCS7;
+            using (var aesAlg = CreateAes()) {
+                var iv = GenerateRandomBytes(AesBlockByteSize);
+                var keySalt = GenerateRandomBytes(PasswordSaltByteSize);
+                var key = GetKey(_password, keySalt);
+
+                await destination.WriteAsync(iv);
+                await destination.WriteAsync(keySalt);
+
                 using (var sourceHasher = SHA256.Create()) {
                     using (var destHasher = SHA256.Create()) {
                         destHasher.TransformBlock(header, 0, header.Length, null, 0);
-                        using (var encryptor = aesAlg.CreateEncryptor(_keyBytes, aesAlg.IV)) {
+                        destHasher.TransformBlock(iv, 0, iv.Length, null, 0);
+                        destHasher.TransformBlock(keySalt, 0, iv.Length, null, 0);
+                        using (var encryptor = aesAlg.CreateEncryptor(key, iv)) {
                             using (CryptoStream hashStream = new CryptoStream(destination, destHasher, CryptoStreamMode.Write, true)) {
                                 using (var csEncrypt = new CryptoStream(hashStream, encryptor, CryptoStreamMode.Write)) {
                                     byte[] buffer = new byte[32768];
 
-                                    await csEncrypt.WriteAsync(aesAlg.IV);
                                     long processed = 0;
                                     int read;
                                     if (compressionLevel != CompressionLevel.NoCompression) {
@@ -149,26 +161,28 @@ namespace MpbkpuLib.Utility
                 throw new ArgumentNullException(nameof(source));
             if (destination == null)
                 throw new ArgumentNullException(nameof(destination));
-            if (_keyBytes == null)
-                throw new Exception("Cannot decrypt without a key");
+            if (string.IsNullOrEmpty(_password))
+                throw new Exception("Cannot encrypt without a password");
 
             // Check header
-            var header = new byte[Header.Length];
+            var header = new byte[HeaderSize];
             var hRead = await source.ReadAsync(header);
             if (hRead != header.Length || Encoding.ASCII.GetString(header) != Header)
                 throw new Exception("This file is not encrypted");
 
-            var iv = new byte[16];
-            if (await source.ReadAsync(iv, 0, iv.Length) != 16)
+            var iv = new byte[AesBlockByteSize];
+            if (await source.ReadAsync(iv, 0, iv.Length) != AesBlockByteSize)
                 throw new Exception("Cannot read IV");
+            var keySalt = new byte[PasswordSaltByteSize];
+            if (await source.ReadAsync(keySalt, 0, keySalt.Length) != PasswordSaltByteSize)
+                throw new Exception("Cannot read key salt");
 
-            string? res = null;
-            using (var aesAlg = Aes.Create()) {
-                aesAlg.Mode = CipherMode.CBC;
-                aesAlg.Padding = PaddingMode.PKCS7;
+            string? res;
+            using (var aesAlg = CreateAes()) {
+                var key = GetKey(_password, keySalt);
                 using (var hasher = SHA256.Create()) {
-                    using (var decrypter = aesAlg.CreateDecryptor(_keyBytes, iv)) {
-                        using (var csDecrypt = new CryptoStream(source, decrypter, CryptoStreamMode.Read)) {
+                    using (var decryptor = aesAlg.CreateDecryptor(key, iv)) {
+                        using (var csDecrypt = new CryptoStream(source, decryptor, CryptoStreamMode.Read)) {
                             byte[] buffer = new byte[32768];
 
                             long processed = 0;
@@ -202,5 +216,29 @@ namespace MpbkpuLib.Utility
 
             return res;
         } // Decrypt
+
+        private Aes CreateAes()
+        {
+            var aes = Aes.Create();
+            aes.Mode = CipherMode.CBC;
+            aes.Padding = PaddingMode.PKCS7;
+            return aes;
+        }
+
+        private byte[] GenerateRandomBytes(int numberOfBytes)
+        {
+            var randomBytes = new byte[numberOfBytes];
+            _random.GetBytes(randomBytes);
+            return randomBytes;
+        }
+
+        private byte[] GetKey(string password, byte[] passwordSalt)
+        {
+            var keyBytes = Encoding.UTF8.GetBytes(password);
+            using var derivator = new Rfc2898DeriveBytes(
+                keyBytes, passwordSalt,
+                PasswordIterationCount, HashAlgorithmName.SHA256);
+            return derivator.GetBytes(PasswordByteSize);
+        }
     }
 }

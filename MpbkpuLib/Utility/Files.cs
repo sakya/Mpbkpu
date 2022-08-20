@@ -74,9 +74,10 @@ public static class Files
             // Unknown file size
             destFileSize = null;
         } else if (encrypt) {
-            destFileSize = (sourceFileSize / 16 + 1) * 16;
-            // Header
-            destFileSize += 32;
+            destFileSize = (sourceFileSize / EncryptDecrypt.AesBlockByteSize + 1) * EncryptDecrypt.AesBlockByteSize;
+            destFileSize += EncryptDecrypt.AesBlockByteSize; // iv
+            destFileSize += EncryptDecrypt.PasswordSaltByteSize;
+            destFileSize += EncryptDecrypt.HeaderSize;
         }
 
         return destFileSize;

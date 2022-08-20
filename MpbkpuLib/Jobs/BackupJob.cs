@@ -304,9 +304,9 @@ public class BackupJob : BaseJob
 
         // Backup files
         Step?.Invoke(this, Steps.BackupFiles);
-        EncryptDecrypt? encrypter = null;
+        EncryptDecrypt? encryptor = null;
         if (!string.IsNullOrEmpty(Settings.EncryptPassword)) {
-            encrypter = new EncryptDecrypt(Settings.EncryptPassword);
+            encryptor = new EncryptDecrypt(Settings.EncryptPassword);
         }
 
         _progressData = new ProgressData()
@@ -345,8 +345,8 @@ public class BackupJob : BaseJob
                 while (++tryCount <= Settings.RetryOnError) {
                     try {
                         // Compute file size of the backup file if possible
-                        long? backupFileSize = Files.GetDestinationFileSize(fileToBackup.Size, Settings.CompressionLevel, encrypter != null);
-                        await BackupFileFromSource(backupFile, fileToBackup, encrypter, backupFileSize);
+                        long? backupFileSize = Files.GetDestinationFileSize(fileToBackup.Size, Settings.CompressionLevel, encryptor != null);
+                        await BackupFileFromSource(backupFile, fileToBackup, encryptor, backupFileSize);
                         _progressData.Bytes += fileToBackup.Size;
                         Progress?.Invoke(this, ++_progressData.FileIndex, cArgs.FilesToBackup, _progressData.Bytes, _progressData.TotalBytes);
                         break;
@@ -414,12 +414,12 @@ public class BackupJob : BaseJob
     /// </summary>
     /// <param name="backupFile">The <see cref="BackupFile"/></param>
     /// <param name="sourceFile">The <see cref="DataModel.File"/> to backup</param>
-    /// <param name="encrypter">The optional <see cref="Utility.EncryptDecrypt"/> to encrypt the file</param>
+    /// <param name="encryptor">The optional <see cref="Utility.EncryptDecrypt"/> to encrypt the file</param>
     /// <param name="backupFileSize">The size of the backup file, if known</param>
     /// <exception cref="ArgumentNullException"></exception>
     private async Task BackupFileFromSource(BackupFile? backupFile,
         File? sourceFile,
-        EncryptDecrypt? encrypter,
+        EncryptDecrypt? encryptor,
         long? backupFileSize)
     {
         if (_sourceFm == null)
@@ -478,8 +478,8 @@ public class BackupJob : BaseJob
                             }
                         });
 
-                        if (encrypter != null)
-                            await encrypter.Encrypt(backupItem, sourceStream, destStream, Settings.CompressionLevel,
+                        if (encryptor != null)
+                            await encryptor.Encrypt(backupItem, sourceStream, destStream, Settings.CompressionLevel,
                                 progressAction);
                         else if (Settings.CompressionLevel != CompressionLevel.NoCompression)
                             await BackupFileFromSourceCompress(backupItem, sourceStream, destStream, Settings.CompressionLevel, progressAction);

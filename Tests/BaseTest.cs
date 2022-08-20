@@ -9,7 +9,7 @@ public class BaseTest
     protected const string BackupDestination = "./Mpbkpu_Test/backup";
     protected const string RestoreDestination = "./Mpbkpu_Test/restore";
     protected const string EncryptionPassword = "password";
-    private readonly Random _random = new();
+    protected readonly Random Random = new();
 
     protected void PrepareSourceDirectory()
     {
@@ -30,20 +30,20 @@ public class BaseTest
         var minSize = 64 * 1024;
         var maxSize = 5 * 1024 * 1024;
 
-        for (var i = 0; i < _random.Next(3, 10); i++) {
-            CreateFile(Path.Combine(BackupSource, $"file{i}"), _random.Next(minSize, maxSize));
+        for (var i = 0; i < Random.Next(3, 10); i++) {
+            CreateFile(Path.Combine(BackupSource, $"file{i}"), Random.Next(minSize, maxSize));
         }
 
-        for (var i = 0; i < _random.Next(3, 10); i++) {
-            CreateFile(Path.Combine(BackupSource, "SubDirectory1", $"file{i}"), _random.Next(minSize, maxSize));
+        for (var i = 0; i < Random.Next(3, 10); i++) {
+            CreateFile(Path.Combine(BackupSource, "SubDirectory1", $"file{i}"), Random.Next(minSize, maxSize));
         }
 
-        for (var i = 0; i < _random.Next(3, 10); i++) {
-            CreateFile(Path.Combine(BackupSource, "SubDirectory1", "SubDirectory1", $"file{i}"), _random.Next(minSize, maxSize));
+        for (var i = 0; i < Random.Next(3, 10); i++) {
+            CreateFile(Path.Combine(BackupSource, "SubDirectory1", "SubDirectory1", $"file{i}"), Random.Next(minSize, maxSize));
         }
 
-        for (var i = 0; i < _random.Next(3, 10); i++) {
-            CreateFile(Path.Combine(BackupSource, "SubDirectory2", $"file{i}"), _random.Next(minSize, maxSize));
+        for (var i = 0; i < Random.Next(3, 10); i++) {
+            CreateFile(Path.Combine(BackupSource, "SubDirectory2", $"file{i}"), Random.Next(minSize, maxSize));
         }
     }
 
@@ -68,7 +68,7 @@ public class BaseTest
                     toWrite = (int)(size - write);
 
                 for (var i = 0; i < toWrite; i++) {
-                    buffer[i] = (byte)_random.Next(0, 255);
+                    buffer[i] = (byte)Random.Next(0, 255);
                 }
                 fs.Write(buffer, 0, toWrite);
                 write += toWrite;

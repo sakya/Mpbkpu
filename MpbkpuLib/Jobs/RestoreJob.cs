@@ -265,9 +265,9 @@ public class RestoreJob : BaseJob
             RestoreTotalFiles = cArgs.FilesToRestore
         };
 
-        EncryptDecrypt? encrypter = null;
+        EncryptDecrypt? encryptor = null;
         if (!string.IsNullOrEmpty(Settings.EncryptPassword)) {
-            encrypter = new EncryptDecrypt(Settings.EncryptPassword);
+            encryptor = new EncryptDecrypt(Settings.EncryptPassword);
         }
 
         if (cArgs.FilesToDelete > 0) {
@@ -318,7 +318,7 @@ public class RestoreJob : BaseJob
             int tryCount = 0;
             while (++tryCount <= Settings.RetryOnError) {
                 try {
-                    await RestoreFile(backupSettings, fileToRestore, encrypter);
+                    await RestoreFile(backupSettings, fileToRestore, encryptor);
 
                     _progressData.RestoreBytes += fileToRestore.Size;
                     RestoreProgress?.Invoke(this, ++_progressData.RestoreFileIndex, cArgs.FilesToRestore, _progressData.RestoreBytes, _progressData.RestoreTotalBytes);
@@ -363,7 +363,7 @@ public class RestoreJob : BaseJob
             await _destinationFm.CreateDirectory(_destinationPath);
     }
 
-    private async Task RestoreFile(BackupJobSettings backupSettings, File? fileToRestore, EncryptDecrypt? encrypter)
+    private async Task RestoreFile(BackupJobSettings backupSettings, File? fileToRestore, EncryptDecrypt? encryptor)
     {
         if (_destinationFm == null)
             throw new Exception("Destination file manager not initialized");
@@ -399,8 +399,8 @@ public class RestoreJob : BaseJob
                         });
 
                         string? hash;
-                        if (encrypter != null)
-                            hash = await encrypter.Decrypt(backupStream, destStream, backupSettings.CompressionLevel != CompressionLevel.NoCompression,
+                        if (encryptor != null)
+                            hash = await encryptor.Decrypt(backupStream, destStream, backupSettings.CompressionLevel != CompressionLevel.NoCompression,
                                 progressAction);
                         else if (backupSettings.CompressionLevel != CompressionLevel.NoCompression)
                             hash = await RestoreFileFromSourceDecompress(backupStream, destStream, progressAction);

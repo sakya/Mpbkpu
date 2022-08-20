@@ -113,8 +113,8 @@ public class BackupFile : IDisposable
         if (await backupFm.FileExists(backupDbPath)) {
             // Check header
             using (var sourceStream = await backupFm.OpenFile(backupDbPath)) {
-                var header = new byte[EncryptDecrypt.Header.Length];
-                var read =await sourceStream.ReadAsync(header);
+                var header = new byte[EncryptDecrypt.HeaderSize];
+                var read = await sourceStream.ReadAsync(header);
                 encrypted = read == header.Length && Encoding.ASCII.GetString(header) == EncryptDecrypt.Header;
                 switch (encrypted) {
                     case true when string.IsNullOrEmpty(password):
