@@ -5,9 +5,9 @@ namespace Tests;
 
 public class BaseTest
 {
-    protected const string BackupSource = "/home/sakya/Mpbkpu_Test/source";
-    protected const string BackupDestination = "/home/sakya/Mpbkpu_Test/backup";
-    protected const string RestoreDestination = "/home/sakya/Mpbkpu_Test/restore";
+    protected const string BackupSource = "./Mpbkpu_Test/source";
+    protected const string BackupDestination = "./Mpbkpu_Test/backup";
+    protected const string RestoreDestination = "./Mpbkpu_Test/restore";
     protected const string EncryptionPassword = "password";
     private readonly Random _random = new();
 
