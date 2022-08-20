@@ -70,7 +70,10 @@ public static class Program
             try {
                 action.Run(pArgs).Wait();
                 if (action.Completed.HasValue && action.Started.HasValue) {
-                    Console.WriteLine($"Completed in { (action.Completed.Value - action.Started.Value) }");
+                    Console.Write($"Completed in { (action.Completed.Value - action.Started.Value) }");
+                    if (action.Bytes.HasValue)
+                        Console.Write($" ({MpbkpuLib.Utility.String.BytesToString(action.Bytes.Value)})");
+                    Console.WriteLine();
                 }
             } finally {
                 Console.ResetColor();

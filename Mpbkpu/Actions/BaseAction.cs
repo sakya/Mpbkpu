@@ -16,6 +16,7 @@ public abstract class BaseAction : IAction
 
     public DateTime? Started { get; set; }
     public DateTime? Completed { get; set; }
+    public long? Bytes { get; set; }
 
     public abstract Task<bool> Run(Arguments pArgs);
 

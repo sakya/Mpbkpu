@@ -67,6 +67,7 @@ public class BackupAction : BaseAction
 
         Started = jobRes?.Started;
         Completed = jobRes?.Completed;
+        Bytes = jobRes?.Bytes;
 
         return true;
     }

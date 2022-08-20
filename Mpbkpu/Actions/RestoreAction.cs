@@ -57,6 +57,7 @@ public class RestoreAction : BaseAction
 
         Started = jobRes?.Started;
         Completed = jobRes?.Completed;
+        Bytes = jobRes?.Bytes;
 
         return true;
     }

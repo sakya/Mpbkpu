@@ -148,6 +148,7 @@ public class BackupJob : BaseJob
         {
             Success = true,
             Started = started,
+            Bytes = _progressData?.TotalBytes,
             Completed = DateTime.UtcNow,
             Guid = _backup!.Guid
         };

@@ -131,6 +131,7 @@ public class RestoreJob : BaseJob
         {
             Success = true,
             Started = started,
+            Bytes = _progressData?.RestoreTotalBytes,
             Completed = DateTime.UtcNow
         };
     }
