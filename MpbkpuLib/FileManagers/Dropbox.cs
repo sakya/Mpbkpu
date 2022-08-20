@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net;
 using System.Text;
 using DeviceId;
@@ -178,6 +179,14 @@ public class Dropbox : IFileManager
 </script>
 <body onload=""redirect()""/>
 </html>";
+    private const string TokenResponsePage = @"<html>
+<body>
+    <p>
+    You can close this tab
+    </p>
+</body>
+</html>";
+
     private readonly Uri _redirectUri = new Uri(LoopbackHost + "authorize");
     private readonly Uri _jsRedirectUri = new Uri(LoopbackHost + "token");
     private DropboxClient? _client;
@@ -398,17 +407,27 @@ public class Dropbox : IFileManager
                 http.Prefixes.Add(LoopbackHost);
                 http.Start();
 
+                Process process = new Process();
+                var startInfo = new ProcessStartInfo();
+                process.StartInfo = startInfo;
                 if (OperatingSystem.IsLinux()) {
-                    System.Diagnostics.Process.Start($"xdg-open", $"\"{authorizeUri}\"");
+                    startInfo.FileName = "xdg-open";
+                    startInfo.ArgumentList.Add(authorizeUri.ToString());
+                } else if (OperatingSystem.IsMacOS()) {
+                    startInfo.FileName = "open";
+                    startInfo.ArgumentList.Add(authorizeUri.ToString());
+                    process.StartInfo = startInfo;
                 } else {
-                    System.Diagnostics.Process.Start(authorizeUri.ToString());
+                    startInfo.FileName = authorizeUri.ToString();
                 }
+                process.Start();
 
                 await HandleOAuth2Redirect(http);
                 var redirectUri = await HandleJsRedirect(http);
                 var tokenResult = await DropboxOAuth2Helper.ProcessCodeFlowAsync(redirectUri, AppKey, AppSecret,
                     _redirectUri.ToString(), state, codeVerifier: codeVerifier);
                 http.Stop();
+                process.Dispose();
 
                 var accessToken = tokenResult.AccessToken;
                 var refreshToken = tokenResult.RefreshToken;
@@ -449,7 +468,9 @@ public class Dropbox : IFileManager
             context = await http.GetContextAsync();
         }
         var redirectUri = new Uri(context.Request.QueryString["url_with_fragment"]!);
-
+        using (var file = new MemoryStream(Encoding.UTF8.GetBytes(TokenResponsePage))) {
+            await file.CopyToAsync(context.Response.OutputStream);
+        }
         return redirectUri;
     }
 
