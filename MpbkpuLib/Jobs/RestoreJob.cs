@@ -291,7 +291,8 @@ public class RestoreJob : BaseJob
                         await DeleteFile(fileToDelete);
 
                         _progressData.DeleteBytes += fileToDelete.Size;
-                        DeleteProgress?.Invoke(this, new ProgressHandlerArgs(++_progressData.DeleteFileIndex, _progressData.DeleteTotalFiles,
+                        _progressData.DeleteFileIndex++;
+                        DeleteProgress?.Invoke(this, new ProgressHandlerArgs(_progressData.DeleteFileIndex, _progressData.DeleteTotalFiles,
                             _progressData.DeleteBytes, _progressData.DeleteTotalBytes, GetEta(_progressData.Started, _progressData.DeleteBytes, _progressData.DeleteTotalBytes)));
                         break;
                     } catch (Exception ex) {
@@ -326,7 +327,8 @@ public class RestoreJob : BaseJob
                     await RestoreFile(backupSettings, fileToRestore, encryptor);
 
                     _progressData.RestoreBytes += fileToRestore.Size;
-                    RestoreProgress?.Invoke(this, new ProgressHandlerArgs(++_progressData.RestoreFileIndex, cArgs.FilesToRestore, _progressData.RestoreBytes, _progressData.RestoreTotalBytes, GetEta(_progressData.Started, _progressData.RestoreBytes, _progressData.RestoreTotalBytes)));
+                    _progressData.RestoreFileIndex++;
+                    RestoreProgress?.Invoke(this, new ProgressHandlerArgs(_progressData.RestoreFileIndex, cArgs.FilesToRestore, _progressData.RestoreBytes, _progressData.RestoreTotalBytes, GetEta(_progressData.Started, _progressData.RestoreBytes, _progressData.RestoreTotalBytes)));
                     break;
                 } catch (Exception ex) {
                     if (tryCount == Settings.RetryOnError)

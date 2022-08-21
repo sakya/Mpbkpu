@@ -340,7 +340,8 @@ public class BackupJob : BaseJob
                         LogWarning($"File {fileToBackup.FullPath} not found");
 
                         _progressData.Bytes += fileToBackup.Size;
-                        Progress?.Invoke(this, new ProgressHandlerArgs(++_progressData.FileIndex, cArgs.FilesToBackup, _progressData.Bytes, _progressData.TotalBytes, GetEta(_progressData.Started, _progressData.Bytes, _progressData.TotalBytes)));
+                        _progressData.FileIndex++;
+                        Progress?.Invoke(this, new ProgressHandlerArgs(_progressData.FileIndex, cArgs.FilesToBackup, _progressData.Bytes, _progressData.TotalBytes, GetEta(_progressData.Started, _progressData.Bytes, _progressData.TotalBytes)));
                         continue;
                     }
                 }
@@ -352,7 +353,8 @@ public class BackupJob : BaseJob
                         long? backupFileSize = Files.GetDestinationFileSize(fileToBackup.Size, Settings.CompressionLevel, encryptor != null);
                         await BackupFileFromSource(backupFile, fileToBackup, encryptor, backupFileSize);
                         _progressData.Bytes += fileToBackup.Size;
-                        Progress?.Invoke(this, new ProgressHandlerArgs(++_progressData.FileIndex, cArgs.FilesToBackup, _progressData.Bytes, _progressData.TotalBytes, GetEta(_progressData.Started, _progressData.Bytes, _progressData.TotalBytes)));
+                        _progressData.FileIndex++;
+                        Progress?.Invoke(this, new ProgressHandlerArgs(_progressData.FileIndex, cArgs.FilesToBackup, _progressData.Bytes, _progressData.TotalBytes, GetEta(_progressData.Started, _progressData.Bytes, _progressData.TotalBytes)));
                         break;
                     } catch (Exception ex) {
                         if (tryCount == Settings.RetryOnError)

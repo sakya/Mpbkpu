@@ -30,8 +30,11 @@ public class DeleteJob : BaseJob
     public event ConfirmHandler? ConfirmDelete;
 
     public delegate void StepHandler(object sender, Steps step);
-
     public event StepHandler? Step;
+
+    public delegate void ProgressHandler(object sender, ProgressHandlerArgs args);
+
+    public event ProgressHandler? Progress;
     #endregion
 
     public DeleteJob(DeleteJobSettings? settings) :
@@ -141,6 +144,13 @@ public class DeleteJob : BaseJob
             .Include(i => i.Backup)
             .AsNoTracking()
             .Where(i => i.BackupId == bkp.Id);
+
+        var started = DateTime.UtcNow;
+        var totalFiles = await items.CountAsync();
+        var totalSize = await items.Select(i => i.Size)
+            .SumAsync();
+        int fileIdx = 0;
+        long bytes = 0;
         foreach (var item in items) {
             if (_cancellationToken?.IsCancellationRequested == true) {
                 LogInfo("Cancelled by user");
@@ -148,6 +158,9 @@ public class DeleteJob : BaseJob
             }
 
             await BackupFm.DeleteFile(GetBackupItemPath(BackupFm, BackupPath, item));
+            fileIdx++;
+            bytes += item.Size;
+            Progress?.Invoke(this, new ProgressHandlerArgs(fileIdx, totalFiles, bytes,totalSize, GetEta(started, bytes, totalSize)));
         }
 
         // Delete data

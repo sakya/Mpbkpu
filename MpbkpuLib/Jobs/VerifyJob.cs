@@ -150,7 +150,8 @@ public class VerifyJob: BaseJob
 
                 if (!await VerifyBackupItem(BackupFm, item))
                     filesError++;
-                Progress?.Invoke(this, ++fileIdx, filesCount);
+                fileIdx++;
+                Progress?.Invoke(this, fileIdx, filesCount);
             }
 
             if (filesError > 0)

@@ -23,6 +23,7 @@ public class DeleteAction : BaseAction
         job.Step += OnStep;
         job.ConfirmDelete += OnConfirm;
         job.LogEmitted += OnLog;
+        job.Progress += OnProgress;
 
         BaseJobResult? jobRes = null;
         var cts = new CancellationTokenSource();
@@ -74,6 +75,15 @@ public class DeleteAction : BaseAction
         var res = Utility.Console.Confirm($"Delete backup with GUID {e.Guid} containing {e.FilesToDelete} files ({MpbkpuLib.Utility.String.BytesToString(e.BytesToDelete)})?", false, true);
         Console.CursorVisible = false;
         return Task.FromResult(res);
+    }
+
+    private void OnProgress(object sender, BaseJob.ProgressHandlerArgs args)
+    {
+        var perc = args.Bytes / (double)args.TotalBytes * 100.0;
+        var progress = $"[{perc,5:0.0}%]";
+
+        Console.CursorLeft = 0;
+        Console.Write(progress.PadRight(Console.WindowWidth - 1));
     }
     #endregion
 }
