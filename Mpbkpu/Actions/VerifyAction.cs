@@ -61,10 +61,10 @@ public class VerifyAction : BaseAction
         Console.ForegroundColor = DefaultColor;
     }
 
-    private void OnProgress(object sender, int file, int totalFiles)
+    private void OnProgress(object sender, BaseJob.ProgressHandlerArgs args)
     {
-        var perc = file / (double)totalFiles * 100.0;
-        var progress = $"[{perc,5:0.0}%]";
+        var perc = args.Bytes / (double)args.TotalBytes * 100.0;
+        var progress = $"[{args.Eta.ToString(@"hh\:mm\:ss")}][{perc,5:0.0}%]";
 
         Console.CursorLeft = 0;
         Console.Write(progress.PadRight(Console.WindowWidth - 1));

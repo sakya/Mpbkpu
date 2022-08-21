@@ -26,7 +26,7 @@ public class VerifyJob: BaseJob
 
     public event StepHandler? Step;
 
-    public delegate void ProgressHandler(object sender, int file, int totalFiles);
+    public delegate void ProgressHandler(object sender, ProgressHandlerArgs args);
 
     public event ProgressHandler? Progress;
     #endregion
@@ -133,9 +133,11 @@ public class VerifyJob: BaseJob
             LogWarning("Backup directory does not exists");
         } else {
             // Verify backup items
+            var started = DateTime.UtcNow;
             var filesError = 0;
             Step?.Invoke(this, Steps.VerifyFiles);
-            int fileIdx = 0;
+            var fileIdx = 0;
+            long bytes = 0;
             await foreach (var item in backupFile.GetBackupItems(bkp.Id)) {
                 if (_cancellationToken?.IsCancellationRequested == true) {
                     LogInfo("Cancelled by user");
@@ -149,7 +151,8 @@ public class VerifyJob: BaseJob
                 if (!await VerifyBackupItem(BackupFm, item))
                     filesError++;
                 fileIdx++;
-                Progress?.Invoke(this, fileIdx, bkpItemsCount);
+                bytes += item.Size;
+                Progress?.Invoke(this, new ProgressHandlerArgs(fileIdx, bkpItemsCount, bytes, bkpSize, GetEta(started, bytes, bkpSize)));
             }
 
             if (filesError > 0)
