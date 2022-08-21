@@ -204,7 +204,7 @@ public class Dropbox : IFileManager
         _client?.Dispose();
     }
 
-    public string? GetScheme()
+    public string GetScheme()
     {
         return Scheme;
     }

@@ -21,7 +21,7 @@ namespace MpbkpuLib.FileManagers
 
         }
 
-        public string? GetScheme()
+        public string GetScheme()
         {
             return Scheme;
         }

@@ -22,7 +22,7 @@ namespace MpbkpuLib.FileManagers
             _client?.Dispose();
         }
 
-        public string? GetScheme()
+        public string GetScheme()
         {
             return Scheme;
         }

@@ -135,7 +135,7 @@ namespace MpbkpuLib.FileManagers
         {
         }
 
-        public string? GetScheme()
+        public string GetScheme()
         {
             return Scheme;
         }
@@ -343,7 +343,7 @@ namespace MpbkpuLib.FileManagers
                 var app = PublicClientApplicationBuilder.CreateWithApplicationOptions(appOptions).Build();
 
                 // Create token cache
-                var storageProperties = new StorageCreationPropertiesBuilder("UserTokenCache", Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Mpbkpu"))
+                var storageProperties = new StorageCreationPropertiesBuilder("OneDriveUserTokenCache", Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Mpbkpu"))
                     .WithLinuxKeyring(
                         "com.github.sakya.Mpbkpu",
                         MsalCacheHelper.LinuxKeyRingDefaultCollection,

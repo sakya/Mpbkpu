@@ -123,7 +123,7 @@ public class Mega : IFileManager
         }
     }
 
-    public string? GetScheme()
+    public string GetScheme()
     {
         return Scheme;
     }

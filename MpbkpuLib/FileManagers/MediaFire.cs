@@ -14,8 +14,8 @@ public class MediaFire : IFileManager
 
     private class ReaderStream : Stream
     {
-        private HttpClient _client;
-        private Stream _baseStream;
+        private readonly HttpClient _client;
+        private readonly Stream _baseStream;
         public ReaderStream(string url)
         {
             _client = new HttpClient();
@@ -168,7 +168,7 @@ public class MediaFire : IFileManager
         _client?.Dispose();
     }
 
-    public string? GetScheme()
+    public string GetScheme()
     {
         return Scheme;
     }

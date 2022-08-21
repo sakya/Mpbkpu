@@ -136,7 +136,7 @@ namespace MpbkpuLib.FileManagers
             Host = host;
         }
 
-        public string? GetScheme()
+        public string GetScheme()
         {
             return Scheme;
         }
