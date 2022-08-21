@@ -53,6 +53,9 @@ public class ListContentAction : BaseAction
                 break;
             case ListContentJob.Steps.ListContent:
                 Console.WriteLine("Listing content");
+                Console.WriteLine();
+                Console.ForegroundColor = HighlightColor;
+                Console.WriteLine($"{"Type",-4} {"Size",-12} Name");
                 break;
         }
 
@@ -61,8 +64,7 @@ public class ListContentAction : BaseAction
 
     private void OnContent(object sender, BackupItem item)
     {
-        Console.Write(item.Type == File.FileTyes.Directory ? "[DIR ]" : "[FILE]");
-        Console.WriteLine(item.OriginalRelativePath);
+        Console.WriteLine($"{(item.Type == File.FileTyes.Directory ? "Dir" : "File"), -4} {MpbkpuLib.Utility.String.BytesToString(item.Size), -12} {item.OriginalRelativePath}");
     }
     #endregion
 }
