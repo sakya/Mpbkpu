@@ -15,4 +15,9 @@ public static class String
             return Math.Round(size / 1024.0, 1).ToString("0.# Kib");
         return size.ToString("0 bytes");
     }
+
+    public static string TimeSpanToString(TimeSpan ts)
+    {
+        return ts.ToString(ts.Days > 0 ? @"d\.hh\:mm\:ss" : @"hh\:mm\:ss");
+    }
 }

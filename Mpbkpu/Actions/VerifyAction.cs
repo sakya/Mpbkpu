@@ -64,7 +64,7 @@ public class VerifyAction : BaseAction
     private void OnProgress(object sender, BaseJob.ProgressHandlerArgs args)
     {
         var perc = args.Bytes / (double)args.TotalBytes * 100.0;
-        var progress = $"[{args.Eta.ToString(@"hh\:mm\:ss")}][{perc,5:0.0}%]";
+        var progress = $"[{MpbkpuLib.Utility.String.TimeSpanToString(args.Eta)}][{perc,5:0.0}%]";
 
         Console.CursorLeft = 0;
         Console.Write(progress.PadRight(Console.WindowWidth - 1));
