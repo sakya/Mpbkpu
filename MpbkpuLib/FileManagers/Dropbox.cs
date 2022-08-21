@@ -416,7 +416,6 @@ public class Dropbox : IFileManager
                 } else if (OperatingSystem.IsMacOS()) {
                     startInfo.FileName = "open";
                     startInfo.ArgumentList.Add(authorizeUri.ToString());
-                    process.StartInfo = startInfo;
                 } else {
                     startInfo.FileName = authorizeUri.ToString();
                 }

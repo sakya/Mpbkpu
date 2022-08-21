@@ -31,7 +31,7 @@ namespace MpbkpuLib.FileManagers
             newPosition = path;
             // FTP
             // ftp://user:password@host/position
-            if (path.StartsWith(Ftp.Scheme)) {
+            if (path.StartsWith(Ftp.Scheme, StringComparison.InvariantCultureIgnoreCase)) {
                 var m = Regex.Match(path, $"{Ftp.Scheme}(([^:]+):([^@]+)@)?([^/:]+)(:[0-9]+)?(.*)?$");
                 if (m.Success) {
                     if (m.Groups.Count == 7) {
@@ -58,7 +58,7 @@ namespace MpbkpuLib.FileManagers
             // SFTP
             // sftp://user:password@host/position
             // sftp://user:keyfile=pathToFile@host/position
-            if (path.StartsWith(Sftp.Scheme)) {
+            if (path.StartsWith(Sftp.Scheme, StringComparison.InvariantCultureIgnoreCase)) {
                 var m = Regex.Match(path, $"{Sftp.Scheme}(([^:]+):([^@]+)@)?([^/:]+)(:[0-9]+)?(.*)?$");
                 if (m.Success) {
                     if (m.Groups.Count == 7) {
@@ -88,7 +88,7 @@ namespace MpbkpuLib.FileManagers
 
             // SMB
             // smb://domain\user:password@host\position
-            if (path.StartsWith(Smb.Scheme)) {
+            if (path.StartsWith(Smb.Scheme, StringComparison.InvariantCultureIgnoreCase)) {
                 var m = Regex.Match(path, $"{Smb.Scheme}((.+)?\\\\(.+):(.+)@)?([^/]+)?(.*)?$");
                 if (m.Success) {
                     if (m.Groups.Count == 7) {
@@ -121,7 +121,7 @@ namespace MpbkpuLib.FileManagers
 
             // OneDrive
             // onedrive://account@live.com/position
-            if (path.StartsWith(OneDrive.Scheme)) {
+            if (path.StartsWith(OneDrive.Scheme, StringComparison.InvariantCultureIgnoreCase)) {
                 var m = Regex.Match(path, $"{OneDrive.Scheme}([^/]+)/(.*)$");
                 if (m.Success) {
                     string? account = null;
@@ -144,7 +144,7 @@ namespace MpbkpuLib.FileManagers
 
             // MEGA
             // mega://user:password/position
-            if (path.StartsWith(Mega.Scheme)) {
+            if (path.StartsWith(Mega.Scheme, StringComparison.InvariantCultureIgnoreCase)) {
                 var m = Regex.Match(path, $"{Mega.Scheme}(([^:]+):([^/]+))/?(.*)?$");
                 if (m.Success) {
                     if (m.Groups.Count == 5) {
@@ -167,7 +167,7 @@ namespace MpbkpuLib.FileManagers
 
             // Dropbox
             // dropbox://user/position
-            if (path.StartsWith(Dropbox.Scheme)) {
+            if (path.StartsWith(Dropbox.Scheme, StringComparison.InvariantCultureIgnoreCase)) {
                 var m = Regex.Match(path, $"{Dropbox.Scheme}([^/]+)/(.*)$");
                 if (m.Success) {
                     string? account = null;
@@ -190,7 +190,7 @@ namespace MpbkpuLib.FileManagers
 
             // MediaFire
             // mediafire://user:password/position
-            if (path.StartsWith(MediaFire.Scheme)) {
+            if (path.StartsWith(MediaFire.Scheme, StringComparison.InvariantCultureIgnoreCase)) {
                 var m = Regex.Match(path, $"{MediaFire.Scheme}(([^:]+):([^/]+))/?(.*)?$");
                 if (m.Success) {
                     if (m.Groups.Count == 5) {
