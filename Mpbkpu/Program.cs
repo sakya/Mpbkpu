@@ -1,5 +1,4 @@
-﻿using System.Reflection;
-using System.Text;
+﻿using System.Text;
 using CmdLineArgsParser;
 using Mpbkpu.Actions;
 
@@ -9,21 +8,23 @@ public static class Program
 {
     private static void PrintInfo()
     {
-        var ea = Assembly.GetExecutingAssembly();
-        Console.WriteLine($"Multi Platform Backup Utility v{ea.GetName().Version?.ToString()}");
-        if (ea.GetCustomAttribute(typeof(AssemblyCopyrightAttribute)) is AssemblyCopyrightAttribute ca)
-            Console.WriteLine(ca.Copyright);
-        Console.WriteLine();
+        var parser = new Parser();
+        parser.ShowInfo(false);
     }
 
-    private static void PrintHelp()
+    private static void PrintHelp(bool showInfo = true)
     {
         var parser = new Parser();
+        if (showInfo)
+            parser.ShowInfo();
         parser.ShowUsage<Arguments>();
 
         Console.WriteLine();
         Console.WriteLine("Examples:");
-        Console.WriteLine("mpbkpu backup --source /home/user/ --destination /mnt/backup/");
+        Console.WriteLine("mpbkpu backup -t Incremental -s /home/user/ -d /mnt/backup/ -c Optimal -p PWD");
+        Console.WriteLine("mpbkpu list -b /mnt/backup/ -p PWD");
+        Console.WriteLine("mpbkpu verify -b /mnt/backup/ -g GUID -p PWD");
+        Console.WriteLine("mpbkpu restore -b /mnt/backup/ -d /home/user/ -g GUID -p PWD");
     }
 
     public static int Main(string[] args)
@@ -37,11 +38,14 @@ public static class Program
 
         var pArgs = new Parser().Parse<Arguments>(args, out var errors);
         if (errors.Count > 0) {
+            PrintInfo();
+            Console.ForegroundColor = BaseAction.ErrorColor;
             foreach (var e in errors) {
                 Console.WriteLine(e.Message);
             }
+            Console.ForegroundColor = BaseAction.DefaultColor;
             Console.WriteLine();
-            PrintHelp();
+            PrintHelp(false);
             return -1;
         }
 
@@ -52,7 +56,7 @@ public static class Program
         };
         PrintInfo();
         // Ask for password
-        if (pArgs.InteractivePassword == true) {
+        if (pArgs.InteractivePassword) {
             Console.Write(("Password: "));
             pArgs.Password = Utility.Console.AskPassword(true);
             if (string.IsNullOrEmpty(pArgs.Password)) {

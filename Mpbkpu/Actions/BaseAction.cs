@@ -12,7 +12,7 @@ public abstract class BaseAction : IAction
     protected const ConsoleColor InfoColor = ConsoleColor.Blue;
     protected const ConsoleColor SuccessColor = ConsoleColor.Green;
     protected const ConsoleColor WarningColor = ConsoleColor.Yellow;
-    protected const ConsoleColor ErrorColor = ConsoleColor.Red;
+    public const ConsoleColor ErrorColor = ConsoleColor.Red;
 
     public DateTime? Started { get; set; }
     public DateTime? Completed { get; set; }
