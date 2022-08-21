@@ -7,6 +7,7 @@ using MpbkpuLib.FileManagers;
 using MpbkpuLib.Interfaces;
 using MpbkpuLib.Utility;
 using Newtonsoft.Json;
+using SQLitePCL;
 using File = MpbkpuLib.DataModel.File;
 
 namespace MpbkpuLib.Jobs;
@@ -29,6 +30,7 @@ public class RestoreJob : BaseJob
     #region classes
     private class ProgressData
     {
+        public DateTime? Started { get; set; }
         public int DeleteTotalFiles { get; set; }
         public int DeleteFileIndex { get; set; }
         public long DeleteTotalBytes { get; set; }
@@ -75,7 +77,7 @@ public class RestoreJob : BaseJob
     public delegate Task<bool> ConfirmHandler(object sender, ConfirmArgs e);
     public event ConfirmHandler? ConfirmRestore;
 
-    public delegate void ProgressHandler(object sender, int file, int totalFiles, long bytes, long totalBytes);
+    public delegate void ProgressHandler(object sender, ProgressHandlerArgs args);
     public event ProgressHandler? DeleteProgress;
     public event ProgressHandler? RestoreProgress;
 
@@ -259,6 +261,7 @@ public class RestoreJob : BaseJob
 
         _progressData = new ProgressData()
         {
+            Started = DateTime.UtcNow,
             DeleteTotalBytes = cArgs.BytesToDelete,
             DeleteTotalFiles = cArgs.FilesToDelete,
 
@@ -288,8 +291,8 @@ public class RestoreJob : BaseJob
                         await DeleteFile(fileToDelete);
 
                         _progressData.DeleteBytes += fileToDelete.Size;
-                        DeleteProgress?.Invoke(this, ++_progressData.DeleteFileIndex, _progressData.DeleteTotalFiles,
-                            _progressData.DeleteBytes, _progressData.DeleteTotalBytes);
+                        DeleteProgress?.Invoke(this, new ProgressHandlerArgs(++_progressData.DeleteFileIndex, _progressData.DeleteTotalFiles,
+                            _progressData.DeleteBytes, _progressData.DeleteTotalBytes, GetEta(_progressData.Started, _progressData.DeleteBytes, _progressData.DeleteTotalBytes)));
                         break;
                     } catch (Exception ex) {
                         if (tryCount == Settings.RetryOnError)
@@ -301,6 +304,7 @@ public class RestoreJob : BaseJob
             }
         }
 
+        _progressData.Started = DateTime.UtcNow;
         Step?.Invoke(this, Steps.RestoreFiles);
         var filesToRestore = backupFile.Files
             .Include(f => f.BackupItem)
@@ -322,7 +326,7 @@ public class RestoreJob : BaseJob
                     await RestoreFile(backupSettings, fileToRestore, encryptor);
 
                     _progressData.RestoreBytes += fileToRestore.Size;
-                    RestoreProgress?.Invoke(this, ++_progressData.RestoreFileIndex, cArgs.FilesToRestore, _progressData.RestoreBytes, _progressData.RestoreTotalBytes);
+                    RestoreProgress?.Invoke(this, new ProgressHandlerArgs(++_progressData.RestoreFileIndex, cArgs.FilesToRestore, _progressData.RestoreBytes, _progressData.RestoreTotalBytes, GetEta(_progressData.Started, _progressData.RestoreBytes, _progressData.RestoreTotalBytes)));
                     break;
                 } catch (Exception ex) {
                     if (tryCount == Settings.RetryOnError)
@@ -394,7 +398,7 @@ public class RestoreJob : BaseJob
                             if (lastFileProgress == null || copied == fileToRestore.Size ||
                                 (DateTime.UtcNow - lastFileProgress.Value).TotalMilliseconds >= 500) {
                                 FileProgress?.Invoke(this, destFilePath, copied, fileToRestore.Size);
-                                RestoreProgress?.Invoke(this, _progressData!.RestoreFileIndex, _progressData.RestoreTotalFiles, _progressData.RestoreBytes + copied, _progressData.RestoreTotalBytes);
+                                RestoreProgress?.Invoke(this, new ProgressHandlerArgs(_progressData!.RestoreFileIndex, _progressData.RestoreTotalFiles, _progressData.RestoreBytes + copied, _progressData.RestoreTotalBytes, TimeSpan.Zero));
                                 lastFileProgress = DateTime.UtcNow;
                             }
                         });

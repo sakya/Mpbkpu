@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Newtonsoft.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Graph;
 using MpbkpuLib.Abstracts;
 using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
@@ -29,6 +30,7 @@ public class BackupJob : BaseJob
 
     private class ProgressData
     {
+        public DateTime? Started { get; set; }
         public int TotalFiles { get; set; }
         public int FileIndex { get; set; }
         public long TotalBytes { get; set; }
@@ -71,7 +73,7 @@ public class BackupJob : BaseJob
 
     public event StepHandler? Step;
 
-    public delegate void ProgressHandler(object sender, int file, int totalFiles, long bytes, long totalBytes);
+    public delegate void ProgressHandler(object sender, ProgressHandlerArgs args);
 
     public event ProgressHandler? Progress;
 
@@ -312,6 +314,7 @@ public class BackupJob : BaseJob
 
         _progressData = new ProgressData()
         {
+            Started = DateTime.UtcNow,
             TotalBytes = cArgs.BytesToBackup,
             TotalFiles = cArgs.FilesToBackup
         };
@@ -337,7 +340,7 @@ public class BackupJob : BaseJob
                         LogWarning($"File {fileToBackup.FullPath} not found");
 
                         _progressData.Bytes += fileToBackup.Size;
-                        Progress?.Invoke(this, ++_progressData.FileIndex, cArgs.FilesToBackup, _progressData.Bytes, _progressData.TotalBytes);
+                        Progress?.Invoke(this, new ProgressHandlerArgs(++_progressData.FileIndex, cArgs.FilesToBackup, _progressData.Bytes, _progressData.TotalBytes, GetEta(_progressData.Started, _progressData.Bytes, _progressData.TotalBytes)));
                         continue;
                     }
                 }
@@ -349,7 +352,7 @@ public class BackupJob : BaseJob
                         long? backupFileSize = Files.GetDestinationFileSize(fileToBackup.Size, Settings.CompressionLevel, encryptor != null);
                         await BackupFileFromSource(backupFile, fileToBackup, encryptor, backupFileSize);
                         _progressData.Bytes += fileToBackup.Size;
-                        Progress?.Invoke(this, ++_progressData.FileIndex, cArgs.FilesToBackup, _progressData.Bytes, _progressData.TotalBytes);
+                        Progress?.Invoke(this, new ProgressHandlerArgs(++_progressData.FileIndex, cArgs.FilesToBackup, _progressData.Bytes, _progressData.TotalBytes, GetEta(_progressData.Started, _progressData.Bytes, _progressData.TotalBytes)));
                         break;
                     } catch (Exception ex) {
                         if (tryCount == Settings.RetryOnError)
@@ -474,7 +477,7 @@ public class BackupJob : BaseJob
                             if (lastFileProgress == null || copied == sourceFile.Size ||
                                 (DateTime.UtcNow - lastFileProgress.Value).TotalMilliseconds >= 500) {
                                 FileProgress?.Invoke(this, sourceFile.FullPath!, copied, sourceFile.Size);
-                                Progress?.Invoke(this, _progressData!.FileIndex, _progressData.TotalFiles, _progressData.Bytes + copied, _progressData.TotalBytes);
+                                Progress?.Invoke(this, new ProgressHandlerArgs(_progressData!.FileIndex, _progressData.TotalFiles, _progressData.Bytes + copied, _progressData.TotalBytes, GetEta(_progressData.Started, _progressData.Bytes + copied, _progressData.TotalBytes)));
                                 lastFileProgress = DateTime.UtcNow;
                             }
                         });

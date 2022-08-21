@@ -8,6 +8,7 @@ public class BackupAction : BaseAction
 {
     private Arguments? _pArgs;
     private double _totalPerc;
+    private TimeSpan _eta = TimeSpan.Zero;
 
     public override async Task<bool> Run(Arguments pArgs)
     {
@@ -113,7 +114,7 @@ public class BackupAction : BaseAction
         var perc = bytes / (double)totalBytes * 100.0;
         if (bytes == 0 && totalBytes == 0)
             perc = 100;
-        var progress = $"[{_totalPerc,5:0.0}%][{perc,5:0.0}%]";
+        var progress = $"[{_eta.ToString(@"hh\:mm\:ss")}][{_totalPerc,5:0.0}%][{perc,5:0.0}%]";
         if (filePath.Length > Console.WindowWidth - progress.Length - 1)
             filePath = $"...{ filePath.Substring(filePath.Length - (Console.WindowWidth - progress.Length) + 4) }";
         progress = $"{progress}{filePath}";
@@ -122,11 +123,12 @@ public class BackupAction : BaseAction
         Console.Write(progress.PadRight(Console.WindowWidth - 1));
     }
 
-    private void OnProgress(object sender, int file, int totalFiles, long bytes, long totalBytes)
+    private void OnProgress(object sender, BaseJob.ProgressHandlerArgs args)
     {
-        _totalPerc = bytes / (double)totalBytes * 100.0;
+        _totalPerc = args.Bytes / (double)args.TotalBytes * 100.0;
+        _eta = args.Eta;
         Console.CursorLeft = 0;
-        Console.Write($"[{_totalPerc,5:0.0}%]");
+        Console.Write($"[{_eta.ToString(@"hh\:mm\:ss")}][{_totalPerc,5:0.0}%]");
     }
     #endregion
 }

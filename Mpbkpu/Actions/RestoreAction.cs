@@ -98,10 +98,10 @@ public class RestoreAction : BaseAction
         return Task.FromResult(res);
     }
 
-    private void OnDeleteProgress(object sender, int file, int totalFiles, long bytes, long totalBytes)
+    private void OnDeleteProgress(object sender, BaseJob.ProgressHandlerArgs args)
     {
         Console.CursorLeft = 0;
-        Console.Write($"[{(file / (double)totalFiles * 100.0),5:0.0}%]");
+        Console.Write($"[{(args.File / (double)args.TotalFiles * 100.0),5:0.0}%]");
     }
 
     private void OnFileProgress(object sender, string filePath, long bytes, long totalBytes)
@@ -118,9 +118,9 @@ public class RestoreAction : BaseAction
         Console.Write(progress.PadRight(Console.WindowWidth - 1));
     }
 
-    private void OnRestoreProgress(object sender, int file, int totalFiles, long bytes, long totalBytes)
+    private void OnRestoreProgress(object sender, BaseJob.ProgressHandlerArgs args)
     {
-        _totalPerc = file / (double)totalFiles * 100.0;
+        _totalPerc = args.Bytes / (double)args.TotalBytes * 100.0;
         Console.CursorLeft = 0;
         Console.Write($"[{_totalPerc,5:0.0}%]");
     }

@@ -62,11 +62,11 @@ namespace MpbkpuGUI.Views
                     fileProgress.Value = (double)bytes / (double)totalBytes * 100.0;
                 }, DispatcherPriority.Background);
             };
-            bkp.Progress += async (s, fileIdx, totalFiles, bytes, totalBytes) =>
+            bkp.Progress += async (s, args) =>
             {
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
-                    progress.Value = (double)bytes / (double)totalBytes * 100.0;
+                    progress.Value = (double)args.Bytes / (double)args.TotalBytes * 100.0;
                 }, DispatcherPriority.Background);
             };
 

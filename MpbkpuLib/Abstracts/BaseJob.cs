@@ -10,6 +10,24 @@ namespace MpbkpuLib.Abstracts;
 
 public abstract class BaseJob : IDisposable
 {
+    #region region classes
+    public class ProgressHandlerArgs : EventArgs
+    {
+        public ProgressHandlerArgs(int file, int totalFiles, long bytes, long totalBytes, TimeSpan eta)
+        {
+            File = file;
+            TotalFiles = totalFiles;
+            Bytes = bytes;
+            TotalBytes = totalBytes;
+            Eta = eta;
+        }
+        public int File { get; set; }
+        public int TotalFiles { get; set; }
+        public long Bytes { get; set; }
+        public long TotalBytes { get; set; }
+        public TimeSpan Eta { get; set; }
+    }
+    #endregion
     #region private members
 
     private readonly StreamWriter? _logWriter;
@@ -237,5 +255,17 @@ public abstract class BaseJob : IDisposable
                 await ReadPathContent(bkpFile, fileManager, rootPath, file.FullPath, includeHiddenFiles, defaultAction, token);
         }
         return true;
+    }
+
+    protected TimeSpan GetEta(DateTime? started, long done, long total)
+    {
+        if (started == null)
+            throw new ArgumentNullException(nameof(started));
+
+        if (done == 0)
+            return TimeSpan.Zero;
+
+        var secs = (DateTime.UtcNow - started.Value).TotalSeconds;
+        return TimeSpan.FromSeconds(secs / done * (double)total - secs);
     }
 }

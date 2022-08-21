@@ -180,10 +180,10 @@ public class Dropbox : IFileManager
 <body onload=""redirect()""/>
 </html>";
     private const string TokenResponsePage = @"<html>
-<body>
-    <p>
-    You can close this tab
-    </p>
+<body style=""height: 100%; width: 100%;"">
+  <div style=""display: flex; display: flex; justify-content: center;align-items: center;height: 100%;"">
+    <h2>You can close this tab</h2>    
+  </div>
 </body>
 </html>";
 
