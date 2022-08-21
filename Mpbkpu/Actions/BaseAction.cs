@@ -20,41 +20,26 @@ public abstract class BaseAction : IAction
 
     public abstract Task<bool> Run(Arguments pArgs);
 
-    protected async Task<BackupFile.OpenResult?> OpenBackup(string? backupPath, string? password)
-    {
-        if (string.IsNullOrEmpty(backupPath))
-            throw new ArgumentException($"{nameof(backupPath)} cannot be empty", nameof(backupPath));
-
-        Console.ForegroundColor = InfoColor;
-        Console.WriteLine("Opening backup");
-        Console.ForegroundColor = DefaultColor;
-        BackupFile.OpenResult? backupFile;
-
-        try {
-            using var fm = FileManagerFactory.GetFileManager(backupPath, out var newPath);
-            backupFile = await BackupFile.OpenBackupFile(fm, newPath, password);
-        } catch (Exception ex) {
-            Console.ForegroundColor = ErrorColor;
-            Console.WriteLine($"ERROR: {ex.Message}");
-            if (!string.IsNullOrEmpty(ex.StackTrace)) {
-                Console.WriteLine(ex.StackTrace);
-            }
-            return null;
-        }
-
-        return backupFile;
-    }
-
     protected void WriteLog(BaseJobSettings.LogLevels level, string message)
     {
-        Console.ForegroundColor = level switch
-        {
-            BaseJobSettings.LogLevels.Debug => ConsoleColor.DarkGray,
-            BaseJobSettings.LogLevels.Info => ConsoleColor.White,
-            BaseJobSettings.LogLevels.Warning => ConsoleColor.Yellow,
-            BaseJobSettings.LogLevels.Error => ConsoleColor.Red,
-            _ => Console.ForegroundColor
-        };
+        switch (level) {
+            case BaseJobSettings.LogLevels.Debug:
+                Console.ForegroundColor = ConsoleColor.DarkGray;
+                message = $"[DBG]{message}";
+                break;
+            case BaseJobSettings.LogLevels.Info:
+                Console.ForegroundColor = ConsoleColor.White;
+                message = $"[INF]{message}";
+                break;
+            case BaseJobSettings.LogLevels.Warning:
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                message = $"[WRN]{message}";
+                break;
+            case BaseJobSettings.LogLevels.Error:
+                Console.ForegroundColor = ConsoleColor.Red;
+                message = $"[ERR]{message}";
+                break;
+        }
         Console.WriteLine(message);
         Console.ForegroundColor = DefaultColor;
     }
@@ -65,5 +50,11 @@ public abstract class BaseAction : IAction
             Console.ForegroundColor = SuccessColor;
         Console.WriteLine(enabled ? "Enabled" : "Disabled");
         Console.ForegroundColor = DefaultColor;
+    }
+
+    protected void OnLog(object sender, BaseJobSettings.LogLevels level, string message)
+    {
+        Utility.Console.ClearLine();
+        WriteLog(level, message);
     }
 }

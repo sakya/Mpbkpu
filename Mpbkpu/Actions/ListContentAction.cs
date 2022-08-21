@@ -59,12 +59,6 @@ public class ListContentAction : BaseAction
         Console.ForegroundColor = DefaultColor;
     }
 
-    private void OnLog(object sender, BaseJobSettings.LogLevels level, string message)
-    {
-        Utility.Console.ClearLine();
-        WriteLog(level, message);
-    }
-
     private void OnContent(object sender, BackupItem item)
     {
         Console.Write(item.Type == File.FileTyes.Directory ? "[DIR ]" : "[FILE]");

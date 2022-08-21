@@ -128,11 +128,5 @@ public class BackupAction : BaseAction
         Console.CursorLeft = 0;
         Console.Write($"[{_totalPerc,5:0.0}%]");
     }
-
-    private void OnLog(object sender, BaseJobSettings.LogLevels level, string message)
-    {
-        Utility.Console.ClearLine();
-        WriteLog(level, message);
-    }
     #endregion
 }

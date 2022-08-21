@@ -63,12 +63,6 @@ public class ListAction : BaseAction
         Console.ForegroundColor = DefaultColor;
     }
 
-    private void OnLog(object sender, BaseJobSettings.LogLevels level, string message)
-    {
-        Utility.Console.ClearLine();
-        WriteLog(level, message);
-    }
-
     private void OnListBackup(object sender, Backup backup, int files, long bytes)
     {
         Console.Write($"{backup.Guid,-32} {backup.Type,-12}");

@@ -61,12 +61,6 @@ public class VerifyAction : BaseAction
         Console.ForegroundColor = DefaultColor;
     }
 
-    private void OnLog(object sender, BaseJobSettings.LogLevels level, string message)
-    {
-        Utility.Console.ClearLine();
-        WriteLog(level, message);
-    }
-
     private void OnProgress(object sender, int file, int totalFiles)
     {
         var perc = file / (double)totalFiles * 100.0;

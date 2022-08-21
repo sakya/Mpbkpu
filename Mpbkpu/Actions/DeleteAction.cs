@@ -75,10 +75,5 @@ public class DeleteAction : BaseAction
         Console.CursorVisible = false;
         return Task.FromResult(res);
     }
-
-    private void OnLog(object sender, BaseJobSettings.LogLevels level, string message)
-    {
-        WriteLog(level, message);
-    }
     #endregion
 }
