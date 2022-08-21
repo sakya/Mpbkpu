@@ -1,7 +1,6 @@
 using System.IO.Compression;
 using CmdLineArgsParser;
 using CmdLineArgsParser.Attributes;
-using Microsoft.Graph;
 using MpbkpuLib.Abstracts;
 using MpbkpuLib.Jobs;
 
@@ -17,6 +16,8 @@ public class Arguments : IOptions
         Restore,
         [Description("List backups")]
         List,
+        [Description("List the content of a backup")]
+        ListContent,
         [Description("Delete a backup")]
         Delete,
         [Description("Verify a backup")]
@@ -79,22 +80,22 @@ public class Arguments : IOptions
     [Option("backup", ShortName = 'b',
         Required = true,
         Description = "The path containing the backup",
-        OnlyForVerbs = "Restore;Delete;List;Verify")]
+        OnlyForVerbs = "Restore;Delete;List;ListContent;Verify")]
     public string? BackupPath { get; set; }
 
     [Option("backupuser",
         Description = "The user for accessing the backup file system",
-        OnlyForVerbs = "Restore;Delete;List;Verify")]
+        OnlyForVerbs = "Restore;Delete;List;ListContent;Verify")]
     public string? BackupUser { get; set; }
     [Option("backuppassword",
         Description = "The password for accessing the backup file system",
-        OnlyForVerbs = "Restore;Delete;List;Verify")]
+        OnlyForVerbs = "Restore;Delete;List;ListContent;Verify")]
     public string? BackupPassword { get; set; }
 
     [Option("guid", ShortName = 'g',
         Required = true,
         Description = "The backup GUID",
-        OnlyForVerbs = "Delete;Restore;Verify")]
+        OnlyForVerbs = "Delete;Restore;ListContent;Verify")]
     public string? BackupGuid { get; set; }
 
     [Option("loglevel", 'l',

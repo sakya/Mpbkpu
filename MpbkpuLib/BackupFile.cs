@@ -178,7 +178,7 @@ public class BackupFile : IDisposable
     private async Task ApplyMigrations()
     {
         _context!.Database.SetCommandTimeout(1800000);
-        if (_context.Database.GetPendingMigrations().Any()) {
+        if ((await _context.Database.GetPendingMigrationsAsync()).Any()) {
             await _context.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = OFF;");
             await _context.Database.MigrateAsync();
             await _context.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = ON;");

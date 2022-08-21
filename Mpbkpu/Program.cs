@@ -66,6 +66,7 @@ public static class Program
             Arguments.Actions.Backup => new BackupAction(),
             Arguments.Actions.Delete => new DeleteAction(),
             Arguments.Actions.List => new ListAction(),
+            Arguments.Actions.ListContent => new ListContentAction(),
             Arguments.Actions.Restore => new RestoreAction(),
             Arguments.Actions.Verify => new VerifyAction(),
             _ => null

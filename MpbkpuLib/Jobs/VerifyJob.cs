@@ -41,7 +41,6 @@ public class VerifyJob: BaseJob
     {
         get { return (base.Settings as VerifyJobSettings)!; }
     }
-
     #endregion
 
     #region public operations
