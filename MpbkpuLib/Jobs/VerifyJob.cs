@@ -109,10 +109,9 @@ public class VerifyJob: BaseJob
         if (bkp.Result != Backup.Results.Completed)
             LogWarning($"Database result is { bkp.Result }");
 
-        var bkpItems = backupFile.GetBackupItems(bkp.Id);
         var bkpItemsCount = 0;
         long bkpSize = 0;
-        await foreach (var i in bkpItems) {
+        await foreach (var i in backupFile.GetBackupItems(bkp.Id)) {
             bkpItemsCount++;
             bkpSize += i.OriginalSize;
         }
@@ -134,7 +133,7 @@ public class VerifyJob: BaseJob
             LogWarning("Backup directory does not exists");
         } else {
             // Verify backup items
-            int filesError = 0;
+            var filesError = 0;
             Step?.Invoke(this, Steps.VerifyFiles);
             int fileIdx = 0;
             await foreach (var item in backupFile.GetBackupItems(bkp.Id)) {
