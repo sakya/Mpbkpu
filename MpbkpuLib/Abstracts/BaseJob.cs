@@ -247,6 +247,8 @@ public abstract class BaseJob : IDisposable
             if (token?.IsCancellationRequested == true)
                 return true;
 
+            if (file.Type == File.FileTyes.Directory)
+                file.Size = 0;
             file.FileAction = defaultAction;
             file.RootPath = rootPath;
             file.RelativePath = file.FullPath?.Substring(file.RootPath.Length);
@@ -266,6 +268,6 @@ public abstract class BaseJob : IDisposable
             return TimeSpan.Zero;
 
         var secs = (DateTime.UtcNow - started.Value).TotalSeconds;
-        return TimeSpan.FromSeconds(secs / done * (double)total - secs);
+        return TimeSpan.FromSeconds(secs / done * total - secs);
     }
 }
