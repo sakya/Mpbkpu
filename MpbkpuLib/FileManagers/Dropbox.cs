@@ -489,7 +489,6 @@ public class Dropbox : IFileManager
             return null;
 
         var enc = new Utility.EncryptDecrypt(_deviceId);
-        account = await enc.Encrypt(account);
         if (cache.Tokens.TryGetValue(account, out var data)) {
             data.AccessToken = await enc.Decrypt(data.AccessToken!);
             data.RefreshToken = await enc.Decrypt(data.RefreshToken!);
@@ -522,7 +521,6 @@ public class Dropbox : IFileManager
             RefreshToken = await enc.Encrypt(refreshToken),
             ExpiresAt = expiresAt
         };
-        account = await enc.Encrypt(account);
 
         cache.Tokens[account] = data;
         using (var fs = new FileStream(_tokenCache, FileMode.Create, FileAccess.Write)) {

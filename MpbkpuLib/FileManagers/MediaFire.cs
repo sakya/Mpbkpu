@@ -31,7 +31,7 @@ public class MediaFire : IFileManager
 
         public override void Flush()
         {
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         }
 
         public override int Read(byte[] buffer, int offset, int count)
@@ -41,17 +41,17 @@ public class MediaFire : IFileManager
 
         public override long Seek(long offset, SeekOrigin origin)
         {
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         }
 
         public override void SetLength(long value)
         {
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         }
 
         public override void Write(byte[] buffer, int offset, int count)
         {
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         }
 
         public override bool CanRead => true;
@@ -129,7 +129,7 @@ public class MediaFire : IFileManager
 
         public override void SetLength(long value)
         {
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         }
 
         public override void Write(byte[] buffer, int offset, int count)

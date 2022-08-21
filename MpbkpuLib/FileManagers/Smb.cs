@@ -17,12 +17,10 @@ namespace MpbkpuLib.FileManagers
         private class WriterStream : Stream
         {
             private bool _abort;
-            private readonly string _fileName;
             private readonly Node? _node;
-            private Task? _writeTask;
+            private readonly Task? _writeTask;
             private long _pos;
             private long _length;
-            private long _writtenBytes;
 
             private readonly List<byte> _buffer = new List<byte>();
             private readonly SemaphoreSlim _bufferSema = new SemaphoreSlim(1,1);
@@ -30,9 +28,9 @@ namespace MpbkpuLib.FileManagers
             public WriterStream(Node node, string fileName, long? size)
             {
                 _node = node;
-                _fileName = fileName;
                 if (size.HasValue)
                     _length = size.Value;
+                _writeTask = _node.Write(this, fileName);
             }
 
             public override bool CanRead => false;
@@ -56,12 +54,12 @@ namespace MpbkpuLib.FileManagers
 
             public override void Flush()
             {
-                throw new NotImplementedException();
+                throw new InvalidOperationException();
             }
 
             public override int Read(byte[] buffer, int offset, int count)
             {
-                if (_abort && _writtenBytes < _length || _pos >= _length)
+                if (_abort || _pos >= Length)
                     return 0;
 
                 _bufferSema.Wait();
@@ -73,15 +71,13 @@ namespace MpbkpuLib.FileManagers
 
                         _pos++;
                         readCount++;
-                        if (_pos >= _length)
+                        if (_pos >= Length)
                             break;
                     } else {
                         _bufferSema.Release();
                         Thread.Sleep(10);
                         _bufferSema.Wait();
                         i--;
-                        if (_abort)
-                            break;
                     }
                 }
                 _bufferSema.Release();
@@ -95,7 +91,7 @@ namespace MpbkpuLib.FileManagers
 
             public override void SetLength(long value)
             {
-                _length = value;
+                throw new InvalidOperationException();
             }
 
             public override void Write(byte[] buffer, int offset, int count)
@@ -103,20 +99,13 @@ namespace MpbkpuLib.FileManagers
                 if (_abort)
                     return;
 
-                if (_node == null)
-                    throw new Exception("Node is null");
-
-                if (_writeTask == null)
-                    _writeTask = _node.Write(this, _fileName);
-
-                while(_buffer.Count >= 0)
+                while(_buffer.Count > 0)
                     Thread.Sleep(10);
 
                 _bufferSema.Wait();
                 for (int i = 0; i < count; i++) {
                     _buffer.Add(buffer[offset + i]);
                 }
-                _writtenBytes += count;
                 _bufferSema.Release();
             }
 

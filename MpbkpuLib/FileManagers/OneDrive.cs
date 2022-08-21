@@ -99,7 +99,7 @@ namespace MpbkpuLib.FileManagers
 
             public override void SetLength(long value)
             {
-                throw new NotImplementedException();
+                throw new InvalidOperationException();
             }
 
             public override void Write(byte[] buffer, int offset, int count)

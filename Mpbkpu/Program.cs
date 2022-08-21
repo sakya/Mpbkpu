@@ -45,6 +45,11 @@ public static class Program
             return -1;
         }
 
+        Console.CancelKeyPress += delegate
+        {
+            Console.CursorVisible = true;
+            Console.ResetColor();
+        };
         PrintInfo();
         // Ask for password
         if (pArgs.InteractivePassword == true) {
