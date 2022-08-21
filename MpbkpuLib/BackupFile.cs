@@ -261,6 +261,7 @@ public class BackupFile : IDisposable
 
         if (bkp.Type == BackupJobSettings.BackupTypes.Full) {
             var items = _context!.BackupItems
+                .Include(i => i.Backup)
                 .Include(i => i.Volume)
                 .AsNoTracking()
                 .Where(i => i.BackupId == backupId);
@@ -276,16 +277,18 @@ public class BackupFile : IDisposable
                 throw new Exception($"Full backup not found");
 
             var items = _context!.BackupItems
+                .Include(i => i.Backup)
                 .Include(i => i.Volume)
                 .AsNoTracking()
                 .Where(i => i.BackupId == fullBkp.Id);
             foreach (var item in items) {
                 // Read the same items from subsequent backups
                 var itemLastBackup = await _context!.BackupItems
+                    .Include(i => i.Backup)
                     .Include(i => i.Volume)
                     .AsNoTracking()
                     .Where(i => i.Backup!.Type == BackupJobSettings.BackupTypes.Incremental && i.BackupId <= backupId &&
-                                i.BackupId >= fullBkp.Id && i.OriginalPath == item.OriginalPath)
+                                i.BackupId >= fullBkp.Id && i.OriginalRelativePath == item.OriginalRelativePath)
                     .OrderBy(i => i.Id)
                     .LastOrDefaultAsync();
                 if (itemLastBackup != null) {
@@ -304,13 +307,27 @@ public class BackupFile : IDisposable
                 throw new Exception($"Full backup not found");
 
             var items = _context!.BackupItems
+                .Include(i => i.Backup)
                 .Include(i => i.Volume)
                 .AsNoTracking()
                 .Where(i => i.BackupId == fullBkp.Id);
             foreach (var item in items) {
-                yield return item;
+                // Read the same item from the differential backup
+                var itemIncrementalBackup = await _context!.BackupItems
+                    .Include(i => i.Backup)
+                    .Include(i => i.Volume)
+                    .AsNoTracking()
+                    .Where(i => i.BackupId == backupId && i.OriginalRelativePath == item.OriginalRelativePath)
+                    .FirstOrDefaultAsync();
+                if (itemIncrementalBackup != null) {
+                    if (itemIncrementalBackup.Action != BackupItem.Actions.Deleted)
+                        yield return itemIncrementalBackup;
+                } else {
+                    yield return item;
+                }
             }
-        } }
+        }
+    }
 
     #region private operations
     private void EnsureDbOpen()

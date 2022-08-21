@@ -149,7 +149,7 @@ public class DeleteJob : BaseJob
         var totalFiles = await items.CountAsync();
         var totalSize = await items.Select(i => i.Size)
             .SumAsync();
-        int fileIdx = 0;
+        var fileIdx = 0;
         long bytes = 0;
         foreach (var item in items) {
             if (_cancellationToken?.IsCancellationRequested == true) {

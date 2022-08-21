@@ -109,20 +109,19 @@ public class VerifyJob: BaseJob
         if (bkp.Result != Backup.Results.Completed)
             LogWarning($"Database result is { bkp.Result }");
 
-        var items = backupFile.BackupItems
-            .Include(i => i.Volume)
-            .Include(i => i.Backup)
-            .AsNoTracking()
-            .Where(i => i.BackupId == bkp.Id)
-            .OrderBy(i => i.Id);
-
-        var filesCount = await items.CountAsync();
+        var bkpItems = backupFile.GetBackupItems(bkp.Id);
+        var bkpItemsCount = 0;
+        long bkpSize = 0;
+        await foreach (var i in bkpItems) {
+            bkpItemsCount++;
+            bkpSize += i.OriginalSize;
+        }
 
         LogInfo($"Type     : { bkp.Type }");
         LogInfo($"Started  : { bkp.StartedAt!.Value.ToLocalTime().ToShortDateString() } { bkp.StartedAt!.Value.ToLocalTime().ToShortTimeString() }");
         if (bkp.CompletedAt.HasValue)
             LogInfo($"Completed: { bkp.CompletedAt!.Value.ToLocalTime().ToShortDateString() } { bkp.CompletedAt!.Value.ToLocalTime().ToShortTimeString() }");
-        LogInfo($"Size     : { Utility.String.BytesToString(await items.SumAsync(i => i.OriginalSize)) }");
+        LogInfo($"Size     : { Utility.String.BytesToString(bkpSize) }");
 
         var settings = JsonConvert.DeserializeObject<BackupJobSettings>(bkp.Settings!);
         if (settings == null)
@@ -138,7 +137,7 @@ public class VerifyJob: BaseJob
             int filesError = 0;
             Step?.Invoke(this, Steps.VerifyFiles);
             int fileIdx = 0;
-            foreach (var item in items) {
+            await foreach (var item in backupFile.GetBackupItems(bkp.Id)) {
                 if (_cancellationToken?.IsCancellationRequested == true) {
                     LogInfo("Cancelled by user");
                     return new VerifyJobResult()
@@ -151,7 +150,7 @@ public class VerifyJob: BaseJob
                 if (!await VerifyBackupItem(BackupFm, item))
                     filesError++;
                 fileIdx++;
-                Progress?.Invoke(this, fileIdx, filesCount);
+                Progress?.Invoke(this, fileIdx, bkpItemsCount);
             }
 
             if (filesError > 0)
