@@ -211,42 +211,42 @@ public class DeleteJob : BaseJob
             throw new Exception($"Backup with Id { backupId } not found");
 
         Delete?.Invoke(this, bkp.Guid);
-        // Delete files
-        var items = backupFile.BackupItems
-            .Include(i => i.Volume)
-            .Include(i => i.Backup)
-            .AsNoTracking()
-            .Where(i => i.BackupId == backupId);
+        var bkpPath = BackupFm.CombinePath(BackupPath!, bkp.Guid);
+        if (await BackupFm.DirectoryExists(bkpPath)) {
+            // Delete files
+            var items = backupFile.BackupItems
+                .Include(i => i.Volume)
+                .Include(i => i.Backup)
+                .AsNoTracking()
+                .Where(i => i.BackupId == backupId);
 
-        var started = DateTime.UtcNow;
-        var totalFiles = await items.CountAsync();
-        var totalSize = await items.Select(i => i.Size)
-            .SumAsync();
-        var fileIdx = 0;
-        long bytes = 0;
-        foreach (var item in items) {
-            if (_cancellationToken?.IsCancellationRequested == true) {
-                LogInfo("Cancelled by user");
-                return;
+            var started = DateTime.UtcNow;
+            var totalFiles = await items.CountAsync();
+            var totalSize = await items.Select(i => i.Size)
+                .SumAsync();
+            var fileIdx = 0;
+            long bytes = 0;
+            foreach (var item in items) {
+                if (_cancellationToken?.IsCancellationRequested == true) {
+                    LogInfo("Cancelled by user");
+                    return;
+                }
+
+                var filePath = GetBackupItemPath(BackupFm, BackupPath, item);
+                if (!await BackupFm.FileExists(filePath))
+                    LogWarning($"File {filePath} not found");
+                else
+                    await BackupFm.DeleteFile(GetBackupItemPath(BackupFm, BackupPath, item));
+                fileIdx++;
+                bytes += item.Size;
+                Progress?.Invoke(this,
+                    new ProgressHandlerArgs(fileIdx, totalFiles, bytes, totalSize, GetEta(started, bytes, totalSize)));
             }
-
-            var filePath = GetBackupItemPath(BackupFm, BackupPath, item);
-            if (!await BackupFm.FileExists(filePath))
-                LogWarning($"File {filePath} not found");
-            else
-                await BackupFm.DeleteFile(GetBackupItemPath(BackupFm, BackupPath, item));
-            fileIdx++;
-            bytes += item.Size;
-            Progress?.Invoke(this, new ProgressHandlerArgs(fileIdx, totalFiles, bytes,totalSize, GetEta(started, bytes, totalSize)));
+            // Delete backup directory
+            await BackupFm.DeleteDirectory(bkpPath);
         }
-
         // Delete data
         await backupFile.DeleteBackup(backupId);
-
-        // Delete backup directory
-        var bkpPath = BackupFm.CombinePath(BackupPath!, bkp.Guid);
-        if (await BackupFm.DirectoryExists(bkpPath))
-            await BackupFm.DeleteDirectory(bkpPath);
     }
 
     /// <summary>

@@ -82,7 +82,6 @@ public class BackupJob : BaseJob
     /// <summary>
     /// Event fire for file progress
     /// </summary>
-    /// <remarks>For directories this event fires with bytes and totalBytes equal to zero</remarks>
     public event FileProgressHandler? FileProgress;
     #endregion
 
@@ -460,13 +459,15 @@ public class BackupJob : BaseJob
                     return;
                 }
 
+                var size = 9;
+                FileProgress?.Invoke(this, sourceFile.FullPath!, 0, size);
                 using (var sourceStream = new MemoryStream(Encoding.ASCII.GetBytes("DIRECTORY"))) {
-                    await using (var destStream = await BackupFm.OpenFile(destFilePath, true, 9)) {
+                    await using (var destStream = await BackupFm.OpenFile(destFilePath, true, size)) {
                         await sourceStream.CopyToAsync(destStream);
                     }
                 }
 
-                FileProgress?.Invoke(this, sourceFile.FullPath!, 0, 0);
+                FileProgress?.Invoke(this, sourceFile.FullPath!, size, size);
                 break;
             case File.FileTyes.File:
                 LogDebug($"Backing up {sourceFile.FullPath} to {destFilePath}");

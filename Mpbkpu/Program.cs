@@ -89,7 +89,7 @@ public static class Program
                 }
 
                 if (_runningAction.Completed.HasValue && _runningAction.Started.HasValue) {
-                    Console.Write($"Completed in { (_runningAction.Completed.Value - _runningAction.Started.Value) }");
+                    Console.Write($"Completed in { MpbkpuLib.Utility.String.TimeSpanToString(_runningAction.Completed.Value - _runningAction.Started.Value) }");
                     if (!_runningAction.UserCancelled() && _runningAction.Bytes.HasValue)
                         Console.Write($" ({MpbkpuLib.Utility.String.BytesToString(_runningAction.Bytes.Value)})");
                     Console.WriteLine();
