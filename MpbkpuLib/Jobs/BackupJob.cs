@@ -3,7 +3,6 @@ using System.Security.Cryptography;
 using System.Text;
 using Newtonsoft.Json;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Graph;
 using MpbkpuLib.Abstracts;
 using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
@@ -242,7 +241,7 @@ public class BackupJob : BaseJob
                                 sourceFile.FileAction = File.FileActions.None;
                             }
                         } else {
-                            var hash = await Utility.Files.GetSha256(_sourceFm, sourceFile.FullPath);
+                            var hash = await Files.GetSha256(_sourceFm, sourceFile.FullPath);
                             if (hash != item.OriginalSha256) {
                                 sourceFile.FileAction = File.FileActions.Backup;
                                 sourceFile.Modified = true;

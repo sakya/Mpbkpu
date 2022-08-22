@@ -47,7 +47,7 @@ public class ListJob : BaseJob
         LogInfo(JsonConvert.SerializeObject(Settings, Formatting.Indented));
 
         BackupFm = FileManagerFactory.GetFileManager(Settings.BackupPath, out BackupPath, Settings.BackupPathUser, Settings.BackupPathPassword);
-        Step?.Invoke(this, ListJob.Steps.OpenDatabase);
+        Step?.Invoke(this, Steps.OpenDatabase);
         using (var openRes = await BackupFile.OpenBackupFile(BackupFm, BackupPath, Settings.EncryptPassword)) {
             var backupFile = openRes.BackupFile;
             try {
@@ -94,6 +94,10 @@ public class ListJob : BaseJob
                 Bytes = b.Items.Sum(i => i.OriginalSize)
             });
         foreach (var bkp in backups.OrderBy(b => b.Backup.Id)) {
+            if (_cancellationToken?.IsCancellationRequested == true) {
+                LogInfo("Cancelled by user");
+                Task.FromResult(true);
+            }
             ListBackup?.Invoke(this, bkp.Backup, bkp.Files, bkp.Bytes);
         }
 

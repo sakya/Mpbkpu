@@ -7,7 +7,6 @@ using MpbkpuLib.FileManagers;
 using MpbkpuLib.Interfaces;
 using MpbkpuLib.Utility;
 using Newtonsoft.Json;
-using SQLitePCL;
 using File = MpbkpuLib.DataModel.File;
 
 namespace MpbkpuLib.Jobs;
@@ -220,7 +219,7 @@ public class RestoreJob : BaseJob
                         file.FileAction = File.FileActions.None;
                     }
                 } else {
-                    var hash = await Utility.Files.GetSha256(_destinationFm, file.FullPath);
+                    var hash = await Files.GetSha256(_destinationFm, file.FullPath);
                     if (hash != item.OriginalSha256) {
                         file.BackupItemId = item.Id;
                         file.FileAction = File.FileActions.Restore;
