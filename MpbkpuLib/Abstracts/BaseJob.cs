@@ -33,7 +33,6 @@ public abstract class BaseJob : IDisposable
     private readonly StreamWriter? _logWriter;
     protected IFileManager? BackupFm;
     protected string? BackupPath;
-
     #endregion
 
     #region delegates

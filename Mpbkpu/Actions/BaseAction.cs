@@ -6,6 +6,7 @@ namespace Mpbkpu.Actions;
 
 public abstract class BaseAction : IAction
 {
+    protected CancellationTokenSource? CancellationTokenSource;
     public const ConsoleColor DefaultColor = ConsoleColor.Gray;
     protected const ConsoleColor HighlightColor = ConsoleColor.White;
 
@@ -19,6 +20,18 @@ public abstract class BaseAction : IAction
     public long? Bytes { get; set; }
 
     public abstract Task<bool> Run(Arguments pArgs);
+
+    public bool UserCancelled()
+    {
+        return CancellationTokenSource?.IsCancellationRequested == true;
+    }
+
+    public virtual void Cancel()
+    {
+        if (CancellationTokenSource == null)
+            throw new Exception("CancellationTokenSource not initialized");
+        CancellationTokenSource.Cancel();
+    }
 
     protected void WriteLog(BaseJobSettings.LogLevels level, string message)
     {

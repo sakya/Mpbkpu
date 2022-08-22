@@ -6,6 +6,8 @@ namespace Mpbkpu;
 
 public static class Program
 {
+    private static IAction? _runningAction;
+
     private static void PrintInfo()
     {
         var parser = new Parser();
@@ -49,11 +51,12 @@ public static class Program
             return -1;
         }
 
-        Console.CancelKeyPress += delegate
+        Console.CancelKeyPress += (o, e) =>
         {
-            Console.CursorVisible = true;
-            Console.ResetColor();
+            e.Cancel = true;
+            _runningAction?.Cancel();
         };
+
         PrintInfo();
         // Ask for password
         if (pArgs.InteractivePassword) {
@@ -65,7 +68,7 @@ public static class Program
             }
         }
 
-        IAction? action = pArgs.Action switch
+        _runningAction = pArgs.Action switch
         {
             Arguments.Actions.Backup => new BackupAction(),
             Arguments.Actions.Delete => new DeleteAction(),
@@ -76,16 +79,19 @@ public static class Program
             _ => null
         };
 
-        if (action != null) {
+        if (_runningAction != null) {
             try {
-                action.Run(pArgs).Wait();
-                if (action.Completed.HasValue && action.Started.HasValue) {
-                    Console.Write($"Completed in { (action.Completed.Value - action.Started.Value) }");
-                    if (action.Bytes.HasValue)
-                        Console.Write($" ({MpbkpuLib.Utility.String.BytesToString(action.Bytes.Value)})");
+                _runningAction.Run(pArgs).Wait();
+                if (_runningAction.UserCancelled())
+                    Console.WriteLine("Cancelled by user");
+                if (_runningAction.Completed.HasValue && _runningAction.Started.HasValue) {
+                    Console.Write($"Completed in { (_runningAction.Completed.Value - _runningAction.Started.Value) }");
+                    if (!_runningAction.UserCancelled() && _runningAction.Bytes.HasValue)
+                        Console.Write($" ({MpbkpuLib.Utility.String.BytesToString(_runningAction.Bytes.Value)})");
                     Console.WriteLine();
                 }
             } finally {
+                Console.CursorVisible = true;
                 Console.ResetColor();
             }
         } else {

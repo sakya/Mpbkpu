@@ -53,18 +53,11 @@ public class ListContentJob : BaseJob
         ListContentJobResult? res;
         using (var openRes = await BackupFile.OpenBackupFile(BackupFm, BackupPath, Settings.EncryptPassword)) {
             var backupFile = openRes.BackupFile;
-            await backupFile.EmptyFiles();
-            var transaction = backupFile.BeginTransaction();
-
             try {
                 res = await RunPrimitive(backupFile);
-                await transaction.CommitAsync();
             } catch (Exception ex) {
                 LogError(ex);
-                await transaction.RollbackAsync();
                 throw;
-            } finally {
-                transaction.Dispose();
             }
         }
 

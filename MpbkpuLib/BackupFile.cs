@@ -287,7 +287,8 @@ public class BackupFile : IDisposable
                     .Include(i => i.Backup)
                     .Include(i => i.Volume)
                     .AsNoTracking()
-                    .Where(i => i.Backup!.Type == BackupJobSettings.BackupTypes.Incremental && i.BackupId <= backupId &&
+                    .Where(i => i.Backup!.Type == BackupJobSettings.BackupTypes.Incremental &&
+                                i.BackupId <= backupId &&
                                 i.BackupId >= fullBkp.Id && i.OriginalRelativePath == item.OriginalRelativePath)
                     .OrderBy(i => i.Id)
                     .LastOrDefaultAsync();
@@ -317,7 +318,8 @@ public class BackupFile : IDisposable
                     .Include(i => i.Backup)
                     .Include(i => i.Volume)
                     .AsNoTracking()
-                    .Where(i => i.BackupId == backupId && i.OriginalRelativePath == item.OriginalRelativePath)
+                    .Where(i => i.BackupId == backupId &&
+                                i.OriginalRelativePath == item.OriginalRelativePath)
                     .FirstOrDefaultAsync();
                 if (itemIncrementalBackup != null) {
                     if (itemIncrementalBackup.Action != BackupItem.Actions.Deleted)

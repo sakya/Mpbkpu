@@ -50,13 +50,11 @@ public class ListJob : BaseJob
         Step?.Invoke(this, ListJob.Steps.OpenDatabase);
         using (var openRes = await BackupFile.OpenBackupFile(BackupFm, BackupPath, Settings.EncryptPassword)) {
             var backupFile = openRes.BackupFile;
-
             try {
                 await RunPrimitive(backupFile);
             } catch (Exception ex) {
                 LogError(ex);
                 throw;
-            } finally {
             }
         }
 

@@ -38,11 +38,11 @@ public class RestoreAction : BaseAction
         job.DeleteProgress += OnDeleteProgress;
         job.RestoreProgress += OnRestoreProgress;
 
-        var cts = new CancellationTokenSource();
+        CancellationTokenSource = new CancellationTokenSource();
         BaseJobResult? jobRes = null;
         try {
             Console.CursorVisible = false;
-            var task = Task.Run(() => job.Run(cts.Token));
+            var task = Task.Run(() => job.Run(CancellationTokenSource.Token));
             jobRes = await task;
             Console.WriteLine();
         } catch (Exception ex) {
@@ -52,7 +52,7 @@ public class RestoreAction : BaseAction
             Console.ForegroundColor = DefaultColor;
         } finally {
             Console.CursorVisible = true;
-            cts.Dispose();
+            CancellationTokenSource.Dispose();
         }
 
         Started = jobRes?.Started;

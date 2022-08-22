@@ -24,10 +24,10 @@ public class ListContentAction : BaseAction
         job.LogEmitted += OnLog;
         job.Content += OnContent;
 
-        var cts = new CancellationTokenSource();
+        CancellationTokenSource = new CancellationTokenSource();
         try {
             Console.CursorVisible = false;
-            var task = Task.Run(() => job.Run(cts.Token));
+            var task = Task.Run(() => job.Run(CancellationTokenSource.Token));
             await task;
             Console.WriteLine();
         } catch (Exception ex) {
@@ -37,7 +37,7 @@ public class ListContentAction : BaseAction
             Console.ForegroundColor = DefaultColor;
         } finally {
             Console.CursorVisible = true;
-            cts.Dispose();
+            CancellationTokenSource.Dispose();
         }
 
         return true;

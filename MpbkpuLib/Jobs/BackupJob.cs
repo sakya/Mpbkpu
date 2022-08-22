@@ -50,7 +50,7 @@ public class BackupJob : BaseJob
     private CancellationToken? _cancellationToken;
     private IFileManager? _sourceFm;
     private string? _sourcePath;
-    private bool _userCancelled;
+    private bool _skipDatabaseCopy;
     private ProgressData? _progressData;
     #endregion
 
@@ -130,7 +130,7 @@ public class BackupJob : BaseJob
                 await backupFile.Vacuum();
                 backupFile.Close();
 
-                if (!_userCancelled) {
+                if (!_skipDatabaseCopy) {
                     // Copy temporary database file to destination
                     if (!string.IsNullOrEmpty(openRes.TempFilePath)) {
                         Step?.Invoke(this, Steps.CopyDatabase);
@@ -285,13 +285,13 @@ public class BackupJob : BaseJob
         };
         if (cArgs.FilesToBackup == 0) {
             LogInfo("No files to backup");
-            _userCancelled = true;
+            _skipDatabaseCopy = true;
             return;
         }
 
         if (ConfirmBackup != null) {
             if (!await ConfirmBackup.Invoke(this, cArgs)) {
-                _userCancelled = true;
+                _skipDatabaseCopy = true;
                 LogInfo("Cancelled by user");
                 if (!await SetBackupResult(backupFile, Backup.Results.Cancelled))
                     LogWarning("Cannot set backup result");

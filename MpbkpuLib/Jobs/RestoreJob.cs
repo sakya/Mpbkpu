@@ -125,7 +125,6 @@ public class RestoreJob : BaseJob
             } catch (Exception ex) {
                 LogError(ex);
                 throw;
-            } finally {
             }
         }
 
@@ -192,6 +191,11 @@ public class RestoreJob : BaseJob
         Step?.Invoke(this, Steps.CalculateFilesToRestore);
         // Compute files to restore
         await foreach (var item in backupFile.GetBackupItems(bkp.Id)) {
+            if (_cancellationToken?.IsCancellationRequested == true) {
+                LogInfo("Cancelled by user");
+                return false;
+            }
+
             var file = await backupFile.Files
                 .Where(f => f.RelativePath == item.OriginalRelativePath)
                 .FirstOrDefaultAsync();
