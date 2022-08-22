@@ -4,6 +4,7 @@ using MpbkpuLib.Abstracts;
 using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
 using Newtonsoft.Json;
+using File = MpbkpuLib.DataModel.File;
 
 namespace MpbkpuLib.Jobs;
 
@@ -80,16 +81,14 @@ public class ListContentJob : BaseJob
         if (BackupFm == null)
             throw new Exception("Backup file manager not initialized");
 
+        var res = new ListContentJobResult();
         var bkp = await backupFile.Backups.AsNoTracking()
             .Where(b => b.Guid == Settings.BackupGuid)
             .FirstOrDefaultAsync();
         if (bkp == null) {
             LogError($"Backup with GUID {Settings.BackupGuid} not found");
-            return new ListContentJobResult()
-            {
-                Success = false,
-                ErrorMessage = $"Backup with GUID {Settings.BackupGuid} not found"
-            };
+            res.ErrorMessage = $"Backup with GUID {Settings.BackupGuid} not found";
+            return res;
         }
 
         Step?.Invoke(this, Steps.ListContent);
@@ -97,25 +96,23 @@ public class ListContentJob : BaseJob
         await foreach (var item in backupFile.GetBackupItems(bkp.Id)) {
             if (_cancellationToken?.IsCancellationRequested == true) {
                 LogInfo("Cancelled by user");
-                return new ListContentJobResult()
-                {
-                    Success = false,
-                    ErrorMessage = "Cancelled by user"
-                };
+                res.ErrorMessage = "Cancelled by user";
+                return res;
             }
 
             if (regex != null) {
-                if (regex.Match(item.OriginalRelativePath!).Success)
+                if (regex.Match(item.OriginalRelativePath!).Success) {
+                    CountResult(res, item);
                     Content?.Invoke(this, item);
+                }
             } else {
+                CountResult(res, item);
                 Content?.Invoke(this, item);
             }
         }
 
-        return new ListContentJobResult()
-        {
-            Success = true
-        };
+        res.Success = true;
+        return res;
     }
 
     protected override void ValidateSettings()
@@ -134,4 +131,16 @@ public class ListContentJob : BaseJob
         }
     }
     #endregion
+
+    private void CountResult(ListContentJobResult res, BackupItem item)
+    {
+        switch (item.Type) {
+            case File.FileTyes.File:
+                res.FilesCount++;
+                break;
+            case File.FileTyes.Directory:
+                res.DirectoriesCount++;
+                break;
+        }
+    }
 }

@@ -7,9 +7,6 @@ namespace Mpbkpu.Actions;
 
 public class ListContentAction : BaseAction
 {
-    private int _filesCount = 0;
-    private int _directoriesCount = 0;
-
     public override async Task<bool> Run(Arguments pArgs)
     {
         var settings = new ListContentJobSettings()
@@ -31,13 +28,11 @@ public class ListContentAction : BaseAction
         CancellationTokenSource = new CancellationTokenSource();
         try {
             Console.CursorVisible = false;
-            var task = Task.Run(() => job.Run(CancellationTokenSource.Token));
-            await task;
-
+            var res = await Task.Run(() => job.Run(CancellationTokenSource.Token));
             if (!CancellationTokenSource.Token.IsCancellationRequested) {
                 Console.WriteLine();
-                Console.WriteLine($"Directories: {_directoriesCount}");
-                Console.WriteLine($"Files      : {_filesCount}");
+                Console.WriteLine($"Directories: {((ListContentJobResult)res).DirectoriesCount}");
+                Console.WriteLine($"Files      : {((ListContentJobResult)res).FilesCount}");
             }
             Console.WriteLine();
         } catch (Exception ex) {
@@ -74,15 +69,6 @@ public class ListContentAction : BaseAction
 
     private void OnContent(object sender, BackupItem item)
     {
-        switch (item.Type) {
-            case File.FileTyes.File:
-                _filesCount++;
-                break;
-            case File.FileTyes.Directory:
-                _directoriesCount++;
-                break;
-        }
-
         Console.WriteLine($"{(item.Type == File.FileTyes.Directory ? "Dir" : "File"), -4} {MpbkpuLib.Utility.String.BytesToString(item.Size), -12} {item.OriginalRelativePath}");
     }
     #endregion

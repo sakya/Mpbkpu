@@ -35,12 +35,12 @@ public class Delete  : BaseTest
         if (!jobRes.Success)
             Assert.Fail("Backup failed");
 
-        var rSettings = new DeleteJobSettings()
+        var dSettings = new DeleteJobSettings()
         {
             BackupPath = BackupDestination,
             BackupGuid = ((BackupJobJobResult)jobRes).Guid,
         };
-        var rJob = new DeleteJob(rSettings);
+        var rJob = new DeleteJob(dSettings);
         using var rCts = new CancellationTokenSource();
         jobRes = await rJob.Run(rCts.Token);
         if (!jobRes.Success)
