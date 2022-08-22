@@ -31,10 +31,10 @@ public class ListContentAction : BaseAction
             await task;
             Console.WriteLine();
         } catch (Exception ex) {
-            Console.ForegroundColor = ErrorColor;
+            Console.ForegroundColor = Utility.Console.ErrorColor;
             Console.WriteLine();
             Console.WriteLine($"ERROR: {ex.Message}");
-            Console.ForegroundColor = DefaultColor;
+            Console.ForegroundColor = Utility.Console.DefaultColor;
         } finally {
             Console.CursorVisible = true;
             CancellationTokenSource.Dispose();
@@ -46,7 +46,7 @@ public class ListContentAction : BaseAction
     #region private operations
     private void OnStep(object sender, ListContentJob.Steps step)
     {
-        Console.ForegroundColor = InfoColor;
+        Console.ForegroundColor = Utility.Console.InfoColor;
         switch (step) {
             case ListContentJob.Steps.OpenDatabase:
                 Console.WriteLine("Opening backup");
@@ -54,12 +54,12 @@ public class ListContentAction : BaseAction
             case ListContentJob.Steps.ListContent:
                 Console.WriteLine("Listing content");
                 Console.WriteLine();
-                Console.ForegroundColor = HighlightColor;
+                Console.ForegroundColor = Utility.Console.HighlightColor;
                 Console.WriteLine($"{"Type",-4} {"Size",-12} Name");
                 break;
         }
 
-        Console.ForegroundColor = DefaultColor;
+        Console.ForegroundColor = Utility.Console.DefaultColor;
     }
 
     private void OnContent(object sender, BackupItem item)

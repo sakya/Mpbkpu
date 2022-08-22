@@ -30,10 +30,10 @@ public class VerifyAction : BaseAction
             jobRes = await task;
             Console.WriteLine();
         } catch (Exception ex) {
-            Console.ForegroundColor = ErrorColor;
+            Console.ForegroundColor = Utility.Console.ErrorColor;
             Console.WriteLine();
             Console.WriteLine($"ERROR: {ex.Message}");
-            Console.ForegroundColor = DefaultColor;
+            Console.ForegroundColor = Utility.Console.DefaultColor;
         } finally {
             Console.CursorVisible = true;
             CancellationTokenSource.Dispose();
@@ -48,7 +48,7 @@ public class VerifyAction : BaseAction
     #region private operations
     private void OnStep(object sender, VerifyJob.Steps step)
     {
-        Console.ForegroundColor = InfoColor;
+        Console.ForegroundColor = Utility.Console.InfoColor;
         switch (step) {
             case VerifyJob.Steps.OpenDatabase:
                 Console.WriteLine("Opening backup");
@@ -58,7 +58,7 @@ public class VerifyAction : BaseAction
                 break;
         }
 
-        Console.ForegroundColor = DefaultColor;
+        Console.ForegroundColor = Utility.Console.DefaultColor;
     }
 
     private void OnProgress(object sender, BaseJob.ProgressHandlerArgs args)

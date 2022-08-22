@@ -1,19 +1,10 @@
-using MpbkpuLib;
 using MpbkpuLib.Abstracts;
-using MpbkpuLib.FileManagers;
 
 namespace Mpbkpu.Actions;
 
 public abstract class BaseAction : IAction
 {
     protected CancellationTokenSource? CancellationTokenSource;
-    public const ConsoleColor DefaultColor = ConsoleColor.Gray;
-    protected const ConsoleColor HighlightColor = ConsoleColor.White;
-
-    protected const ConsoleColor InfoColor = ConsoleColor.Blue;
-    protected const ConsoleColor SuccessColor = ConsoleColor.Green;
-    protected const ConsoleColor WarningColor = ConsoleColor.Yellow;
-    public const ConsoleColor ErrorColor = ConsoleColor.Red;
 
     public DateTime? Started { get; set; }
     public DateTime? Completed { get; set; }
@@ -54,15 +45,15 @@ public abstract class BaseAction : IAction
                 break;
         }
         Console.WriteLine(message);
-        Console.ForegroundColor = DefaultColor;
+        Console.ForegroundColor = Utility.Console.DefaultColor;
     }
 
     protected void WriteEnabled(bool enabled)
     {
         if (enabled)
-            Console.ForegroundColor = SuccessColor;
+            Console.ForegroundColor = Utility.Console.SuccessColor;
         Console.WriteLine(enabled ? "Enabled" : "Disabled");
-        Console.ForegroundColor = DefaultColor;
+        Console.ForegroundColor = Utility.Console.DefaultColor;
     }
 
     protected void OnLog(object sender, BaseJobSettings.LogLevels level, string message)

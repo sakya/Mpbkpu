@@ -4,6 +4,14 @@ namespace Mpbkpu.Utility;
 
 public static class Console
 {
+    public const ConsoleColor DefaultColor = ConsoleColor.Gray;
+    public const ConsoleColor HighlightColor = ConsoleColor.White;
+
+    public const ConsoleColor InfoColor = ConsoleColor.Blue;
+    public const ConsoleColor SuccessColor = ConsoleColor.Green;
+    public const ConsoleColor WarningColor = ConsoleColor.Yellow;
+    public const ConsoleColor ErrorColor = ConsoleColor.Red;
+
     public static bool Confirm(string message, bool? defaultValue = null, bool clearLine = false)
     {
         if (defaultValue == true)

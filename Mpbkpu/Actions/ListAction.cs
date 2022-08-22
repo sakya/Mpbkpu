@@ -32,10 +32,10 @@ public class ListAction : BaseAction
             await task;
             Console.WriteLine();
         } catch (Exception ex) {
-            Console.ForegroundColor = ErrorColor;
+            Console.ForegroundColor = Utility.Console.ErrorColor;
             Console.WriteLine();
             Console.WriteLine($"ERROR: {ex.Message}");
-            Console.ForegroundColor = DefaultColor;
+            Console.ForegroundColor = Utility.Console.DefaultColor;
         } finally {
             Console.CursorVisible = true;
             CancellationTokenSource.Dispose();
@@ -47,7 +47,7 @@ public class ListAction : BaseAction
     #region private operations
     private void OnStep(object sender, ListJob.Steps step)
     {
-        Console.ForegroundColor = InfoColor;
+        Console.ForegroundColor = Utility.Console.InfoColor;
         switch (step) {
             case ListJob.Steps.OpenDatabase:
                 Console.WriteLine("Opening backup");
@@ -55,12 +55,12 @@ public class ListAction : BaseAction
             case ListJob.Steps.ListBackups:
                 Console.WriteLine("Listing backups");
                 Console.WriteLine();
-                Console.ForegroundColor = HighlightColor;
+                Console.ForegroundColor = Utility.Console.HighlightColor;
                 Console.WriteLine($"{"Guid",-32} {"Type",-12} {"Result",-20} {"Started",-19} {"Completed",-19} Size");
                 break;
         }
 
-        Console.ForegroundColor = DefaultColor;
+        Console.ForegroundColor = Utility.Console.DefaultColor;
     }
 
     private void OnListBackup(object sender, Backup backup, int files, long bytes)
@@ -69,18 +69,18 @@ public class ListAction : BaseAction
 
         switch (backup.Result) {
             case Backup.Results.Completed:
-                Console.ForegroundColor = SuccessColor;
+                Console.ForegroundColor = Utility.Console.SuccessColor;
                 break;
             case Backup.Results.Cancelled:
-                Console.ForegroundColor = WarningColor;
+                Console.ForegroundColor = Utility.Console.WarningColor;
                 break;
             case Backup.Results.Error:
-                Console.ForegroundColor = ErrorColor;
+                Console.ForegroundColor = Utility.Console.ErrorColor;
                 break;
         }
 
         Console.Write($" {backup.Result,-20}");
-        Console.ForegroundColor = DefaultColor;
+        Console.ForegroundColor = Utility.Console.DefaultColor;
         Console.Write(
             $" {$"{backup.StartedAt!.Value.ToLocalTime().ToShortDateString()} {backup.StartedAt!.Value.ToLocalTime().ToShortTimeString()}",-19}");
         if (backup.CompletedAt.HasValue)

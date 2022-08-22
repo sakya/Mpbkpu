@@ -57,10 +57,10 @@ public class BackupAction : BaseAction
             jobRes = await task;
             Console.WriteLine();
         } catch (Exception ex) {
-            Console.ForegroundColor = ErrorColor;
+            Console.ForegroundColor = Utility.Console.ErrorColor;
             Console.WriteLine();
             Console.WriteLine($"ERROR: {ex.Message}");
-            Console.ForegroundColor = DefaultColor;
+            Console.ForegroundColor = Utility.Console.DefaultColor;
         } finally {
             Console.CursorVisible = true;
             CancellationTokenSource.Dispose();
@@ -77,7 +77,7 @@ public class BackupAction : BaseAction
     private void OnStep(object sender, BackupJob.Steps step)
     {
         Utility.Console.ClearLine();
-        Console.ForegroundColor = InfoColor;
+        Console.ForegroundColor = Utility.Console.InfoColor;
         switch (step) {
             case BackupJob.Steps.OpenDatabase:
                 Console.WriteLine("Opening backup");
@@ -96,7 +96,7 @@ public class BackupAction : BaseAction
                 break;
         }
 
-        Console.ForegroundColor = DefaultColor;
+        Console.ForegroundColor = Utility.Console.DefaultColor;
     }
 
     private Task<bool> OnConfirm(object sender, BackupJob.ConfirmArgs e)

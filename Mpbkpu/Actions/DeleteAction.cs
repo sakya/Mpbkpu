@@ -33,10 +33,10 @@ public class DeleteAction : BaseAction
             jobRes = await task;
             Console.WriteLine();
         } catch (Exception ex) {
-            Console.ForegroundColor = ErrorColor;
+            Console.ForegroundColor = Utility.Console.ErrorColor;
             Console.WriteLine();
             Console.WriteLine($"ERROR: {ex.Message}");
-            Console.ForegroundColor = DefaultColor;
+            Console.ForegroundColor = Utility.Console.DefaultColor;
         } finally {
             Console.CursorVisible = true;
             CancellationTokenSource.Dispose();
@@ -51,7 +51,7 @@ public class DeleteAction : BaseAction
     #region private operations
     private void OnStep(object sender, DeleteJob.Steps step)
     {
-        Console.ForegroundColor = InfoColor;
+        Console.ForegroundColor = Utility.Console.InfoColor;
         switch (step) {
             case DeleteJob.Steps.OpenDatabase:
                 Console.WriteLine("Opening backup");
@@ -64,7 +64,7 @@ public class DeleteAction : BaseAction
                 break;
         }
 
-        Console.ForegroundColor = DefaultColor;
+        Console.ForegroundColor = Utility.Console.DefaultColor;
     }
 
     private Task<bool> OnConfirm(object sender, DeleteJob.ConfirmArgs e)

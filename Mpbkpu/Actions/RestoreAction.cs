@@ -46,10 +46,10 @@ public class RestoreAction : BaseAction
             jobRes = await task;
             Console.WriteLine();
         } catch (Exception ex) {
-            Console.ForegroundColor = ErrorColor;
+            Console.ForegroundColor = Utility.Console.ErrorColor;
             Console.WriteLine();
             Console.WriteLine($"ERROR: {ex.Message}");
-            Console.ForegroundColor = DefaultColor;
+            Console.ForegroundColor = Utility.Console.DefaultColor;
         } finally {
             Console.CursorVisible = true;
             CancellationTokenSource.Dispose();
@@ -66,7 +66,7 @@ public class RestoreAction : BaseAction
     private void OnStep(object sender, RestoreJob.Steps step)
     {
         Utility.Console.ClearLine();
-        Console.ForegroundColor = InfoColor;
+        Console.ForegroundColor = Utility.Console.InfoColor;
         switch (step) {
             case RestoreJob.Steps.OpenDatabase:
                 Console.WriteLine("Opening backup");
@@ -85,7 +85,7 @@ public class RestoreAction : BaseAction
                 break;
         }
 
-        Console.ForegroundColor = DefaultColor;
+        Console.ForegroundColor = Utility.Console.DefaultColor;
     }
 
     private Task<bool> OnConfirm(object sender, RestoreJob.ConfirmArgs e)

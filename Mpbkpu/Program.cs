@@ -32,7 +32,7 @@ public static class Program
     public static int Main(string[] args)
     {
         Console.OutputEncoding = Encoding.UTF8;
-        Console.ForegroundColor = BaseAction.DefaultColor;
+        Console.ForegroundColor = Utility.Console.DefaultColor;
         if (args.Length == 0) {
             PrintHelp();
             return -1;
@@ -41,17 +41,17 @@ public static class Program
         var pArgs = new Parser().Parse<Arguments>(args, out var errors);
         if (errors.Count > 0) {
             PrintInfo();
-            Console.ForegroundColor = BaseAction.ErrorColor;
+            Console.ForegroundColor = Utility.Console.ErrorColor;
             foreach (var e in errors) {
                 Console.WriteLine(e.Message);
             }
-            Console.ForegroundColor = BaseAction.DefaultColor;
+            Console.ForegroundColor = Utility.Console.DefaultColor;
             Console.WriteLine();
             PrintHelp(false);
             return -1;
         }
 
-        Console.CancelKeyPress += (o, e) =>
+        Console.CancelKeyPress += (_, e) =>
         {
             e.Cancel = true;
             _runningAction?.Cancel();
@@ -82,8 +82,12 @@ public static class Program
         if (_runningAction != null) {
             try {
                 _runningAction.Run(pArgs).Wait();
-                if (_runningAction.UserCancelled())
+                if (_runningAction.UserCancelled()) {
+                    Console.ForegroundColor = Utility.Console.WarningColor;
                     Console.WriteLine("Cancelled by user");
+                    Console.ForegroundColor = Utility.Console.DefaultColor;
+                }
+
                 if (_runningAction.Completed.HasValue && _runningAction.Started.HasValue) {
                     Console.Write($"Completed in { (_runningAction.Completed.Value - _runningAction.Started.Value) }");
                     if (!_runningAction.UserCancelled() && _runningAction.Bytes.HasValue)

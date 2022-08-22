@@ -93,6 +93,14 @@ public class ListContentJob : BaseJob
 
         Step?.Invoke(this, Steps.ListContent);
         await foreach (var item in backupFile.GetBackupItems(bkp.Id)) {
+            if (_cancellationToken?.IsCancellationRequested == true) {
+                LogInfo("Cancelled by user");
+                return new ListContentJobResult()
+                {
+                    Success = false,
+                    ErrorMessage = "Cancelled by user"
+                };
+            }
             Content?.Invoke(this, item);
         }
 
