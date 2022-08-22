@@ -108,7 +108,7 @@ public class DeleteJob : BaseJob
                 // Copy temporary database file to destination
                 if (!_skipDatabaseCopy && !string.IsNullOrEmpty(openRes.TempFilePath)) {
                     Step?.Invoke(this, Steps.CopyDatabase);
-                    await CopyDatabaseToDestination(openRes, Settings.BackupPath, Settings.EncryptPassword);
+                    await CopyDatabaseToDestination(openRes, Settings.EncryptPassword);
                 }
             } catch (Exception ex) {
                 LogError(ex);

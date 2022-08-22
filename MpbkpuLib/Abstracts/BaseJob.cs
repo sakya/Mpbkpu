@@ -76,10 +76,8 @@ public abstract class BaseJob : IDisposable
     /// </summary>
     protected abstract void ValidateSettings();
 
-    protected async Task CopyDatabaseToDestination(BackupFile.OpenResult openRes, string? destination, string? password)
+    protected async Task CopyDatabaseToDestination(BackupFile.OpenResult openRes, string? password)
     {
-        if (string.IsNullOrEmpty(destination))
-            throw new ArgumentNullException(nameof(destination));
         if (BackupFm == null)
             throw new Exception("Backup file manager not initialized");
 

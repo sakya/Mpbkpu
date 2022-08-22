@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore.Storage;
 using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
 using MpbkpuLib.Interfaces;
-using MpbkpuLib.Jobs;
 using MpbkpuLib.Utility;
 
 namespace MpbkpuLib;
@@ -224,7 +223,7 @@ public class BackupFile : IDisposable
     public async Task<bool> DeleteBackup(int id)
     {
         EnsureDbOpen();
-        await _context!.Database.ExecuteSqlRawAsync($"DELETE FROM Backups where id={id}");
+        await _context!.Database.ExecuteSqlRawAsync("DELETE FROM Backups where id={0}", id);
         return true;
     }
 

@@ -132,7 +132,7 @@ public class BackupJob : BaseJob
                     // Copy temporary database file to destination
                     if (!string.IsNullOrEmpty(openRes.TempFilePath)) {
                         Step?.Invoke(this, Steps.CopyDatabase);
-                        await CopyDatabaseToDestination(openRes, Settings.Destination, Settings.EncryptPassword);
+                        await CopyDatabaseToDestination(openRes, Settings.EncryptPassword);
                     }
                 }
             } catch (Exception ex) {
