@@ -11,7 +11,7 @@ public class DeleteJob : BaseJob
     public enum Steps
     {
         OpenDatabase,
-        DeleteFiles,
+        DeleteBackups,
         CopyDatabase
     }
 
@@ -54,6 +54,10 @@ public class DeleteJob : BaseJob
 
     public delegate void StepHandler(object sender, Steps step);
     public event StepHandler? Step;
+
+    public delegate void DeleteHandler(object sender, string guid);
+
+    public event DeleteHandler? Delete;
 
     public delegate void ProgressHandler(object sender, ProgressHandlerArgs args);
 
@@ -184,6 +188,8 @@ public class DeleteJob : BaseJob
             }
         }
 
+        Step?.Invoke(this, Steps.DeleteBackups);
+        backupIds.Reverse();
         foreach (var bkpId in backupIds) {
             if (_cancellationToken?.IsCancellationRequested == true) {
                 LogInfo("Cancelled by user");
@@ -204,9 +210,8 @@ public class DeleteJob : BaseJob
         if (bkp == null)
             throw new Exception($"Backup with Id { backupId } not found");
 
+        Delete?.Invoke(this, bkp.Guid);
         // Delete files
-        Step?.Invoke(this, Steps.DeleteFiles);
-
         var items = backupFile.BackupItems
             .Include(i => i.Volume)
             .Include(i => i.Backup)
@@ -225,7 +230,11 @@ public class DeleteJob : BaseJob
                 return;
             }
 
-            await BackupFm.DeleteFile(GetBackupItemPath(BackupFm, BackupPath, item));
+            var filePath = GetBackupItemPath(BackupFm, BackupPath, item);
+            if (!await BackupFm.FileExists(filePath))
+                LogWarning($"File {filePath} not found");
+            else
+                await BackupFm.DeleteFile(GetBackupItemPath(BackupFm, BackupPath, item));
             fileIdx++;
             bytes += item.Size;
             Progress?.Invoke(this, new ProgressHandlerArgs(fileIdx, totalFiles, bytes,totalSize, GetEta(started, bytes, totalSize)));

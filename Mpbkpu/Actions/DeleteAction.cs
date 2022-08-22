@@ -24,6 +24,7 @@ public class DeleteAction : BaseAction
         job.Step += OnStep;
         job.ConfirmDelete += OnConfirm;
         job.LogEmitted += OnLog;
+        job.Delete += OnDelete;
         job.Progress += OnProgress;
 
         BaseJobResult? jobRes = null;
@@ -57,8 +58,8 @@ public class DeleteAction : BaseAction
             case DeleteJob.Steps.OpenDatabase:
                 Console.WriteLine("Opening backup");
                 break;
-            case DeleteJob.Steps.DeleteFiles:
-                Console.WriteLine("Deleting files");
+            case DeleteJob.Steps.DeleteBackups:
+                Console.WriteLine("Deleting backups");
                 break;
             case DeleteJob.Steps.CopyDatabase:
                 Console.WriteLine("Copying database file");
@@ -101,10 +102,16 @@ public class DeleteAction : BaseAction
         return Task.FromResult(res);
     }
 
+    private void OnDelete(object sender, string guid)
+    {
+        Utility.Console.ClearLine();
+        Console.WriteLine($"Deleting backup {guid}");
+    }
+
     private void OnProgress(object sender, BaseJob.ProgressHandlerArgs args)
     {
         var perc = args.Bytes / (double)args.TotalBytes * 100.0;
-        var progress = $"[{perc,5:0.0}%]";
+        var progress = $"[{MpbkpuLib.Utility.String.TimeSpanToString(args.Eta)}][{perc,5:0.0}%]";
 
         Console.CursorLeft = 0;
         Console.Write(progress.PadRight(Console.WindowWidth - 1));

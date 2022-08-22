@@ -173,8 +173,9 @@ namespace MpbkpuLib.FileManagers
                 throw new ArgumentNullException(path);
 
             var client = await GetClient();
+            path = GetPath(path);
             try {
-                var item = await client.Drive.Root.ItemWithPath(GetPath(path)).Request().GetAsync();
+                var item = await client.Drive.Root.ItemWithPath(path).Request().GetAsync();
                 if (item.File == null)
                     throw new FileNotFoundException($"File {path} not found", path);
 
@@ -202,7 +203,8 @@ namespace MpbkpuLib.FileManagers
                 throw new ArgumentNullException(path);
 
             var client = await GetClient();
-            var page = await client.Drive.Root.ItemWithPath(GetPath(path)).Children.Request().GetAsync();
+            path = GetPath(path);
+            var page = await client.Drive.Root.ItemWithPath(path).Children.Request().GetAsync();
             while (page != null) {
                 foreach (var item in page.CurrentPage) {
                     var fInfo = new File()
@@ -228,7 +230,8 @@ namespace MpbkpuLib.FileManagers
                 throw new ArgumentNullException(path);
 
             var client = await GetClient();
-            var parent = GetParent(GetPath(path), out var dirName);
+            path = GetPath(path);
+            var parent = GetParent(path, out var dirName);
             var folderDriveItem = new DriveItem()
             {
                 Name = dirName,
@@ -250,6 +253,7 @@ namespace MpbkpuLib.FileManagers
                 throw new ArgumentNullException(path);
 
             var client = await GetClient();
+            path = GetPath(path);
             await client.Drive.Root.ItemWithPath(path).Request().DeleteAsync();
             return true;
         }
@@ -271,8 +275,9 @@ namespace MpbkpuLib.FileManagers
                 throw new ArgumentNullException(path);
 
             var client = await GetClient();
+            path = GetPath(path);
             try {
-                var item = await client.Drive.Root.ItemWithPath(GetPath(path)).Request().GetAsync();
+                var item = await client.Drive.Root.ItemWithPath(path).Request().GetAsync();
                 return item.Folder != null;
             } catch (ServiceException ex) {
                 if (ex.StatusCode == HttpStatusCode.NotFound)
