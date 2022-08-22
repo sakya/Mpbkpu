@@ -6,12 +6,40 @@ namespace MpbkpuLib.DataModel
 {
     public class Backup : BaseModel
     {
+        /// <summary>
+        /// The backup type
+        /// </summary>
+        public enum BackupTypes
+        {
+            /// <summary>
+            /// Backup all the files
+            /// </summary>
+            Full,
+            /// <summary>
+            /// Backup only changed files since the last full/incremental backup
+            /// </summary>
+            Incremental,
+            /// <summary>
+            /// Backup only changed files since the last full backup
+            /// </summary>
+            Differential
+        }
+
         public enum Results
         {
             None = 0,
+            /// <summary>
+            /// Completed
+            /// </summary>
             Completed,
             CompletedWithWarnings,
+            /// <summary>
+            /// Cancelled by user
+            /// </summary>
             Cancelled,
+            /// <summary>
+            /// Error
+            /// </summary>
             Error
         }
 
@@ -23,7 +51,7 @@ namespace MpbkpuLib.DataModel
         public string? Name { get; set; }
         public string Guid { get; set; }
 
-        public BackupJobSettings.BackupTypes Type { get; set; }
+        public BackupTypes Type { get; set; }
 
         [MaxLength(4096)]
         public string? Settings { get; set; }

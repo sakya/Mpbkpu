@@ -259,7 +259,7 @@ public class BackupFile : IDisposable
         if (bkp == null)
             throw new Exception($"Backup with id {backupId} not found");
 
-        if (bkp.Type == BackupJobSettings.BackupTypes.Full) {
+        if (bkp.Type == Backup.BackupTypes.Full) {
             var items = _context!.BackupItems
                 .Include(i => i.Backup)
                 .Include(i => i.Volume)
@@ -268,9 +268,9 @@ public class BackupFile : IDisposable
             foreach (var item in items) {
                 yield return item;
             }
-        } else if (bkp.Type == BackupJobSettings.BackupTypes.Incremental) {
+        } else if (bkp.Type == Backup.BackupTypes.Incremental) {
             var fullBkp = await _context!.Backups.AsNoTracking()
-                .Where(b => b.Type == BackupJobSettings.BackupTypes.Full && b.Id < bkp.Id)
+                .Where(b => b.Type == Backup.BackupTypes.Full && b.Id < bkp.Id)
                 .OrderByDescending(b => b.Id)
                 .FirstOrDefaultAsync();
             if (fullBkp == null)
@@ -287,7 +287,7 @@ public class BackupFile : IDisposable
                     .Include(i => i.Backup)
                     .Include(i => i.Volume)
                     .AsNoTracking()
-                    .Where(i => i.Backup!.Type == BackupJobSettings.BackupTypes.Incremental &&
+                    .Where(i => i.Backup!.Type == Backup.BackupTypes.Incremental &&
                                 i.BackupId <= backupId &&
                                 i.BackupId >= fullBkp.Id && i.OriginalRelativePath == item.OriginalRelativePath)
                     .OrderBy(i => i.Id)
@@ -299,9 +299,9 @@ public class BackupFile : IDisposable
                     yield return item;
                 }
             }
-        } else if (bkp.Type == BackupJobSettings.BackupTypes.Differential) {
+        } else if (bkp.Type == Backup.BackupTypes.Differential) {
             var fullBkp = await _context!.Backups.AsNoTracking()
-                .Where(b => b.Type == BackupJobSettings.BackupTypes.Full && b.Id < bkp.Id)
+                .Where(b => b.Type == Backup.BackupTypes.Full && b.Id < bkp.Id)
                 .OrderByDescending(b => b.Id)
                 .FirstOrDefaultAsync();
             if (fullBkp == null)

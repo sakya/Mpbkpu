@@ -90,7 +90,7 @@ public class RestoreAction : BaseAction
 
     private Task<bool> OnConfirm(object sender, RestoreJob.ConfirmArgs e)
     {
-        if (_pArgs!.AlwaysYes == true)
+        if (_pArgs!.AlwaysYes)
             return Task.FromResult(true);
         Console.CursorVisible = true;
         var res = Utility.Console.Confirm($"Delete {e.FilesToDelete} ({MpbkpuLib.Utility.String.BytesToString(e.BytesToDelete)}), restore {e.FilesToRestore} files ({MpbkpuLib.Utility.String.BytesToString(e.BytesToRestore)})?", true, true);

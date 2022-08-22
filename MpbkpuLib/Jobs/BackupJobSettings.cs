@@ -1,28 +1,10 @@
 ﻿using System.IO.Compression;
 using MpbkpuLib.Abstracts;
+using MpbkpuLib.DataModel;
 
 namespace MpbkpuLib.Jobs;
 public class BackupJobSettings : BaseJobSettings
 {
-    /// <summary>
-    /// The backup type
-    /// </summary>
-    public enum BackupTypes
-    {
-        /// <summary>
-        /// Backup all the files
-        /// </summary>
-        Full,
-        /// <summary>
-        /// Backup only changed files since the last full/incremental backup
-        /// </summary>
-        Incremental,
-        /// <summary>
-        /// Backup only changed files since the last full backup
-        /// </summary>
-        Differential
-    }
-
     public BackupJobSettings()
     {
         MaxFilesPerDirectory = 1000;
@@ -36,9 +18,9 @@ public class BackupJobSettings : BaseJobSettings
     public string? Name { get; set; }
 
     /// <summary>
-    /// The backup <see cref="BackupTypes"/>
+    /// The backup <see cref="Backup.BackupTypes"/>
     /// </summary>
-    public BackupTypes BackupType { get; set; }
+    public Backup.BackupTypes BackupType { get; set; }
 
     /// <summary>
     /// The backup source

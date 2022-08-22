@@ -101,7 +101,7 @@ public class BackupAction : BaseAction
 
     private Task<bool> OnConfirm(object sender, BackupJob.ConfirmArgs e)
     {
-        if (_pArgs!.AlwaysYes == true)
+        if (_pArgs!.AlwaysYes)
             return Task.FromResult(true);
         Console.CursorVisible = true;
         var res = Utility.Console.Confirm($"Backup {e.FilesToBackup} files ({MpbkpuLib.Utility.String.BytesToString(e.BytesToBackup)})?", true, true);

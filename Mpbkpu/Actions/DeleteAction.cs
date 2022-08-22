@@ -1,4 +1,5 @@
 ﻿using MpbkpuLib.Abstracts;
+using MpbkpuLib.DataModel;
 using MpbkpuLib.Jobs;
 
 namespace Mpbkpu.Actions;
@@ -69,10 +70,33 @@ public class DeleteAction : BaseAction
 
     private Task<bool> OnConfirm(object sender, DeleteJob.ConfirmArgs e)
     {
-        if (_pArgs!.AlwaysYes == true)
+        if (_pArgs!.AlwaysYes)
             return Task.FromResult(true);
         Console.CursorVisible = true;
-        var res = Utility.Console.Confirm($"Delete backup with GUID {e.Guid} containing {e.FilesToDelete} files ({MpbkpuLib.Utility.String.BytesToString(e.BytesToDelete)})?", false, true);
+        Console.WriteLine("The following backups will be deleted:");
+        Console.WriteLine();
+        Console.ForegroundColor = Utility.Console.HighlightColor;
+        Console.WriteLine($"{"Guid",-32} {"Type",-12} {"Result",-20} Size");
+        Console.ForegroundColor = Utility.Console.DefaultColor;
+        foreach (var bkp in e.Backups) {
+            Console.Write($"{bkp.Guid,-32} {bkp.Type,-12}");
+            switch (bkp.Result) {
+                case Backup.Results.Completed:
+                    Console.ForegroundColor = Utility.Console.SuccessColor;
+                    break;
+                case Backup.Results.Cancelled:
+                    Console.ForegroundColor = Utility.Console.WarningColor;
+                    break;
+                case Backup.Results.Error:
+                    Console.ForegroundColor = Utility.Console.ErrorColor;
+                    break;
+            }
+            Console.Write($" {bkp.Result,-20}");
+            Console.ForegroundColor = Utility.Console.DefaultColor;
+            Console.WriteLine($" {MpbkpuLib.Utility.String.BytesToString(bkp.Bytes)}");
+        }
+        Console.WriteLine();
+        var res = Utility.Console.Confirm("Delete the backups?", false, true);
         Console.CursorVisible = false;
         return Task.FromResult(res);
     }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MpbkpuLib.Abstracts;
+using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
 using Newtonsoft.Json;
 
@@ -16,15 +17,38 @@ public class DeleteJob : BaseJob
 
     #region private members
     private CancellationToken? _cancellationToken;
+    private bool _skipDatabaseCopy;
     #endregion
 
     #region delegates
     public class ConfirmArgs : EventArgs
     {
-        public string? Guid { get; set; }
-        public int FilesToDelete { get; set; }
-        public long BytesToDelete { get; set; }
+        public class BackupInfo
+        {
+            public string? Guid { get; set; }
+            public Backup.BackupTypes Type { get; set; }
+            public Backup.Results Result { get; set; }
+            public int Files { get; set; }
+            public long Bytes { get; set; }
+        }
+
+        public ConfirmArgs()
+        {
+            Backups = new List<BackupInfo>();
+        }
+        public List<BackupInfo> Backups { get; set; }
+
+        public int FilesToDelete
+        {
+            get { return Backups.Sum(b => b.Files); }
+        }
+
+        public long BytesToDelete
+        {
+            get { return Backups.Sum(b => b.Bytes); }
+        }
     }
+
     public delegate Task<bool> ConfirmHandler(object sender, ConfirmArgs e);
     public event ConfirmHandler? ConfirmDelete;
 
@@ -78,7 +102,7 @@ public class DeleteJob : BaseJob
                 backupFile.Close();
 
                 // Copy temporary database file to destination
-                if (!string.IsNullOrEmpty(openRes.TempFilePath)) {
+                if (!_skipDatabaseCopy && !string.IsNullOrEmpty(openRes.TempFilePath)) {
                     Step?.Invoke(this, Steps.CopyDatabase);
                     await CopyDatabaseToDestination(openRes, Settings.BackupPath, Settings.EncryptPassword);
                 }
@@ -111,29 +135,74 @@ public class DeleteJob : BaseJob
         if (BackupFm == null)
             throw new Exception("Backup file manager not initialized");
 
-        var bkp = await backupFile.Backups.AsNoTracking()
+        var bkp = await backupFile.Backups
+            .Include(b => b.Items)
+            .AsNoTracking()
             .Where(b => b.Guid == Settings.BackupGuid)
             .FirstOrDefaultAsync();
         if (bkp == null)
             throw new Exception($"Backup with GUID { Settings.BackupGuid } not found");
 
-        var cArgs = new ConfirmArgs()
+        var cArgs = new ConfirmArgs();
+        cArgs.Backups.Add(new ConfirmArgs.BackupInfo()
         {
-            Guid = Settings.BackupGuid,
-            FilesToDelete = await backupFile.BackupItems.AsNoTracking()
-                .Where(i => i.BackupId == bkp.Id)
-                .CountAsync(),
-            BytesToDelete = await backupFile.BackupItems.AsNoTracking()
-                .Where(i => i.BackupId == bkp.Id)
-                .Select(i => i.OriginalSize)
-                .SumAsync(),
-        };
+            Guid = bkp.Guid,
+            Type = bkp.Type,
+            Result = bkp.Result,
+            Files = bkp.Items.Count(),
+            Bytes = bkp.Items.Sum(i => i.Size)
+        });
+        List<int> backupIds = new() { bkp.Id };
+        if (bkp.Type is Backup.BackupTypes.Full or Backup.BackupTypes.Incremental) {
+            // We must delete all subsequent backups until the next Full backup
+            var backups = backupFile.Backups
+                .Include(b => b.Items)
+                .AsNoTracking()
+                .Where(b => b.Id > bkp.Id)
+                .OrderBy(b => b.Id);
+            foreach (var sBkp in backups) {
+                if (sBkp.Type == Backup.BackupTypes.Full)
+                    break;
+
+                cArgs.Backups.Add(new ConfirmArgs.BackupInfo()
+                {
+                    Guid = sBkp.Guid,
+                    Type = sBkp.Type,
+                    Result = sBkp.Result,
+                    Files = sBkp.Items.Count(),
+                    Bytes = sBkp.Items.Sum(i => i.Size)
+                });
+                backupIds.Add(sBkp.Id);
+            }
+        }
+
         if (ConfirmDelete != null) {
             if (!await ConfirmDelete.Invoke(this, cArgs)) {
                 LogInfo("Cancelled by user");
+                _skipDatabaseCopy = true;
                 return;
             }
         }
+
+        foreach (var bkpId in backupIds) {
+            if (_cancellationToken?.IsCancellationRequested == true) {
+                LogInfo("Cancelled by user");
+                return;
+            }
+            await DeleteBackup(backupFile, bkpId);
+        }
+    }
+
+    private async Task DeleteBackup(BackupFile backupFile, int backupId)
+    {
+        if (BackupFm == null)
+            throw new Exception("Backup file manager not initialized");
+
+        var bkp = await backupFile.Backups.AsNoTracking()
+            .Where(b => b.Id == backupId)
+            .FirstOrDefaultAsync();
+        if (bkp == null)
+            throw new Exception($"Backup with Id { backupId } not found");
 
         // Delete files
         Step?.Invoke(this, Steps.DeleteFiles);
@@ -142,7 +211,7 @@ public class DeleteJob : BaseJob
             .Include(i => i.Volume)
             .Include(i => i.Backup)
             .AsNoTracking()
-            .Where(i => i.BackupId == bkp.Id);
+            .Where(i => i.BackupId == backupId);
 
         var started = DateTime.UtcNow;
         var totalFiles = await items.CountAsync();
@@ -163,7 +232,7 @@ public class DeleteJob : BaseJob
         }
 
         // Delete data
-        await backupFile.DeleteBackup(bkp.Id);
+        await backupFile.DeleteBackup(backupId);
 
         // Delete backup directory
         var bkpPath = BackupFm.CombinePath(BackupPath!, bkp.Guid);

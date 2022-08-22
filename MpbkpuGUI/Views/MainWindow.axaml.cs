@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.IO.Compression;
 using MpbkpuLib.Abstracts;
+using MpbkpuLib.DataModel;
 using MpbkpuLib.Jobs;
 
 namespace MpbkpuGUI.Views
@@ -46,7 +47,7 @@ namespace MpbkpuGUI.Views
             var settings = new BackupJobSettings()
             {
                 Name = "Test",
-                BackupType = BackupJobSettings.BackupTypes.Incremental,
+                BackupType = Backup.BackupTypes.Incremental,
                 LogLevel = BaseJobSettings.LogLevels.Debug,
                 Source = this.FindControl<TextBox>("_source").Text,
                 Destination = this.FindControl<TextBox>("_destination").Text,

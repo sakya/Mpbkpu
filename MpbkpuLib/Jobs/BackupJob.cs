@@ -177,10 +177,10 @@ public class BackupJob : BaseJob
         _lastUsedVolume = null;
         Backup? lastBackup = await backupFile.LastBackup();
         // If there is no previous backup this is a full backup
-        if (lastBackup == null && Settings.BackupType != BackupJobSettings.BackupTypes.Full) {
+        if (lastBackup == null && Settings.BackupType != Backup.BackupTypes.Full) {
             LogWarning("No previous backup found, switching to Full backup");
-            Settings.BackupType = BackupJobSettings.BackupTypes.Full;
-        } else if (lastBackup != null && (lastBackup.Type == BackupJobSettings.BackupTypes.Differential || lastBackup.Type == BackupJobSettings.BackupTypes.Incremental) && lastBackup.Type != Settings.BackupType) {
+            Settings.BackupType = Backup.BackupTypes.Full;
+        } else if (lastBackup != null && (lastBackup.Type == Backup.BackupTypes.Differential || lastBackup.Type == Backup.BackupTypes.Incremental) && lastBackup.Type != Settings.BackupType) {
             // We cannot change backup type
             throw new Exception($"Cannot change backup type. Backup to a different destination");
         }
@@ -225,7 +225,7 @@ public class BackupJob : BaseJob
         // Read last backup items
         LogInfo("Checking files to backup");
         Step?.Invoke(this, Steps.CalculateFilesToBackup);
-        if (lastBackup != null && _backup.Type != BackupJobSettings.BackupTypes.Full) {
+        if (lastBackup != null && _backup.Type != Backup.BackupTypes.Full) {
             await foreach (var item in backupFile.GetBackupItems(lastBackup.Id)) {
                 if (item.Action == BackupItem.Actions.Deleted)
                     continue;

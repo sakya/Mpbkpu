@@ -2,6 +2,7 @@ using System.IO.Compression;
 using CmdLineArgsParser;
 using CmdLineArgsParser.Attributes;
 using MpbkpuLib.Abstracts;
+using MpbkpuLib.DataModel;
 using MpbkpuLib.Jobs;
 
 namespace Mpbkpu;
@@ -110,7 +111,7 @@ public class Arguments : IOptions
         Required = true,
         OnlyForVerbs = "Backup",
         Description = "The type of backup to execute")]
-    public BackupJobSettings.BackupTypes? BackupType { get; set; }
+    public Backup.BackupTypes? BackupType { get; set; }
 
     [Option("retry",
         Description = "Number of retries in case of error",

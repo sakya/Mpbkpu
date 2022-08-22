@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Threading;
 using System.Threading.Tasks;
+using MpbkpuLib.DataModel;
 using MpbkpuLib.Jobs;
 using NUnit.Framework;
 
@@ -25,7 +26,7 @@ public class Verify : BaseTest
     {
         var bSettings = new BackupJobSettings()
         {
-            BackupType = BackupJobSettings.BackupTypes.Full,
+            BackupType = Backup.BackupTypes.Full,
             Source = BackupSource,
             Destination = BackupDestination,
         };
@@ -54,7 +55,7 @@ public class Verify : BaseTest
     {
         var bSettings = new BackupJobSettings()
         {
-            BackupType = BackupJobSettings.BackupTypes.Full,
+            BackupType = Backup.BackupTypes.Full,
             Source = BackupSource,
             CompressionLevel = CompressionLevel.SmallestSize,
             Destination = BackupDestination,
@@ -84,7 +85,7 @@ public class Verify : BaseTest
     {
         var bSettings = new BackupJobSettings()
         {
-            BackupType = BackupJobSettings.BackupTypes.Full,
+            BackupType = Backup.BackupTypes.Full,
             Source = BackupSource,
             EncryptPassword = EncryptionPassword,
             Destination = BackupDestination,
@@ -115,7 +116,7 @@ public class Verify : BaseTest
     {
         var bSettings = new BackupJobSettings()
         {
-            BackupType = BackupJobSettings.BackupTypes.Full,
+            BackupType = Backup.BackupTypes.Full,
             Source = BackupSource,
             CompressionLevel = CompressionLevel.SmallestSize,
             EncryptPassword = EncryptionPassword,

@@ -1,5 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
+using MpbkpuLib.DataModel;
 using MpbkpuLib.Jobs;
 using NUnit.Framework;
 
@@ -24,7 +25,7 @@ public class Delete  : BaseTest
     {
         var bSettings = new BackupJobSettings()
         {
-            BackupType = BackupJobSettings.BackupTypes.Full,
+            BackupType = Backup.BackupTypes.Full,
             Source = BackupSource,
             Destination = BackupDestination,
         };
