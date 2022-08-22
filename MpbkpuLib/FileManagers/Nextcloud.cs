@@ -45,6 +45,11 @@ public class Nextcloud : IFileManager
         return false;
     }
 
+    public bool SupportOAuthLogin()
+    {
+        return true;
+    }
+
     public string CombinePath(params string[] paths)
     {
         return Utility.Files.CombinePath(GetPathSeparator(), paths);

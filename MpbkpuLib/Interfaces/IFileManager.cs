@@ -29,6 +29,12 @@ namespace MpbkpuLib.Interfaces
         public bool SupportCompression();
 
         /// <summary>
+        /// Return if this <see cref="IFileManager"/> supports OAuth login
+        /// </summary>
+        /// <returns></returns>
+        public bool SupportOAuthLogin();
+
+        /// <summary>
         /// Combine <see cref="paths"/>
         /// </summary>
         /// <param name="paths">The paths to combine</param>

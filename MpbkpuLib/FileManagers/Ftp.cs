@@ -42,6 +42,11 @@ namespace MpbkpuLib.FileManagers
             return true;
         }
 
+        public bool SupportOAuthLogin()
+        {
+            return false;
+        }
+
         public string CombinePath(params string[] paths)
         {
             return Utility.Files.CombinePath(GetPathSeparator(), paths);

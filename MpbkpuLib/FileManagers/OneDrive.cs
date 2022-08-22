@@ -155,6 +155,11 @@ namespace MpbkpuLib.FileManagers
             return false;
         }
 
+        public bool SupportOAuthLogin()
+        {
+            return true;
+        }
+
         public OneDrive(string? account)
         {
             if (string.IsNullOrEmpty(account))
