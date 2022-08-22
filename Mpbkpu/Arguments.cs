@@ -127,4 +127,9 @@ public class Arguments : IOptions
         Description = "Skip SHA256 hash check on existing file in the destination directory",
         OnlyForVerbs = "Backup;Restore")]
     public bool SkipHashCheck { get; set; }
+
+    [Option("filter",
+        Description = "Regular expression used to filter results",
+        OnlyForVerbs = "ListContent")]
+    public string? Filter { get; set; }
 }

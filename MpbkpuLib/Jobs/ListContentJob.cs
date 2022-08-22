@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using MpbkpuLib.Abstracts;
 using MpbkpuLib.DataModel;
@@ -92,6 +93,7 @@ public class ListContentJob : BaseJob
         }
 
         Step?.Invoke(this, Steps.ListContent);
+        Regex? regex = !string.IsNullOrEmpty(Settings.Filter) ? new Regex(Settings.Filter) : null;
         await foreach (var item in backupFile.GetBackupItems(bkp.Id)) {
             if (_cancellationToken?.IsCancellationRequested == true) {
                 LogInfo("Cancelled by user");
@@ -101,7 +103,13 @@ public class ListContentJob : BaseJob
                     ErrorMessage = "Cancelled by user"
                 };
             }
-            Content?.Invoke(this, item);
+
+            if (regex != null) {
+                if (regex.Match(item.OriginalRelativePath!).Success)
+                    Content?.Invoke(this, item);
+            } else {
+                Content?.Invoke(this, item);
+            }
         }
 
         return new ListContentJobResult()
@@ -116,6 +124,14 @@ public class ListContentJob : BaseJob
             throw new ArgumentNullException(nameof(Settings.BackupPath), "Backup path cannot be empty");
         if (string.IsNullOrEmpty(Settings.BackupGuid))
             throw new ArgumentNullException(nameof(Settings.BackupGuid), "Backup GUID cannot be empty");
+
+        if (!string.IsNullOrEmpty(Settings.Filter)) {
+            try {
+                var m = Regex.Match(string.Empty, Settings.Filter);
+            } catch (ArgumentException) {
+                throw new ArgumentNullException(nameof(Settings.Filter), "Filter is not a valid regular expression");
+            }
+        }
     }
     #endregion
 }

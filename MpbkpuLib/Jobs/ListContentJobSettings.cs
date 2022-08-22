@@ -1,3 +1,4 @@
+using Dropbox.Api.TeamLog;
 using MpbkpuLib.Abstracts;
 
 namespace MpbkpuLib.Jobs;
@@ -23,4 +24,9 @@ public class ListContentJobSettings : BaseJobSettings
     /// The GUID of the backup
     /// </summary>
     public string? BackupGuid { get; set; }
+
+    /// <summary>
+    /// Regular expression used to filter results
+    /// </summary>
+    public string? Filter { get; set; }
 }

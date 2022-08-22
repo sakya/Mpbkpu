@@ -7,6 +7,9 @@ namespace Mpbkpu.Actions;
 
 public class ListContentAction : BaseAction
 {
+    private int _filesCount = 0;
+    private int _directoriesCount = 0;
+
     public override async Task<bool> Run(Arguments pArgs)
     {
         var settings = new ListContentJobSettings()
@@ -16,7 +19,8 @@ public class ListContentAction : BaseAction
             BackupPathUser = pArgs.BackupUser,
             BackupPathPassword = pArgs.BackupPassword,
             BackupGuid = pArgs.BackupGuid,
-            EncryptPassword = pArgs.Password
+            EncryptPassword = pArgs.Password,
+            Filter = pArgs.Filter,
         };
 
         var job = new ListContentJob(settings);
@@ -29,6 +33,12 @@ public class ListContentAction : BaseAction
             Console.CursorVisible = false;
             var task = Task.Run(() => job.Run(CancellationTokenSource.Token));
             await task;
+
+            if (!CancellationTokenSource.Token.IsCancellationRequested) {
+                Console.WriteLine();
+                Console.WriteLine($"Directories: {_directoriesCount}");
+                Console.WriteLine($"Files      : {_filesCount}");
+            }
             Console.WriteLine();
         } catch (Exception ex) {
             Console.ForegroundColor = Utility.Console.ErrorColor;
@@ -64,6 +74,15 @@ public class ListContentAction : BaseAction
 
     private void OnContent(object sender, BackupItem item)
     {
+        switch (item.Type) {
+            case File.FileTyes.File:
+                _filesCount++;
+                break;
+            case File.FileTyes.Directory:
+                _directoriesCount++;
+                break;
+        }
+
         Console.WriteLine($"{(item.Type == File.FileTyes.Directory ? "Dir" : "File"), -4} {MpbkpuLib.Utility.String.BytesToString(item.Size), -12} {item.OriginalRelativePath}");
     }
     #endregion
