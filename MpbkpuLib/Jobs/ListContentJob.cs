@@ -126,11 +126,10 @@ public class ListContentJob : BaseJob
             try {
                 var m = Regex.Match(string.Empty, Settings.Filter);
             } catch (ArgumentException) {
-                throw new ArgumentNullException(nameof(Settings.Filter), "Filter is not a valid regular expression");
+                throw new ArgumentException("Filter is not a valid regular expression", nameof(Settings.Filter));
             }
         }
     }
-    #endregion
 
     private void CountResult(ListContentJobResult res, BackupItem item)
     {
@@ -143,4 +142,5 @@ public class ListContentJob : BaseJob
                 break;
         }
     }
+    #endregion
 }

@@ -151,7 +151,7 @@ public class VerifyJob: BaseJob
                 if (!await VerifyBackupItem(BackupFm, item))
                     filesError++;
                 fileIdx++;
-                bytes += item.Size;
+                bytes += item.OriginalSize;
                 Progress?.Invoke(this, new ProgressHandlerArgs(fileIdx, bkpItemsCount, bytes, bkpSize, GetEta(started, bytes, bkpSize)));
             }
 
