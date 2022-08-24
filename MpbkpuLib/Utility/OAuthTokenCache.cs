@@ -34,11 +34,15 @@ public class OAuthTokenCache
 
     public async Task<TokenData?> GetToken(string account)
     {
+        if (string.IsNullOrEmpty(account))
+            throw new ArgumentNullException(nameof(account));
+
         if (!File.Exists(_fileName))
             return null;
 
+        account = account.Trim().ToLower();
         TokenCache? cache;
-        using (var fs = new FileStream(_fileName, FileMode.Open, FileAccess.Read)) {
+        await using (var fs = new FileStream(_fileName, FileMode.Open, FileAccess.Read)) {
             using (var sr = new StreamReader(fs)) {
                 cache = JsonConvert.DeserializeObject<TokenCache>(await sr.ReadToEndAsync());
             }
@@ -60,12 +64,22 @@ public class OAuthTokenCache
 
     public async Task SaveToken(string account, string accessToken, string refreshToken, DateTime? expiresAt)
     {
+        if (string.IsNullOrEmpty(account))
+            throw new ArgumentNullException(nameof(account));
+        if (string.IsNullOrEmpty(accessToken))
+            throw new ArgumentNullException(nameof(accessToken));
+        if (string.IsNullOrEmpty(refreshToken))
+            throw new ArgumentNullException(nameof(refreshToken));
+        if (expiresAt == null)
+            throw new ArgumentNullException(nameof(expiresAt));
+
         var dir = Path.GetDirectoryName(_fileName);
         if (!Directory.Exists(dir))
             Directory.CreateDirectory(dir!);
 
+        account = account.Trim().ToLower();
         TokenCache? cache;
-        using (var fs = new FileStream(_fileName, FileMode.OpenOrCreate, FileAccess.Read)) {
+        await using (var fs = new FileStream(_fileName, FileMode.OpenOrCreate, FileAccess.Read)) {
             using (var sr = new StreamReader(fs)) {
                 cache = JsonConvert.DeserializeObject<TokenCache>(await sr.ReadToEndAsync());
             }
@@ -82,8 +96,8 @@ public class OAuthTokenCache
         };
 
         cache.Tokens[account] = data;
-        using (var fs = new FileStream(_fileName, FileMode.Create, FileAccess.Write)) {
-            using (var sw = new StreamWriter(fs)) {
+        await using (var fs = new FileStream(_fileName, FileMode.Create, FileAccess.Write)) {
+            await using (var sw = new StreamWriter(fs)) {
                 await sw.WriteAsync(JsonConvert.SerializeObject(cache));
             }
         }

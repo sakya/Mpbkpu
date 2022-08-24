@@ -121,23 +121,23 @@ public class Arguments : IOptions
 
     [Option("backupOauthServer",
         Description = "The OAuth server url for accessing the backup file system",
-        OnlyForVerbs = "Backup")]
+        OnlyForVerbs = "Restore;Delete;List;ListContent;Verify")]
     public Uri? BackupOauthServerUrl { get; set; }
     [Option("backupOauthRedirect",
         Description = "The OAuth redirect url for accessing the backup file system",
-        OnlyForVerbs = "Backup")]
+        OnlyForVerbs = "Restore;Delete;List;ListContent;Verify")]
     public Uri? BackupOauthRedirectUrl { get; set; }
     [Option("backupOauthApp",
         Description = "The OAuth app name for accessing the backup file system",
-        OnlyForVerbs = "Backup")]
+        OnlyForVerbs = "Restore;Delete;List;ListContent;Verify")]
     public string? BackupOauthAppName { get; set; }
     [Option("backupOauthAppId",
         Description = "The OAuth app id for accessing the backup file system",
-        OnlyForVerbs = "Backup")]
+        OnlyForVerbs = "Restore;Delete;List;ListContent;Verify")]
     public string? BackupOauthAppId { get; set; }
     [Option("backupOauthSecret",
         Description = "The OAuth app secret for accessing the backup file system",
-        OnlyForVerbs = "Backup")]
+        OnlyForVerbs = "Restore;Delete;List;ListContent;Verify")]
     public string? BackupOauthAppSecret { get; set; }
     #endregion
 

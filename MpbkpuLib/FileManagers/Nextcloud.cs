@@ -148,7 +148,7 @@ public class Nextcloud : IFileManager, IOAuth2
 
     public string CombinePath(params string[] paths)
     {
-        return Utility.Files.CombinePath(GetPathSeparator(), paths);
+        return Files.CombinePath(GetPathSeparator(), paths);
     }
 
     public async Task<bool> CreateDirectory(string? path)
@@ -304,7 +304,7 @@ public class Nextcloud : IFileManager, IOAuth2
             if (string.IsNullOrEmpty(AppSecret))
                 throw new Exception($"{nameof(AppSecret)} cannot be empty");
 
-            var saved = await GetToken(_userId!);
+            var saved = await GetToken(_userId);
             _client = new Client(new ClientSettings()
             {
                 ServerUri = ServerUrl,
@@ -321,7 +321,7 @@ public class Nextcloud : IFileManager, IOAuth2
             await _client.Login();
             if (string.Compare(_client.UserId, _userId, StringComparison.InvariantCultureIgnoreCase) != 0)
                 throw new Exception("Account mismatch");
-            await SaveToken(_userId!, _client.AccessToken, _client.RefreshToken, _client.TokenExpiration);
+            await SaveToken(_userId, _client.AccessToken, _client.RefreshToken, _client.TokenExpiration);
         }
 
         return _client;
@@ -329,7 +329,7 @@ public class Nextcloud : IFileManager, IOAuth2
 
     private string GetPath(string path)
     {
-        return Utility.Files.GetPath(GetPathSeparator(), Scheme, path);
+        return Files.GetPath(GetPathSeparator(), Scheme, path);
     }
 
     private string GetName(string path)

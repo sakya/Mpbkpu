@@ -138,14 +138,15 @@ namespace NextcloudClient
             if (string.IsNullOrEmpty(AccessToken))
                 throw new Exception("Not logged in");
 
-            if (forceRefresh || TokenExpiration >= DateTime.UtcNow.AddMinutes(-1)) {
+            if (forceRefresh || TokenExpiration <= DateTime.UtcNow.AddMinutes(-1)) {
+                Console.WriteLine($"Refreshing token {TokenExpiration} {DateTime.UtcNow.AddMinutes(-1)}");
                 var token = await GetPostResponse<AuthTokenModel>(
                     $"{_settings.ServerUri}index.php/apps/oauth2/api/v1/token?&grant_type=refresh_token&refresh_token={RefreshToken}&client_id={_settings.ClientId}&client_secret={_settings.ClientSecret}",
                     null);
                 UserId = token.UserId;
                 AccessToken = token.AccessToken;
                 RefreshToken = token.RefreshToken;
-                TokenExpiration = DateTime.UtcNow.AddSeconds(token.ExpiresIn);
+                TokenExpiration = DateTime.Now.AddSeconds(token.ExpiresIn);
             }
         }
 
