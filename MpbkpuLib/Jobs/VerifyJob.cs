@@ -16,9 +16,21 @@ public class VerifyJob: BaseJob
         VerifyFiles
     }
 
+    #region classes
+    private class ProgressData
+    {
+        public DateTime? Started { get; set; }
+        public int TotalFiles { get; set; }
+        public int FileIndex { get; set; }
+        public long TotalBytes { get; set; }
+        public long Bytes { get; set; }
+    }
+    #endregion
+
     #region private members
     private CancellationToken? _cancellationToken;
     private List<VerifyJobResult.Error>? _errors;
+    private ProgressData? _progressData;
     #endregion
 
     #region delegates
@@ -115,7 +127,7 @@ public class VerifyJob: BaseJob
         long bkpSize = 0;
         await foreach (var i in backupFile.GetBackupItems(bkp.Id)) {
             bkpItemsCount++;
-            bkpSize += i.OriginalSize;
+            bkpSize += i.Size;
         }
 
         LogInfo($"Type     : { bkp.Type }");
@@ -135,11 +147,16 @@ public class VerifyJob: BaseJob
             LogWarning("Backup directory does not exists");
         } else {
             // Verify backup items
+            _progressData = new ProgressData()
+            {
+                Started = DateTime.UtcNow,
+                TotalBytes = bkpSize,
+                TotalFiles = bkpItemsCount
+            };
+
             var started = DateTime.UtcNow;
             var filesError = 0;
             Step?.Invoke(this, Steps.VerifyFiles);
-            var fileIdx = 0;
-            long bytes = 0;
             await foreach (var item in backupFile.GetBackupItems(bkp.Id)) {
                 if (_cancellationToken?.IsCancellationRequested == true) {
                     LogInfo("Cancelled by user");
@@ -150,11 +167,12 @@ public class VerifyJob: BaseJob
                     };
                 }
 
+                FileProgress?.Invoke(this, item.OriginalRelativePath!, 0, item.Size);
                 if (!await VerifyBackupItem(BackupFm, item))
                     filesError++;
-                fileIdx++;
-                bytes += item.OriginalSize;
-                Progress?.Invoke(this, new ProgressHandlerArgs(fileIdx, bkpItemsCount, bytes, bkpSize, GetEta(started, bytes, bkpSize)));
+                _progressData.FileIndex++;
+                _progressData.Bytes += item.Size;
+                Progress?.Invoke(this, new ProgressHandlerArgs(_progressData.FileIndex, bkpItemsCount, _progressData.Bytes, bkpSize, GetEta(started, _progressData.Bytes, bkpSize)));
             }
 
             if (filesError > 0)
@@ -202,11 +220,11 @@ public class VerifyJob: BaseJob
                 if (lastFileProgress == null || copied == item.Size ||
                     (DateTime.UtcNow - lastFileProgress.Value).TotalMilliseconds >= 500) {
                     FileProgress?.Invoke(this, item.OriginalRelativePath!, copied, item.Size);
+                    Progress?.Invoke(this, new ProgressHandlerArgs(_progressData!.FileIndex, _progressData.TotalFiles, _progressData.Bytes + copied, _progressData.TotalBytes, GetEta(_progressData.Started, _progressData.Bytes + copied, _progressData.TotalBytes)));
                     lastFileProgress = DateTime.UtcNow;
                 }
             });
 
-            FileProgress?.Invoke(this, item.OriginalRelativePath!, 0, item.Size);
             var hash = await Utility.Files.GetSha256(fm, filePath, progressAction);
             if (hash != item.Sha256) {
                 _errors!.Add(new VerifyJobResult.Error(VerifyJobResult.Error.ErrorCodes.HashMismatch, $"Hash mismatch for file {item.OriginalPath}"));

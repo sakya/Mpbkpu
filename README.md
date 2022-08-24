@@ -2,7 +2,7 @@
 A multi platform backup utility with encryption and compression feature.
 Supports local and remote file system.
 
-Supported backup type:
+Supported backup types:
 - Full
 - Incremental
 - Differential
@@ -10,7 +10,8 @@ Supported backup type:
 Supported remote file systems:
 - FTP
 - SFTP
-toEncrypt- Dropbox
+- Dropbox
 - MediaFire
 - Mega
+- Nextcloud
 - OneDrive

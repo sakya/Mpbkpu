@@ -478,7 +478,7 @@ public class BackupJob : BaseJob
                         {
                             if (lastFileProgress == null || copied == sourceFile.Size ||
                                 (DateTime.UtcNow - lastFileProgress.Value).TotalMilliseconds >= 500) {
-                                FileProgress?.Invoke(this, sourceFile.FullPath!, copied, sourceFile.Size);
+                                FileProgress?.Invoke(this, sourceFile.RelativePath!, copied, sourceFile.Size);
                                 Progress?.Invoke(this, new ProgressHandlerArgs(_progressData!.FileIndex, _progressData.TotalFiles, _progressData.Bytes + copied, _progressData.TotalBytes, GetEta(_progressData.Started, _progressData.Bytes + copied, _progressData.TotalBytes)));
                                 lastFileProgress = DateTime.UtcNow;
                             }
