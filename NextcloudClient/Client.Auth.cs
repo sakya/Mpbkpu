@@ -5,6 +5,7 @@ using System.Net;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Web;
 using NextcloudClient.Models;
 
 namespace NextcloudClient
@@ -38,11 +39,11 @@ namespace NextcloudClient
             }
 
             using (var http = new HttpListener()) {
-                http.Prefixes.Add($"{_settings.RedirectUri.Scheme}://{_settings.RedirectUri.Host}:{_settings.RedirectUri.Port}/");
+                http.Prefixes.Add(_settings.RedirectUri.ToString());
                 http.Start();
 
                 var state = Guid.NewGuid().ToString();
-                var url = $"{_settings.ServerUri}index.php/apps/oauth2/authorize?response_type=code&client_id={_settings.ClientId}&redirect_uri={_settings.RedirectUri}&state={state}";
+                var url = $"{_settings.ServerUri}index.php/apps/oauth2/authorize?response_type=code&client_id={_settings.ClientId}&redirect_uri={HttpUtility.UrlEncode(_settings.RedirectUri.ToString())}&state={state}";
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
                     Process.Start(new ProcessStartInfo("cmd", $"/c start {url.Replace("&", "^&")}"));
                 } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {

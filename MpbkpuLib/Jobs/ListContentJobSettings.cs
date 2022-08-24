@@ -1,5 +1,6 @@
 using Dropbox.Api.TeamLog;
 using MpbkpuLib.Abstracts;
+using MpbkpuLib.FileManagers;
 
 namespace MpbkpuLib.Jobs;
 
@@ -19,7 +20,10 @@ public class ListContentJobSettings : BaseJobSettings
     /// </summary>
     /// <value></value>
     public string? BackupPathPassword { get; set; }
-
+    /// <summary>
+    /// OAuth settings to access to the backup path
+    /// </summary>
+    public OAuth2Settings? BackupOauthSettings { get; set; }
     /// <summary>
     /// The GUID of the backup
     /// </summary>

@@ -415,7 +415,7 @@ public class Dropbox : IFileManager, IOAuth2
                     tokenAccessType: TokenAccessType.Offline, state: state,
                     codeChallenge: codeChallenge);
                 using var http = new HttpListener();
-                http.Prefixes.Add($"{RedirectUrl.Scheme}://{RedirectUrl.Host}:{RedirectUrl.Port}/");
+                http.Prefixes.Add(RedirectUrl.ToString());
                 http.Start();
 
                 Process process = new Process();

@@ -1,4 +1,5 @@
 using MpbkpuLib.Abstracts;
+using MpbkpuLib.FileManagers;
 
 namespace MpbkpuLib.Jobs;
 
@@ -18,6 +19,10 @@ public class RestoreJobSettings : BaseJobSettings
     /// </summary>
     /// <value></value>
     public string? BackupPathPassword { get; set; }
+    /// <summary>
+    /// OAuth settings to access to the backup path
+    /// </summary>
+    public OAuth2Settings? BackupOauthSettings { get; set; }
 
     /// <summary>
     /// The GUID of the backup to restore
@@ -39,6 +44,10 @@ public class RestoreJobSettings : BaseJobSettings
     /// </summary>
     /// <value></value>
     public string? DestinationPassword { get; set; }
+    /// <summary>
+    /// OAuth settings to access to the destination
+    /// </summary>
+    public OAuth2Settings? DestinationOauthSettings { get; set; }
 
     /// <summary>
     /// Number of retries on error while restoring a file

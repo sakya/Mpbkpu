@@ -1,4 +1,5 @@
 using MpbkpuLib.Abstracts;
+using MpbkpuLib.FileManagers;
 
 namespace MpbkpuLib.Jobs;
 
@@ -18,4 +19,8 @@ public class ListJobSettings : BaseJobSettings
     /// </summary>
     /// <value></value>
     public string? BackupPathPassword { get; set; }
+    /// <summary>
+    /// OAuth settings to access to the backup path
+    /// </summary>
+    public OAuth2Settings? BackupOauthSettings { get; set; }
 }

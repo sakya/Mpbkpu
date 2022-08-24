@@ -1,4 +1,5 @@
 using MpbkpuLib.Abstracts;
+using MpbkpuLib.FileManagers;
 using MpbkpuLib.Jobs;
 
 namespace Mpbkpu.Actions;
@@ -13,6 +14,14 @@ public class VerifyAction : BaseAction
             BackupPath = pArgs.BackupPath,
             BackupPathUser = pArgs.BackupUser,
             BackupPathPassword = pArgs.BackupPassword,
+            BackupOauthSettings = new OAuth2Settings()
+            {
+                ServerUrl = pArgs.BackupOauthServerUrl,
+                RedirectUrl = pArgs.BackupOauthRedirectUrl,
+                AppName = pArgs.BackupOauthAppName,
+                AppId = pArgs.BackupOauthAppId,
+                AppSecret = pArgs.BackupOauthAppSecret,
+            },
             BackupGuid = pArgs.BackupGuid,
             EncryptPassword = pArgs.Password
         };

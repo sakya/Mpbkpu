@@ -1,4 +1,5 @@
 ﻿using MpbkpuLib.Abstracts;
+using MpbkpuLib.FileManagers;
 using MpbkpuLib.Jobs;
 
 namespace Mpbkpu.Actions;
@@ -18,14 +19,30 @@ public class RestoreAction : BaseAction
             BackupPath = pArgs.BackupPath,
             BackupPathUser = pArgs.BackupUser,
             BackupPathPassword = pArgs.BackupPassword,
+            BackupOauthSettings = new OAuth2Settings()
+            {
+                ServerUrl = pArgs.BackupOauthServerUrl,
+                RedirectUrl = pArgs.BackupOauthRedirectUrl,
+                AppName = pArgs.BackupOauthAppName,
+                AppId = pArgs.BackupOauthAppId,
+                AppSecret = pArgs.BackupOauthAppSecret,
+            },
             BackupGuid = pArgs.BackupGuid,
             EncryptPassword = pArgs.Password,
 
             Destination = pArgs.DestinationPath,
             DestinationUser = pArgs.DestinationUser,
             DestinationPassword = pArgs.DestinationPassword,
-            SkipHashCheck = pArgs.SkipHashCheck,
+            DestinationOauthSettings = new OAuth2Settings()
+            {
+                ServerUrl = pArgs.DestinationOauthServerUrl,
+                RedirectUrl = pArgs.DestinationOauthRedirectUrl,
+                AppName = pArgs.DestinationOauthAppName,
+                AppId = pArgs.DestinationOauthAppId,
+                AppSecret = pArgs.DestinationOauthAppSecret,
+            },
 
+            SkipHashCheck = pArgs.SkipHashCheck,
             RetryOnError = pArgs.RetryOnError ?? 3,
             LogToConsole = false,
             LogFile = pArgs.LogFile
