@@ -6,6 +6,9 @@ namespace Mpbkpu.Actions;
 
 public class VerifyAction : BaseAction
 {
+    private double _totalPerc;
+    private TimeSpan _eta = TimeSpan.Zero;
+
     public override async Task<bool> Run(Arguments pArgs)
     {
         var settings = new VerifyJobSettings()
@@ -30,6 +33,7 @@ public class VerifyAction : BaseAction
         job.Step += OnStep;
         job.LogEmitted += OnLog;
         job.Progress += OnProgress;
+        job.FileProgress += OnFileProgress;
 
         CancellationTokenSource = new CancellationTokenSource();
         BaseJobResult? jobRes = null;
@@ -70,13 +74,26 @@ public class VerifyAction : BaseAction
         Console.ForegroundColor = Utility.Console.DefaultColor;
     }
 
-    private void OnProgress(object sender, BaseJob.ProgressHandlerArgs args)
+    private void OnFileProgress(object sender, string filePath, long bytes, long totalBytes)
     {
-        var perc = args.Bytes / (double)args.TotalBytes * 100.0;
-        var progress = $"[{perc,5:0.0}% {MpbkpuLib.Utility.String.TimeSpanToString(args.Eta)}]";
+        var perc = bytes / (double)totalBytes * 100.0;
+        if (bytes == 0 && totalBytes == 0)
+            perc = 100;
+        var progress = $"[{_totalPerc,5:0.0}% {MpbkpuLib.Utility.String.TimeSpanToString(_eta)}][{perc,5:0.0}%]";
+        if (filePath.Length > Console.WindowWidth - progress.Length - 1)
+            filePath = $"...{ filePath.Substring(filePath.Length - (Console.WindowWidth - progress.Length) + 4) }";
+        progress = $"{progress}{filePath}";
 
         Console.CursorLeft = 0;
         Console.Write(progress.PadRight(Console.WindowWidth - 1));
+    }
+
+    private void OnProgress(object sender, BaseJob.ProgressHandlerArgs args)
+    {
+        _totalPerc = args.Bytes / (double)args.TotalBytes * 100.0;
+        _eta = args.Eta;
+        Console.CursorLeft = 0;
+        Console.Write($"[{_totalPerc,5:0.0}% {MpbkpuLib.Utility.String.TimeSpanToString(_eta)}]");
     }
     #endregion
 }

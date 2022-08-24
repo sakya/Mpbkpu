@@ -27,8 +27,10 @@ public class VerifyJob: BaseJob
     public event StepHandler? Step;
 
     public delegate void ProgressHandler(object sender, ProgressHandlerArgs args);
-
     public event ProgressHandler? Progress;
+
+    public delegate void FileProgressHandler(object sender, string filePath, long bytes, long totalBytes);
+    public event FileProgressHandler? FileProgress;
     #endregion
 
     public VerifyJob(VerifyJobSettings? settings) :
@@ -194,7 +196,18 @@ public class VerifyJob: BaseJob
                 return false;
             }
 
-            var hash = await Utility.Files.GetSha256(fm, filePath);
+            DateTime? lastFileProgress = null;
+            var progressAction = new Action<long>((copied) =>
+            {
+                if (lastFileProgress == null || copied == item.Size ||
+                    (DateTime.UtcNow - lastFileProgress.Value).TotalMilliseconds >= 500) {
+                    FileProgress?.Invoke(this, item.OriginalRelativePath!, copied, item.Size);
+                    lastFileProgress = DateTime.UtcNow;
+                }
+            });
+
+            FileProgress?.Invoke(this, item.OriginalRelativePath!, 0, item.Size);
+            var hash = await Utility.Files.GetSha256(fm, filePath, progressAction);
             if (hash != item.Sha256) {
                 _errors!.Add(new VerifyJobResult.Error(VerifyJobResult.Error.ErrorCodes.HashMismatch, $"Hash mismatch for file {item.OriginalPath}"));
                 LogWarning($"Hash mismatch for file {item.OriginalPath}");

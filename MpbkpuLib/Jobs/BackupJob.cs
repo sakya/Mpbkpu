@@ -26,7 +26,6 @@ public class BackupJob : BaseJob
     }
 
     #region classes
-
     private class ProgressData
     {
         public DateTime? Started { get; set; }
@@ -43,6 +42,7 @@ public class BackupJob : BaseJob
         public int? ItemsCount { get; set; }
     }
     #endregion
+
     #region private members
     private Backup? _backup;
     private LastUsedVolume? _lastUsedVolume;

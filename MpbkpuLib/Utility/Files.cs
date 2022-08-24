@@ -83,18 +83,25 @@ public static class Files
         return destFileSize;
     }
 
-    public static async Task<string> GetSha256(IFileManager? fm, string? filePath)
+    public static async Task<string> GetSha256(IFileManager? fm, string? filePath, Action<long>? progressAction = null)
     {
         if (fm == null)
             throw new ArgumentNullException(nameof(fm));
         if (string.IsNullOrEmpty(filePath))
             throw new ArgumentNullException(nameof(filePath));
 
-        using (var source = await fm.OpenFile(filePath)) {
-            using (var hasher = SHA256.Create()) {
-                var hash = await hasher.ComputeHashAsync(source);
-                return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
-            }
+        await using var source = await fm.OpenFile(filePath);
+        using var hasher = SHA256.Create();
+        int read;
+        var processed = 0;
+        var buffer = new byte[32768];
+        while ((read = await source.ReadAsync(buffer, 0, buffer.Length)) > 0) {
+            hasher.TransformBlock(buffer, 0, read, null, 0);
+
+            processed += read;
+            progressAction?.Invoke(processed);
         }
+        hasher.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+        return BitConverter.ToString(hasher.Hash!).Replace("-", "").ToLowerInvariant();
     }
 }
