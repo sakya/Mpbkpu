@@ -1,4 +1,5 @@
 using MpbkpuLib.Interfaces;
+using MpbkpuLib.Utility;
 using NextcloudClient;
 using File = MpbkpuLib.DataModel.File;
 
@@ -103,6 +104,7 @@ public class Nextcloud : IFileManager, IOAuth2
 
     private readonly string _userId;
     private Client? _client;
+    private readonly string _tokenCache = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Mpbkpu", "NextcloudTokenCache");
 
     public Nextcloud(string? userId)
     {
@@ -302,6 +304,7 @@ public class Nextcloud : IFileManager, IOAuth2
             if (string.IsNullOrEmpty(AppSecret))
                 throw new Exception($"{nameof(AppSecret)} cannot be empty");
 
+            var saved = await GetToken(_userId!);
             _client = new Client(new ClientSettings()
             {
                 ServerUri = ServerUrl,
@@ -310,10 +313,15 @@ public class Nextcloud : IFileManager, IOAuth2
                 AppName = AppName,
                 ClientId = AppId,
                 ClientSecret = AppSecret,
+
+                AccessToken = saved?.AccessToken,
+                RefreshToken = saved?.RefreshToken,
+                TokenExpiration = saved?.ExpiresAt
             });
             await _client.Login();
             if (string.Compare(_client.UserId, _userId, StringComparison.InvariantCultureIgnoreCase) != 0)
                 throw new Exception("Account mismatch");
+            await SaveToken(_userId!, _client.AccessToken, _client.RefreshToken, _client.TokenExpiration);
         }
 
         return _client;
@@ -328,6 +336,18 @@ public class Nextcloud : IFileManager, IOAuth2
     {
         var idx = path.LastIndexOf($"{GetPathSeparator()}", StringComparison.InvariantCultureIgnoreCase);
         return idx >= 0 ? path.Substring(idx) : path;
+    }
+
+    private async Task<OAuthTokenCache.TokenData?> GetToken(string account)
+    {
+        var cache = new OAuthTokenCache(_tokenCache);
+        return await cache.GetToken(account);
+    }
+
+    private async Task SaveToken(string account, string accessToken, string refreshToken, DateTime? expiresAt)
+    {
+        var cache = new OAuthTokenCache(_tokenCache);
+        await cache.SaveToken(account, accessToken, refreshToken, expiresAt);
     }
     #endregion
 }

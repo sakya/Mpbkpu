@@ -22,9 +22,6 @@ namespace NextcloudClient
     {
         private readonly IClientSettings _settings;
         private readonly HttpClient _httpClient;
-        private string _accessToken;
-        private string _refreshToken;
-        private DateTime? _tokenExpiration;
 
         public const string PropfindDoc = @"<?xml version=""1.0""?>
 <d:propfind xmlns:d=""DAV:"" xmlns:oc=""http://owncloud.org/ns"" xmlns:nc=""http://nextcloud.org/ns"">
@@ -59,6 +56,9 @@ namespace NextcloudClient
         }
 
         public string UserId { get; private set; }
+        public string AccessToken { get; private set; }
+        public string RefreshToken { get; private set; }
+        public DateTime? TokenExpiration { get; private set; }
 
         public Uri ServerUri => _settings.ServerUri;
 
@@ -71,7 +71,7 @@ namespace NextcloudClient
         {
             await CheckAccessToken();
             using (var httpClient = new HttpClient()) {
-                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AccessToken);
                 return await httpClient.GetStreamAsync(uri);
             }
         }
@@ -80,7 +80,7 @@ namespace NextcloudClient
         {
             await CheckAccessToken();
             using (var httpClient = new HttpClient()) {
-                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AccessToken);
                 var fileStreamContent = new StreamContent(stream);
                 await httpClient.PutAsync(uri, fileStreamContent);
             }
@@ -92,7 +92,7 @@ namespace NextcloudClient
             using (var request = new HttpRequestMessage()) {
                 request.RequestUri = uri;
                 request.Method = method;
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AccessToken);
                 if (headers != null) {
                     foreach (var kvp in headers)
                         request.Headers.Add(kvp.Key, kvp.Value);
@@ -133,18 +133,19 @@ namespace NextcloudClient
                 _settings.ServerUri = new Uri($"{_settings.ServerUri}/");
         }
 
-        private async Task CheckAccessToken()
+        private async Task CheckAccessToken(bool forceRefresh = false)
         {
-            if (string.IsNullOrEmpty(_accessToken))
+            if (string.IsNullOrEmpty(AccessToken))
                 throw new Exception("Not logged in");
 
-            if (_tokenExpiration <= DateTime.UtcNow.AddMinutes(-1)) {
+            if (forceRefresh || TokenExpiration >= DateTime.UtcNow.AddMinutes(-1)) {
                 var token = await GetPostResponse<AuthTokenModel>(
-                    $"{_settings.ServerUri}index.php/apps/oauth2/api/v1/token?&grant_type=refresh_token&refresh_token={_refreshToken}&client_id={_settings.ClientId}&client_secret={_settings.ClientSecret}",
+                    $"{_settings.ServerUri}index.php/apps/oauth2/api/v1/token?&grant_type=refresh_token&refresh_token={RefreshToken}&client_id={_settings.ClientId}&client_secret={_settings.ClientSecret}",
                     null);
-                _accessToken = token.AccessToken;
-                _refreshToken = token.RefreshToken;
-                _tokenExpiration = DateTime.UtcNow.AddSeconds(token.ExpiresIn);
+                UserId = token.UserId;
+                AccessToken = token.AccessToken;
+                RefreshToken = token.RefreshToken;
+                TokenExpiration = DateTime.UtcNow.AddSeconds(token.ExpiresIn);
             }
         }
 

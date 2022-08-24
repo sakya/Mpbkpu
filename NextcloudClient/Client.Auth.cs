@@ -25,21 +25,21 @@ namespace NextcloudClient
         public async Task Login()
         {
             if (!string.IsNullOrEmpty(_settings.AccessToken) && !string.IsNullOrEmpty(_settings.RefreshToken) && _settings.TokenExpiration != null) {
-                _accessToken = _settings.AccessToken;
-                _refreshToken = _settings.RefreshToken;
-                _tokenExpiration = _settings.TokenExpiration;
+                AccessToken = _settings.AccessToken;
+                RefreshToken = _settings.RefreshToken;
+                TokenExpiration = _settings.TokenExpiration;
                 try {
-                    await CheckAccessToken();
+                    await CheckAccessToken(true);
                     return;
                 } catch {
-                    _accessToken = null;
-                    _refreshToken = null;
-                    _tokenExpiration = null;
+                    AccessToken = null;
+                    RefreshToken = null;
+                    TokenExpiration = null;
                 }
             }
 
             using (var http = new HttpListener()) {
-                http.Prefixes.Add(_settings.RedirectUri.ToString());
+                http.Prefixes.Add($"{_settings.RedirectUri.Scheme}://{_settings.RedirectUri.Host}:{_settings.RedirectUri.Port}/");
                 http.Start();
 
                 var state = Guid.NewGuid().ToString();
@@ -67,10 +67,10 @@ namespace NextcloudClient
                     $"{_settings.ServerUri}index.php/apps/oauth2/api/v1/token?&grant_type=authorization_code&client_id={_settings.ClientId}&redirect_uri={_settings.RedirectUri}&client_secret={_settings.ClientSecret}&code={code}",
                     null);
 
-                _accessToken = token.AccessToken;
-                _refreshToken = token.RefreshToken;
+                AccessToken = token.AccessToken;
+                RefreshToken = token.RefreshToken;
                 UserId = token.UserId;
-                _tokenExpiration = DateTime.UtcNow.AddSeconds(token.ExpiresIn);
+                TokenExpiration = DateTime.UtcNow.AddSeconds(token.ExpiresIn);
             }
         }
 

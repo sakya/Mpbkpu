@@ -1,11 +1,10 @@
 using System.Diagnostics;
 using System.Net;
 using System.Text;
-using DeviceId;
 using Dropbox.Api;
 using Dropbox.Api.Files;
 using MpbkpuLib.Interfaces;
-using Newtonsoft.Json;
+using MpbkpuLib.Utility;
 using File = MpbkpuLib.DataModel.File;
 
 namespace MpbkpuLib.FileManagers;
@@ -15,22 +14,6 @@ public class Dropbox : IFileManager, IOAuth2
     public const string Scheme = "dropbox://";
 
     #region classes
-    internal class TokenCache
-    {
-        public class Data
-        {
-            public string? AccessToken { get; set; }
-            public string? RefreshToken { get; set; }
-            public DateTime? ExpiresAt { get; set; }
-        }
-
-        public TokenCache()
-        {
-            Tokens = new Dictionary<string, Data>();
-        }
-
-        public Dictionary<string, Data> Tokens { get; set; }
-    }
     private class WriterStream : Stream
     {
         private long _pos;
@@ -153,7 +136,7 @@ public class Dropbox : IFileManager, IOAuth2
             }
 
             _pos = 0;
-            UploadSessionCursor cursor = new UploadSessionCursor(_sessionId, (ulong)(ChunkSize * _chunkIndex));
+            var cursor = new UploadSessionCursor(_sessionId, (ulong)(ChunkSize * _chunkIndex));
             if (_chunkIndex == _chunkNumber - 1) {
                 _length = _fileLength - (ChunkSize * _chunkIndex);
                 WriteTask = _client.Files.UploadSessionFinishAsync(cursor, new CommitInfo(_fileName), body: this);
@@ -163,7 +146,6 @@ public class Dropbox : IFileManager, IOAuth2
     }
     #endregion
 
-    private readonly string _deviceId = new DeviceIdBuilder().AddMachineName().AddMacAddress().AddOsVersion().AddUserName().ToString();
     private readonly string _tokenCache = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Mpbkpu", "DropboxTokenCache");
 
     private const string ResponsePage = @"<html>
@@ -230,7 +212,7 @@ public class Dropbox : IFileManager, IOAuth2
 
     public string CombinePath(params string[] paths)
     {
-        return Utility.Files.CombinePath(GetPathSeparator(), paths);
+        return Files.CombinePath(GetPathSeparator(), paths);
     }
 
     public async Task<bool> CreateDirectory(string? path)
@@ -406,7 +388,7 @@ public class Dropbox : IFileManager, IOAuth2
             if (string.IsNullOrEmpty(AppSecret))
                 throw new Exception($"{nameof(AppSecret)} cannot be empty");
 
-            var saved = await GetConfig(_account!);
+            var saved = await GetToken(_account!);
             if (saved == null) {
                 var state = Guid.NewGuid().ToString("N");
                 var codeVerifier = DropboxOAuth2Helper.GeneratePKCECodeVerifier();
@@ -415,7 +397,7 @@ public class Dropbox : IFileManager, IOAuth2
                     tokenAccessType: TokenAccessType.Offline, state: state,
                     codeChallenge: codeChallenge);
                 using var http = new HttpListener();
-                http.Prefixes.Add(RedirectUrl.ToString());
+                http.Prefixes.Add($"{RedirectUrl.Scheme}://{RedirectUrl.Host}:{RedirectUrl.Port}/");
                 http.Start();
 
                 Process process = new Process();
@@ -448,7 +430,7 @@ public class Dropbox : IFileManager, IOAuth2
                     throw new Exception("Wrong account");
                 }
 
-                await SaveConfig(_account!, accessToken, refreshToken, tokenResult.ExpiresAt);
+                await SaveToken(_account!, accessToken, refreshToken, tokenResult.ExpiresAt);
             } else {
                 _client = new DropboxClient(saved.AccessToken, saved.RefreshToken, AppId, AppSecret, new DropboxClientConfig());
             }
@@ -485,66 +467,21 @@ public class Dropbox : IFileManager, IOAuth2
         return redirectUri;
     }
 
-    private async Task<TokenCache.Data?> GetConfig(string account)
+    private async Task<OAuthTokenCache.TokenData?> GetToken(string account)
     {
-        if (!System.IO.File.Exists(_tokenCache))
-            return null;
-
-        TokenCache? cache;
-        using (var fs = new FileStream(_tokenCache, FileMode.Open, FileAccess.Read)) {
-            using (var sr = new StreamReader(fs)) {
-                cache = JsonConvert.DeserializeObject<TokenCache>(await sr.ReadToEndAsync());
-            }
-        }
-
-        if (cache == null)
-            return null;
-
-        var enc = new Utility.EncryptDecrypt(_deviceId);
-        if (cache.Tokens.TryGetValue(account, out var data)) {
-            data.AccessToken = await enc.Decrypt(data.AccessToken!);
-            data.RefreshToken = await enc.Decrypt(data.RefreshToken!);
-
-            return data;
-        }
-
-        return null;
+        var cache = new OAuthTokenCache(_tokenCache);
+        return await cache.GetToken(account);
     }
 
-    private async Task SaveConfig(string account, string accessToken, string refreshToken, DateTime? expiresAt)
+    private async Task SaveToken(string account, string accessToken, string refreshToken, DateTime? expiresAt)
     {
-        var dir = Path.GetDirectoryName(_tokenCache);
-        if (!Directory.Exists(dir))
-            Directory.CreateDirectory(dir!);
-
-        TokenCache? cache;
-        using (var fs = new FileStream(_tokenCache, FileMode.OpenOrCreate, FileAccess.Read)) {
-            using (var sr = new StreamReader(fs)) {
-                cache = JsonConvert.DeserializeObject<TokenCache>(await sr.ReadToEndAsync());
-            }
-        }
-
-        cache ??= new TokenCache();
-
-        var enc = new Utility.EncryptDecrypt(_deviceId);
-        var data = new TokenCache.Data()
-        {
-            AccessToken = await enc.Encrypt(accessToken),
-            RefreshToken = await enc.Encrypt(refreshToken),
-            ExpiresAt = expiresAt
-        };
-
-        cache.Tokens[account] = data;
-        using (var fs = new FileStream(_tokenCache, FileMode.Create, FileAccess.Write)) {
-            using (var sw = new StreamWriter(fs)) {
-                await sw.WriteAsync(JsonConvert.SerializeObject(cache));
-            }
-        }
+        var cache = new OAuthTokenCache(_tokenCache);
+        await cache.SaveToken(account, accessToken, refreshToken, expiresAt);
     }
 
     private string GetPath(string path)
     {
-        return Utility.Files.GetPath(GetPathSeparator(), Scheme, path);
+        return Files.GetPath(GetPathSeparator(), Scheme, path);
     }
 
     #endregion
