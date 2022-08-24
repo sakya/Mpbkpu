@@ -89,6 +89,7 @@ public class VerifyJob: BaseJob
 
         res.Started = started;
         res.Completed = DateTime.UtcNow;
+        res.Bytes = _progressData!.Bytes;
         res.Errors = _errors;
         return res;
     }
