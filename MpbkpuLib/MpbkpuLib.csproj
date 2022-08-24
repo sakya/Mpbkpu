@@ -31,4 +31,8 @@
     <PackageReference Include="Dropbox.Api" Version="6.32.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\NextcloudClient\NextcloudClient.csproj" />
+  </ItemGroup>
+
 </Project>

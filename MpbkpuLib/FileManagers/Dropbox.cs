@@ -10,8 +10,7 @@ using File = MpbkpuLib.DataModel.File;
 
 namespace MpbkpuLib.FileManagers;
 
-// https://github.com/dropbox/dropbox-sdk-dotnet/blob/master/dropbox-sdk-dotnet/Examples/SimpleTest/Program.cs#L239
-public class Dropbox : IFileManager
+public class Dropbox : IFileManager, IOAuth2
 {
     public const string Scheme = "dropbox://";
 
@@ -166,9 +165,6 @@ public class Dropbox : IFileManager
 
     private readonly string _deviceId = new DeviceIdBuilder().AddMachineName().AddMacAddress().AddOsVersion().AddUserName().ToString();
     private readonly string _tokenCache = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Mpbkpu", "DropboxTokenCache");
-    private const string AppKey = "94qe1yortb3afkm";
-    private const string AppSecret = "wbpax6rte3304t8";
-    private const string LoopbackHost = "http://127.0.0.1:52475/";
 
     private const string ResponsePage = @"<html>
 <script type=""text/javascript"">
@@ -187,8 +183,6 @@ public class Dropbox : IFileManager
 </body>
 </html>";
 
-    private readonly Uri _redirectUri = new Uri(LoopbackHost + "authorize");
-    private readonly Uri _jsRedirectUri = new Uri(LoopbackHost + "token");
     private DropboxClient? _client;
     private readonly string? _account;
 
@@ -196,8 +190,18 @@ public class Dropbox : IFileManager
     {
         if (string.IsNullOrEmpty(account))
             throw new ArgumentNullException(nameof(account));
+
         _account = account;
     }
+
+    #region IOAuth2 implementation
+    public string? AppName { get; set; }
+    public string? AppId { get; set; }
+    public string? AppSecret { get; set; }
+    public string? TenantId { get; set; }
+    public Uri? ServerUrl { get; set; }
+    public Uri? RedirectUrl { get; set; }
+    #endregion
 
     public void Dispose()
     {
@@ -222,11 +226,6 @@ public class Dropbox : IFileManager
     public bool SupportCompression()
     {
         return false;
-    }
-
-    public bool SupportOAuthLogin()
-    {
-        return true;
     }
 
     public string CombinePath(params string[] paths)
@@ -400,16 +399,23 @@ public class Dropbox : IFileManager
     private async Task<DropboxClient> GetClient()
     {
         if (_client == null) {
+            if (RedirectUrl == null)
+                throw new Exception($"{nameof(RedirectUrl)} cannot be empty");
+            if (string.IsNullOrEmpty(AppId))
+                throw new Exception($"{nameof(AppId)} cannot be empty");
+            if (string.IsNullOrEmpty(AppSecret))
+                throw new Exception($"{nameof(AppSecret)} cannot be empty");
+
             var saved = await GetConfig(_account!);
             if (saved == null) {
                 var state = Guid.NewGuid().ToString("N");
                 var codeVerifier = DropboxOAuth2Helper.GeneratePKCECodeVerifier();
                 var codeChallenge = DropboxOAuth2Helper.GeneratePKCECodeChallenge(codeVerifier);
-                var authorizeUri = DropboxOAuth2Helper.GetAuthorizeUri(OAuthResponseType.Code, AppKey, _redirectUri,
+                var authorizeUri = DropboxOAuth2Helper.GetAuthorizeUri(OAuthResponseType.Code, AppId, RedirectUrl,
                     tokenAccessType: TokenAccessType.Offline, state: state,
                     codeChallenge: codeChallenge);
                 using var http = new HttpListener();
-                http.Prefixes.Add(LoopbackHost);
+                http.Prefixes.Add($"{RedirectUrl.Scheme}://{RedirectUrl.Host}:{RedirectUrl.Port}/");
                 http.Start();
 
                 Process process = new Process();
@@ -428,14 +434,14 @@ public class Dropbox : IFileManager
 
                 await HandleOAuth2Redirect(http);
                 var redirectUri = await HandleJsRedirect(http);
-                var tokenResult = await DropboxOAuth2Helper.ProcessCodeFlowAsync(redirectUri, AppKey, AppSecret,
-                    _redirectUri.ToString(), state, codeVerifier: codeVerifier);
+                var tokenResult = await DropboxOAuth2Helper.ProcessCodeFlowAsync(redirectUri, AppId, AppSecret,
+                    RedirectUrl.ToString(), state, codeVerifier: codeVerifier);
                 http.Stop();
                 process.Dispose();
 
                 var accessToken = tokenResult.AccessToken;
                 var refreshToken = tokenResult.RefreshToken;
-                _client = new DropboxClient(accessToken, refreshToken, AppKey, AppSecret, new DropboxClientConfig());
+                _client = new DropboxClient(accessToken, refreshToken, AppId, AppSecret, new DropboxClientConfig());
                 var account = await _client.Users.GetCurrentAccountAsync();
                 if (string.Compare(account.Email, _account, StringComparison.InvariantCultureIgnoreCase) != 0) {
                     _client.Dispose();
@@ -444,7 +450,7 @@ public class Dropbox : IFileManager
 
                 await SaveConfig(_account!, accessToken, refreshToken, tokenResult.ExpiresAt);
             } else {
-                _client = new DropboxClient(saved.AccessToken, saved.RefreshToken, AppKey, AppSecret, new DropboxClientConfig());
+                _client = new DropboxClient(saved.AccessToken, saved.RefreshToken, AppId, AppSecret, new DropboxClientConfig());
             }
         }
         return _client;
@@ -453,7 +459,7 @@ public class Dropbox : IFileManager
     private async Task HandleOAuth2Redirect(HttpListener http)
     {
         var context = await http.GetContextAsync();
-        while (context.Request.Url!.AbsolutePath != _redirectUri.AbsolutePath) {
+        while (context.Request.Url!.AbsolutePath != RedirectUrl!.AbsolutePath) {
             context = await http.GetContextAsync();
         }
 
@@ -467,8 +473,9 @@ public class Dropbox : IFileManager
 
     private async Task<Uri> HandleJsRedirect(HttpListener http)
     {
+        var jsRedirectUri = new Uri($"{RedirectUrl!.Scheme}://{RedirectUrl.Host}:{RedirectUrl.Port}/token");
         var context = await http.GetContextAsync();
-        while (context.Request.Url!.AbsolutePath != _jsRedirectUri.AbsolutePath) {
+        while (context.Request.Url!.AbsolutePath != jsRedirectUri.AbsolutePath) {
             context = await http.GetContextAsync();
         }
         var redirectUri = new Uri(context.Request.QueryString["url_with_fragment"]!);

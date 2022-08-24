@@ -8,7 +8,7 @@ using File = MpbkpuLib.DataModel.File;
 
 namespace MpbkpuLib.FileManagers
 {
-    public class OneDrive : IFileManager
+    public class OneDrive : IFileManager, IOAuth2
     {
         public const string Scheme = "onedrive://";
 
@@ -126,10 +126,22 @@ namespace MpbkpuLib.FileManagers
         private GraphServiceClient? _client;
         private readonly string? _account;
         private readonly string[] _scopes = new[] { "User.Read", "files.readwrite", "offline_access" };
-        private const string TenantId = "common";
-        private const string AppName = "Mpbkpu";
-        private const string AppId = "d7f0a79d-cfc0-4faa-9708-c0196c8eb26f";
-        private const string RedirectUri = "http://localhost";
+
+        public OneDrive(string? account)
+        {
+            if (string.IsNullOrEmpty(account))
+                throw new ArgumentNullException(nameof(account));
+            _account = account;
+        }
+
+        #region IOAuth2 implementation
+        public string? AppName { get; set; }
+        public string? AppId { get; set; }
+        public string? AppSecret { get; set; }
+        public string? TenantId { get; set; }
+        public Uri? ServerUrl { get; set; }
+        public Uri? RedirectUrl { get; set; }
+        #endregion
 
         public void Dispose()
         {
@@ -153,18 +165,6 @@ namespace MpbkpuLib.FileManagers
         public bool SupportCompression()
         {
             return false;
-        }
-
-        public bool SupportOAuthLogin()
-        {
-            return true;
-        }
-
-        public OneDrive(string? account)
-        {
-            if (string.IsNullOrEmpty(account))
-                throw new ArgumentNullException(nameof(account));
-            _account = account;
         }
 
         public string CombinePath(params string[] paths)
@@ -343,12 +343,21 @@ namespace MpbkpuLib.FileManagers
         private async Task<GraphServiceClient> GetClient()
         {
             if (_client == null) {
+                if (RedirectUrl == null)
+                    RedirectUrl = new Uri("http://localhost");
+                if (string.IsNullOrEmpty(AppName))
+                    AppName = "Mpbkpu";
+                if (string.IsNullOrEmpty(AppId))
+                    AppId = "d7f0a79d-cfc0-4faa-9708-c0196c8eb26f";
+                if (string.IsNullOrEmpty(TenantId))
+                    TenantId = "common";
+
                 var appOptions = new PublicClientApplicationOptions()
                 {
                     ClientName = AppName,
                     ClientId = AppId,
                     TenantId = TenantId,
-                    RedirectUri = RedirectUri
+                    RedirectUri = RedirectUrl.ToString()
                 };
                 var app = PublicClientApplicationBuilder.CreateWithApplicationOptions(appOptions).Build();
 

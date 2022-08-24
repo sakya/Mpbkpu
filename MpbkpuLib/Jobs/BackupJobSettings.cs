@@ -1,6 +1,7 @@
 ﻿using System.IO.Compression;
 using MpbkpuLib.Abstracts;
 using MpbkpuLib.DataModel;
+using MpbkpuLib.FileManagers;
 
 namespace MpbkpuLib.Jobs;
 public class BackupJobSettings : BaseJobSettings
@@ -37,6 +38,10 @@ public class BackupJobSettings : BaseJobSettings
     /// </summary>
     /// <value></value>
     public string? SourcePassword { get; set; }
+    /// <summary>
+    /// OAuth settings to access to the source
+    /// </summary>
+    public OAuth2Settings? SourceOauthSettings { get; set; }
 
     /// <summary>
     /// The backup destination
@@ -53,6 +58,10 @@ public class BackupJobSettings : BaseJobSettings
     /// </summary>
     /// <value></value>
     public string? DestinationPassword { get; set; }
+    /// <summary>
+    /// OAuth settings to access to the destination
+    /// </summary>
+    public OAuth2Settings? DestinationOauthSettings { get; set; }
 
     /// <summary>
     /// A list of files/directories to exclude from the backup

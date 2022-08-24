@@ -1,5 +1,6 @@
 ﻿using System.IO.Compression;
 using MpbkpuLib.Abstracts;
+using MpbkpuLib.FileManagers;
 using MpbkpuLib.Jobs;
 
 namespace Mpbkpu.Actions;
@@ -21,10 +22,27 @@ public class BackupAction : BaseAction
             Source = pArgs.SourcePath,
             SourceUser = pArgs.SourceUser,
             SourcePassword = pArgs.SourcePassword,
+            SourceOauthSettings = new OAuth2Settings()
+            {
+                ServerUrl = pArgs.SourceOauthServerUrl,
+                RedirectUrl = pArgs.SourceOauthRedirectUrl,
+                AppName = pArgs.SourceOauthAppName,
+                AppId = pArgs.SourceOauthAppId,
+                AppSecret = pArgs.SourceOauthAppSecret,
+            },
 
             Destination = pArgs.DestinationPath,
             DestinationUser = pArgs.DestinationUser,
             DestinationPassword = pArgs.DestinationPassword,
+            DestinationOauthSettings = new OAuth2Settings()
+            {
+                ServerUrl = pArgs.DestinationOauthServerUrl,
+                RedirectUrl = pArgs.DestinationOauthRedirectUrl,
+                AppName = pArgs.DestinationOauthAppName,
+                AppId = pArgs.DestinationOauthAppId,
+                AppSecret = pArgs.DestinationOauthAppSecret,
+            },
+
             SkipHashCheck = pArgs.SkipHashCheck,
 
             Exclude = pArgs.Exclude,

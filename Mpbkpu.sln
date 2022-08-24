@@ -18,6 +18,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mpbkpu", "Mpbkpu\Mpbkpu.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj", "{988B0D2C-5E6A-4D62-A660-77D3B70B0477}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NextcloudClient", "NextcloudClient\NextcloudClient.csproj", "{1E140C5A-B062-4B21-AAC1-D6706E9C9819}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -40,6 +42,10 @@ Global
 		{988B0D2C-5E6A-4D62-A660-77D3B70B0477}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{988B0D2C-5E6A-4D62-A660-77D3B70B0477}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{988B0D2C-5E6A-4D62-A660-77D3B70B0477}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1E140C5A-B062-4B21-AAC1-D6706E9C9819}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1E140C5A-B062-4B21-AAC1-D6706E9C9819}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1E140C5A-B062-4B21-AAC1-D6706E9C9819}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1E140C5A-B062-4B21-AAC1-D6706E9C9819}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -143,11 +143,6 @@ public class Mega : IFileManager
         return false;
     }
 
-    public bool SupportOAuthLogin()
-    {
-        return false;
-    }
-
     public string CombinePath(params string[] paths)
     {
         return Utility.Files.CombinePath(GetPathSeparator(), paths);

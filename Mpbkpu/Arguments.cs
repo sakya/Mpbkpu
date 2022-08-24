@@ -3,7 +3,6 @@ using CmdLineArgsParser;
 using CmdLineArgsParser.Attributes;
 using MpbkpuLib.Abstracts;
 using MpbkpuLib.DataModel;
-using MpbkpuLib.Jobs;
 
 namespace Mpbkpu;
 
@@ -28,35 +27,119 @@ public class Arguments : IOptions
     [Option("action", Verb = true, Required = true)]
     public Actions? Action { get; set; }
 
+    #region source
     [Option("source", ShortName = 's',
         Required = true,
         Description = "The source path to backup",
         OnlyForVerbs = "Backup")]
     public string? SourcePath { get; set; }
 
-    [Option("sourceuser",
+    [Option("sourceUser",
         Description = "The user for accessing the source file system",
         OnlyForVerbs = "Backup")]
     public string? SourceUser { get; set; }
-    [Option("sourcepassword",
+    [Option("sourcePassword",
         Description = "The password for accessing the source file system",
         OnlyForVerbs = "Backup")]
     public string? SourcePassword { get; set; }
 
+    [Option("sourceOauthServer",
+        Description = "The OAuth server url for accessing the source file system",
+        OnlyForVerbs = "Backup")]
+    public Uri? SourceOauthServerUrl { get; set; }
+    [Option("sourceOauthRedirect",
+        Description = "The OAuth redirect url for accessing the source file system",
+        OnlyForVerbs = "Backup")]
+    public Uri? SourceOauthRedirectUrl { get; set; }
+    [Option("sourceOauthApp",
+        Description = "The OAuth app name for accessing the source file system",
+        OnlyForVerbs = "Backup")]
+    public string? SourceOauthAppName { get; set; }
+    [Option("sourceOauthAppId",
+        Description = "The OAuth app id for accessing the source file system",
+        OnlyForVerbs = "Backup")]
+    public string? SourceOauthAppId { get; set; }
+    [Option("sourceOauthSecret",
+        Description = "The OAuth app secret for accessing the source file system",
+        OnlyForVerbs = "Backup")]
+    public string? SourceOauthAppSecret { get; set; }
+    #endregion
+
+    #region destination
     [Option("destination", ShortName = 'd',
         Required = true,
         Description = "The destination path of a backup",
         OnlyForVerbs = "Backup;Restore")]
     public string? DestinationPath { get; set; }
 
-    [Option("destinationuser",
+    [Option("destinationUser",
         Description = "The user for accessing the destination file system",
         OnlyForVerbs = "Backup;Restore")]
     public string? DestinationUser { get; set; }
-    [Option("destinationpassword",
+    [Option("destinationPassword",
         Description = "The password for accessing the destination file system",
         OnlyForVerbs = "Backup;Restore")]
+
     public string? DestinationPassword { get; set; }
+    [Option("destinationOauthServer",
+        Description = "The OAuth server url for accessing the destination file system",
+        OnlyForVerbs = "Backup")]
+    public Uri? DestinationOauthServerUrl { get; set; }
+    [Option("destinationOauthRedirect",
+        Description = "The OAuth redirect url for accessing the destination file system",
+        OnlyForVerbs = "Backup")]
+    public Uri? DestinationOauthRedirectUrl { get; set; }
+    [Option("destinationOauthApp",
+        Description = "The OAuth app name for accessing the destination file system",
+        OnlyForVerbs = "Backup")]
+    public string? DestinationOauthAppName { get; set; }
+    [Option("destinationOauthAppId",
+        Description = "The OAuth app id for accessing the destination file system",
+        OnlyForVerbs = "Backup")]
+    public string? DestinationOauthAppId { get; set; }
+    [Option("destinationOauthSecret",
+        Description = "The OAuth app secret for accessing the destination file system",
+        OnlyForVerbs = "Backup")]
+    public string? DestinationOauthAppSecret { get; set; }
+    #endregion
+
+    #region backup
+    [Option("backup", ShortName = 'b',
+        Required = true,
+        Description = "The path containing the backup",
+        OnlyForVerbs = "Restore;Delete;List;ListContent;Verify")]
+    public string? BackupPath { get; set; }
+
+    [Option("backupUser",
+        Description = "The user for accessing the backup file system",
+        OnlyForVerbs = "Restore;Delete;List;ListContent;Verify")]
+    public string? BackupUser { get; set; }
+    [Option("backupPassword",
+        Description = "The password for accessing the backup file system",
+        OnlyForVerbs = "Restore;Delete;List;ListContent;Verify")]
+    public string? BackupPassword { get; set; }
+
+    [Option("backupOauthServer",
+        Description = "The OAuth server url for accessing the backup file system",
+        OnlyForVerbs = "Backup")]
+    public Uri? BackupOauthServerUrl { get; set; }
+    [Option("backupOauthRedirect",
+        Description = "The OAuth redirect url for accessing the backup file system",
+        OnlyForVerbs = "Backup")]
+    public Uri? BackupOauthRedirectUrl { get; set; }
+    [Option("backupOauthApp",
+        Description = "The OAuth app name for accessing the backup file system",
+        OnlyForVerbs = "Backup")]
+    public string? BackupOauthAppName { get; set; }
+    [Option("backupOauthAppId",
+        Description = "The OAuth app id for accessing the backup file system",
+        OnlyForVerbs = "Backup")]
+    public string? BackupOauthAppId { get; set; }
+    [Option("backupOauthSecret",
+        Description = "The OAuth app secret for accessing the backup file system",
+        OnlyForVerbs = "Backup")]
+    public string? BackupOauthAppSecret { get; set; }
+    #endregion
 
     [Option("exclude", 'e',
         Description = "File or directory to exclude from the backup",
@@ -72,26 +155,11 @@ public class Arguments : IOptions
         Description = "Ask for encrypt/decrypt password")]
     public bool InteractivePassword { get; set; }
 
-    [Option("compressionlevel", 'c',
+    [Option("compressionLevel", 'c',
         Description = "Set the file compression level",
         OnlyForVerbs = "Backup",
         DefaultValue = "NoCompression")]
     public CompressionLevel CompressionLevel { get; set; }
-
-    [Option("backup", ShortName = 'b',
-        Required = true,
-        Description = "The path containing the backup",
-        OnlyForVerbs = "Restore;Delete;List;ListContent;Verify")]
-    public string? BackupPath { get; set; }
-
-    [Option("backupuser",
-        Description = "The user for accessing the backup file system",
-        OnlyForVerbs = "Restore;Delete;List;ListContent;Verify")]
-    public string? BackupUser { get; set; }
-    [Option("backuppassword",
-        Description = "The password for accessing the backup file system",
-        OnlyForVerbs = "Restore;Delete;List;ListContent;Verify")]
-    public string? BackupPassword { get; set; }
 
     [Option("guid", ShortName = 'g',
         Required = true,
@@ -99,7 +167,7 @@ public class Arguments : IOptions
         OnlyForVerbs = "Delete;Restore;ListContent;Verify")]
     public string? BackupGuid { get; set; }
 
-    [Option("loglevel", 'l',
+    [Option("logLevel", 'l',
         Description = "The log level")]
     public BaseJobSettings.LogLevels LogLevel { get; set; } = BaseJobSettings.LogLevels.Warning;
 
@@ -123,7 +191,7 @@ public class Arguments : IOptions
         Description = "Auto reply YES to any question")]
     public bool AlwaysYes { get; set; }
 
-    [Option("skiphash",
+    [Option("skipHash",
         Description = "Skip SHA256 hash check on existing file in the destination directory",
         OnlyForVerbs = "Backup;Restore")]
     public bool SkipHashCheck { get; set; }
