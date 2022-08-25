@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using System.Xml.Serialization;
@@ -70,7 +71,7 @@ namespace NextcloudClient
         {
             await CheckAccessToken();
             using (var httpClient = new HttpClient()) {
-                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AccessToken);
+                AddAuthenticationHeader(httpClient.DefaultRequestHeaders);
                 return await httpClient.GetStreamAsync(uri);
             }
         }
@@ -79,7 +80,7 @@ namespace NextcloudClient
         {
             await CheckAccessToken();
             using (var httpClient = new HttpClient()) {
-                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AccessToken);
+                AddAuthenticationHeader(httpClient.DefaultRequestHeaders);
                 var fileStreamContent = new StreamContent(stream);
                 await httpClient.PutAsync(uri, fileStreamContent);
             }
@@ -91,7 +92,7 @@ namespace NextcloudClient
             using (var request = new HttpRequestMessage()) {
                 request.RequestUri = uri;
                 request.Method = method;
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AccessToken);
+                AddAuthenticationHeader(request.Headers);
                 if (headers != null) {
                     foreach (var kvp in headers)
                         request.Headers.Add(kvp.Key, kvp.Value);
@@ -121,19 +122,35 @@ namespace NextcloudClient
         {
             if (_settings.ServerUri == null)
                 throw new ArgumentNullException(nameof(_settings.ServerUri));
-            if (_settings.RedirectUri == null)
-                throw new ArgumentNullException(nameof(_settings.RedirectUri));
-            if (string.IsNullOrEmpty(_settings.ClientId))
-                throw new ArgumentNullException(nameof(_settings.ClientId));
-            if (string.IsNullOrEmpty(_settings.ClientSecret))
-                throw new ArgumentNullException(nameof(_settings.ClientSecret));
+
+            if (string.IsNullOrEmpty(_settings.Password)) {
+                if (_settings.RedirectUri == null)
+                    throw new ArgumentNullException(nameof(_settings.RedirectUri));
+                if (string.IsNullOrEmpty(_settings.ClientId))
+                    throw new ArgumentNullException(nameof(_settings.ClientId));
+                if (string.IsNullOrEmpty(_settings.ClientSecret))
+                    throw new ArgumentNullException(nameof(_settings.ClientSecret));
+            }
 
             if (!_settings.ServerUri.ToString().EndsWith("/"))
                 _settings.ServerUri = new Uri($"{_settings.ServerUri}/");
         }
 
+        private void AddAuthenticationHeader(HttpRequestHeaders headers)
+        {
+            if (!string.IsNullOrEmpty(AccessToken))
+                headers.Authorization = new AuthenticationHeaderValue("Bearer", AccessToken);
+            else {
+                var basicAuth = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{_settings.UserId}:{_settings.Password}"));
+                headers.Authorization = new AuthenticationHeaderValue("Basic", basicAuth);
+            }
+        }
+
         private async Task CheckAccessToken(bool forceRefresh = false)
         {
+            if (!string.IsNullOrEmpty(_settings.UserId) && !string.IsNullOrEmpty(_settings.Password))
+                return;
+
             if (string.IsNullOrEmpty(AccessToken))
                 throw new Exception("Not logged in");
 

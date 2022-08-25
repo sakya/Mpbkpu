@@ -232,11 +232,11 @@ namespace MpbkpuLib.FileManagers
                         newPosition = $"{Nextcloud.Scheme}{m.Groups[2].Value}";
                     else
                         newPosition = $"{Nextcloud.Scheme}/";
-                    res = new Nextcloud(account);
+                    res = new Nextcloud(account, password);
                 } else {
                     if (!string.IsNullOrEmpty(user)) {
-                        newPosition = path.Substring(OneDrive.Scheme.Length);
-                        res = new Nextcloud(user);
+                        newPosition = path.Substring(Nextcloud.Scheme.Length);
+                        res = new Nextcloud(user, password);
                     } else {
                         throw new Exception("Invalid address");
                     }

@@ -25,6 +25,11 @@ namespace NextcloudClient
 
         public async Task Login()
         {
+            if (!string.IsNullOrEmpty(_settings.UserId) && !string.IsNullOrEmpty(_settings.Password)) {
+                UserId = _settings.UserId;
+                return;
+            }
+
             if (!string.IsNullOrEmpty(_settings.AccessToken) && !string.IsNullOrEmpty(_settings.RefreshToken) && _settings.TokenExpiration != null) {
                 AccessToken = _settings.AccessToken;
                 RefreshToken = _settings.RefreshToken;

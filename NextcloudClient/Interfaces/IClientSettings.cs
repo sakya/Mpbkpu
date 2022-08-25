@@ -18,5 +18,8 @@ namespace NextcloudClient.Interfaces
         string AccessToken { get; set; }
         string RefreshToken { get; set; }
         DateTime? TokenExpiration { get; set; }
+
+        string UserId { get; set; }
+        string Password { get; set; }
     }
 }

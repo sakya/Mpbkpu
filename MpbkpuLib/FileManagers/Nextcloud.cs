@@ -103,14 +103,16 @@ public class Nextcloud : IFileManager, IOAuth2
     #endregion
 
     private readonly string _userId;
+    private readonly string? _password;
     private Client? _client;
     private readonly string _tokenCache = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Mpbkpu", "NextcloudTokenCache");
 
-    public Nextcloud(string? userId)
+    public Nextcloud(string? userId, string? password = null)
     {
         if (string.IsNullOrEmpty(userId))
             throw new ArgumentNullException(nameof(userId));
         _userId = userId;
+        _password = password;
     }
 
     #region IOAuth2 implementation
@@ -297,14 +299,16 @@ public class Nextcloud : IFileManager, IOAuth2
         if (_client == null) {
             if (ServerUrl == null)
                 throw new Exception($"{nameof(ServerUrl)} cannot be empty");
-            if (RedirectUrl == null)
-                throw new Exception($"{nameof(RedirectUrl)} cannot be empty");
-            if (string.IsNullOrEmpty(AppId))
-                throw new Exception($"{nameof(AppId)} cannot be empty");
-            if (string.IsNullOrEmpty(AppSecret))
-                throw new Exception($"{nameof(AppSecret)} cannot be empty");
+            if (string.IsNullOrEmpty(_password)) {
+                if (RedirectUrl == null)
+                    throw new Exception($"{nameof(RedirectUrl)} cannot be empty");
+                if (string.IsNullOrEmpty(AppId))
+                    throw new Exception($"{nameof(AppId)} cannot be empty");
+                if (string.IsNullOrEmpty(AppSecret))
+                    throw new Exception($"{nameof(AppSecret)} cannot be empty");
+            }
 
-            var saved = await GetToken(_userId);
+            var saved = string.IsNullOrEmpty(_password) ? await GetToken(_userId) : null;
             _client = new Client(new ClientSettings()
             {
                 ServerUri = ServerUrl,
@@ -316,12 +320,16 @@ public class Nextcloud : IFileManager, IOAuth2
 
                 AccessToken = saved?.AccessToken,
                 RefreshToken = saved?.RefreshToken,
-                TokenExpiration = saved?.ExpiresAt
+                TokenExpiration = saved?.ExpiresAt,
+
+                UserId = _userId,
+                Password = _password
             });
             await _client.Login();
             if (string.Compare(_client.UserId, _userId, StringComparison.InvariantCultureIgnoreCase) != 0)
                 throw new Exception("Account mismatch");
-            await SaveToken(_userId, _client.AccessToken, _client.RefreshToken, _client.TokenExpiration);
+            if (string.IsNullOrEmpty(_password))
+                await SaveToken(_userId, _client.AccessToken, _client.RefreshToken, _client.TokenExpiration);
         }
 
         return _client;
