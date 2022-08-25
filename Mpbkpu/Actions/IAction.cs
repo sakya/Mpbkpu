@@ -8,5 +8,5 @@ public interface IAction
     long? Bytes { get; set; }
 
     Task<bool> Run(Arguments pArgs);
-    void Cancel();
+    bool Cancel();
 }

@@ -64,6 +64,7 @@ public class ListAction : BaseAction
                 Console.WriteLine("Opening backup");
                 break;
             case ListJob.Steps.ListBackups:
+                CanCancel = true;
                 Console.WriteLine("Listing backups");
                 Console.WriteLine();
                 Console.ForegroundColor = Utility.Console.HighlightColor;

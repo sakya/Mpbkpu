@@ -102,6 +102,7 @@ public class BackupAction : BaseAction
                 Console.WriteLine("Opening backup");
                 break;
             case BackupJob.Steps.ReadSource:
+                CanCancel = true;
                 Console.WriteLine("Reading source files");
                 break;
             case BackupJob.Steps.CalculateFilesToBackup:

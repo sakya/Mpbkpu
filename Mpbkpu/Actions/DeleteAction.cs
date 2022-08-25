@@ -70,6 +70,7 @@ public class DeleteAction : BaseAction
                 Console.WriteLine("Opening backup");
                 break;
             case DeleteJob.Steps.DeleteBackups:
+                CanCancel = true;
                 Console.WriteLine("Deleting backups");
                 break;
             case DeleteJob.Steps.CopyDatabase:

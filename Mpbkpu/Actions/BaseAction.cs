@@ -5,6 +5,7 @@ namespace Mpbkpu.Actions;
 public abstract class BaseAction : IAction
 {
     protected CancellationTokenSource? CancellationTokenSource;
+    protected bool CanCancel;
 
     public DateTime? Started { get; set; }
     public DateTime? Completed { get; set; }
@@ -17,11 +18,12 @@ public abstract class BaseAction : IAction
         return CancellationTokenSource?.IsCancellationRequested == true;
     }
 
-    public virtual void Cancel()
+    public virtual bool Cancel()
     {
         if (CancellationTokenSource == null)
             throw new Exception("CancellationTokenSource not initialized");
         CancellationTokenSource.Cancel();
+        return CanCancel;
     }
 
     private void WriteLog(BaseJobSettings.LogLevels level, string message)
@@ -61,7 +63,7 @@ public abstract class BaseAction : IAction
     {
         var perc = totalBytes >= 0 ? bytes / (double)totalBytes * 100.0 : 0;
         Console.CursorLeft = 0;
-        Console.Write($"[{perc,5:0.0}%] Copying database");
+        Console.Write($"[{perc,5:0.0}%]Copying database");
     }
 
     protected void OnLog(object sender, BaseJobSettings.LogLevels level, string message)

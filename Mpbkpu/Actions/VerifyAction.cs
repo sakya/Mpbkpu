@@ -69,6 +69,7 @@ public class VerifyAction : BaseAction
                 Console.WriteLine("Opening backup");
                 break;
             case VerifyJob.Steps.VerifyFiles:
+                CanCancel = true;
                 Console.WriteLine("Verifying files");
                 break;
         }

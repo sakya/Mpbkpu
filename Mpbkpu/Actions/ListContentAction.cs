@@ -68,6 +68,7 @@ public class ListContentAction : BaseAction
                 Console.WriteLine("Opening backup");
                 break;
             case ListContentJob.Steps.ListContent:
+                CanCancel = true;
                 Console.WriteLine("Listing content");
                 Console.WriteLine();
                 Console.ForegroundColor = Utility.Console.HighlightColor;

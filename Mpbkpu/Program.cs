@@ -53,8 +53,11 @@ public static class Program
 
         Console.CancelKeyPress += (_, e) =>
         {
-            e.Cancel = true;
-            _runningAction?.Cancel();
+            e.Cancel = _runningAction?.Cancel() ?? false;
+            if (!e.Cancel) {
+                Console.CursorVisible = true;
+                Console.ResetColor();
+            }
         };
 
         PrintInfo();

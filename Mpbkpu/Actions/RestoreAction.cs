@@ -91,6 +91,7 @@ public class RestoreAction : BaseAction
                 Console.WriteLine("Opening backup");
                 break;
             case RestoreJob.Steps.ReadDestination:
+                CanCancel = true;
                 Console.WriteLine("Reading destination files");
                 break;
             case RestoreJob.Steps.CalculateFilesToRestore:
