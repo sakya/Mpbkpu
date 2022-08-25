@@ -31,7 +31,7 @@ public class ListContentAction : BaseAction
 
         var job = new ListContentJob(settings);
         job.Step += OnStep;
-        job.OpenBackup += OnOpenBackup;
+        job.OpenBackup += OnCopyBackup;
         job.LogEmitted += OnLog;
         job.Content += OnContent;
 

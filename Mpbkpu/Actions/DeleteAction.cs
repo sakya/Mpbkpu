@@ -31,7 +31,8 @@ public class DeleteAction : BaseAction
         };
         var job = new DeleteJob(settings);
         job.Step += OnStep;
-        job.OpenBackup += OnOpenBackup;
+        job.OpenBackup += OnCopyBackup;
+        job.CopyBackup += OnCopyBackup;
         job.ConfirmDelete += OnConfirm;
         job.LogEmitted += OnLog;
         job.Delete += OnDelete;

@@ -59,7 +59,7 @@ public abstract class BaseAction : IAction
     }
 
 
-    protected void OnOpenBackup(object sender, long bytes, long totalBytes)
+    protected void OnCopyBackup(object sender, long bytes, long totalBytes)
     {
         var perc = totalBytes >= 0 ? bytes / (double)totalBytes * 100.0 : 0;
         Console.CursorLeft = 0;

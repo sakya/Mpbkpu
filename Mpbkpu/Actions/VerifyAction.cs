@@ -31,7 +31,7 @@ public class VerifyAction : BaseAction
 
         var job = new VerifyJob(settings);
         job.Step += OnStep;
-        job.OpenBackup += OnOpenBackup;
+        job.OpenBackup += OnCopyBackup;
         job.LogEmitted += OnLog;
         job.Progress += OnProgress;
         job.FileProgress += OnFileProgress;

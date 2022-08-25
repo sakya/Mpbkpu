@@ -46,6 +46,7 @@ public abstract class BaseJob : IDisposable
 
     public delegate void OpenBackupHandler(object sender, long bytes, long totalBytes);
     public event OpenBackupHandler? OpenBackup;
+    public event OpenBackupHandler? CopyBackup;
     #endregion
 
     protected BaseJob(BaseJobSettings? settings)
@@ -78,14 +79,16 @@ public abstract class BaseJob : IDisposable
     /// </summary>
     protected abstract void ValidateSettings();
 
-    protected async Task CopyDatabaseToDestination(BackupFile.OpenResult openRes, string? password)
+    protected async Task CopyDatabaseToDestination(BackupFile.OpenResult openRes, string? password, Action<long, long>? progressAction = null)
     {
         if (BackupFm == null)
             throw new Exception("Backup file manager not initialized");
 
         using var sourceFm = FileManagerFactory.GetFileManager(openRes.TempFilePath, out _);
-        await using var sourceStream = await sourceFm.OpenFile(openRes.TempFilePath);
+        var info = await sourceFm.GetFileInfo(openRes.TempFilePath);
+        progressAction?.Invoke(0, info.Size);
 
+        await using var sourceStream = await sourceFm.OpenFile(openRes.TempFilePath);
         if (await BackupFm.FileExists(openRes.BackupFilePath))
             await BackupFm.DeleteFile(openRes.BackupFilePath);
 
@@ -93,11 +96,15 @@ public abstract class BaseJob : IDisposable
             !string.IsNullOrEmpty(password));
         await using var destStream = await BackupFm.OpenFile(openRes.BackupFilePath, true, destFileSize);
 
+        var action = new Action<long>((copied) =>
+        {
+            progressAction?.Invoke(copied, info.Size);
+        });
         if (string.IsNullOrEmpty(password))
-            await Files.Copy(sourceStream, destStream);
+            await Files.Copy(sourceStream, destStream, action);
         else {
             var encrypt = new EncryptDecrypt(password);
-            await encrypt.Encrypt(sourceStream, destStream, BackupFm.SupportCompression() ? CompressionLevel.SmallestSize : CompressionLevel.NoCompression);
+            await encrypt.Encrypt(sourceStream, destStream, BackupFm.SupportCompression() ? CompressionLevel.SmallestSize : CompressionLevel.NoCompression, action);
         }
     }
 
@@ -129,6 +136,12 @@ public abstract class BaseJob : IDisposable
     {
         OpenBackup?.Invoke(this, bytes, totalBytes);
     }
+
+    protected void OnCopyBackup(long bytes, long totalBytes)
+    {
+        CopyBackup?.Invoke(this, bytes, totalBytes);
+    }
+
     /// <summary>
     /// Read content of a directory
     /// </summary>

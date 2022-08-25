@@ -31,7 +31,7 @@ public class ListAction : BaseAction
 
         var job = new ListJob(settings);
         job.Step += OnStep;
-        job.OpenBackup += OnOpenBackup;
+        job.OpenBackup += OnCopyBackup;
         job.LogEmitted += OnLog;
         job.ListBackup += OnListBackup;
 
