@@ -71,10 +71,12 @@ namespace MpbkpuLib.Utility
         /// <param name="destination">The destination <see cref="Stream"/></param>
         /// <param name="compressionLevel">The <see cref="CompressionLevel"/> to use on <see cref="source"/> before the encryption</param>
         /// <param name="progressAction">A <see cref="Action{T}"/> called to report progress</param>
+        /// <param name="token">The <see cref="CancellationToken"/></param>
         /// <returns>True on success</returns>
         /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="Exception"></exception>
-        public async Task<bool> Encrypt(BackupItem? backupItem, Stream source, Stream destination, CompressionLevel compressionLevel, Action<long>? progressAction = null)
+        public async Task<bool> Encrypt(BackupItem? backupItem, Stream source, Stream destination, CompressionLevel compressionLevel, Action<long>? progressAction = null,
+            CancellationToken? token = null)
         {
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
@@ -111,6 +113,7 @@ namespace MpbkpuLib.Utility
                                         using (var gzipStream =
                                                new GZipStream(csEncrypt, compressionLevel, true)) {
                                             while ((read = await source.ReadAsync(buffer)) > 0) {
+                                                token?.ThrowIfCancellationRequested();
                                                 sourceHasher.TransformBlock(buffer, 0, read, null, 0);
                                                 await gzipStream.WriteAsync(buffer, 0, read);
 
@@ -120,6 +123,7 @@ namespace MpbkpuLib.Utility
                                         }
                                     } else {
                                         while ((read = await source.ReadAsync(buffer)) > 0) {
+                                            token?.ThrowIfCancellationRequested();
                                             sourceHasher.TransformBlock(buffer, 0, read, null, 0);
                                             await csEncrypt.WriteAsync(buffer, 0, read);
 
@@ -152,10 +156,11 @@ namespace MpbkpuLib.Utility
         /// <param name="destination">The destination <see cref="Stream"/></param>
         /// <param name="decompress">If set to true the <see cref="source"/> is decompressed after the encryption</param>
         /// <param name="progressAction">A <see cref="Action{T}"/> called to report progress</param>
+        /// <param name="token">The <see cref="CancellationToken"/></param>
         /// <returns>The SHA356 hash of the decrypted data</returns>
         /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="Exception"></exception>
-        public async Task<string> Decrypt(Stream source, Stream destination, bool decompress, Action<long>? progressAction = null)
+        public async Task<string> Decrypt(Stream source, Stream destination, bool decompress, Action<long>? progressAction = null, CancellationToken? token = null)
         {
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
@@ -190,6 +195,7 @@ namespace MpbkpuLib.Utility
                             if (decompress) {
                                 using (var gzipStream = new GZipStream(csDecrypt, CompressionMode.Decompress, true)) {
                                     while ((read = await gzipStream.ReadAsync(buffer)) > 0) {
+                                        token?.ThrowIfCancellationRequested();
                                         hasher.TransformBlock(buffer, 0, read, null, 0);
                                         await destination.WriteAsync(buffer, 0, read);
 
@@ -199,6 +205,7 @@ namespace MpbkpuLib.Utility
                                 }
                             } else {
                                 while ((read = await csDecrypt.ReadAsync(buffer)) > 0) {
+                                    token?.ThrowIfCancellationRequested();
                                     hasher.TransformBlock(buffer, 0, read, null, 0);
                                     await destination.WriteAsync(buffer, 0, read);
 

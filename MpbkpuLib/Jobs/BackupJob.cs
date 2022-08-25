@@ -241,7 +241,7 @@ public class BackupJob : BaseJob
                                 sourceFile.FileAction = File.FileActions.None;
                             }
                         } else {
-                            var hash = await Files.GetSha256(_sourceFm, sourceFile.FullPath);
+                            var hash = await Files.GetSha256(_sourceFm, sourceFile.FullPath, null, _cancellationToken);
                             if (hash != item.OriginalSha256) {
                                 sourceFile.FileAction = File.FileActions.Backup;
                                 sourceFile.Modified = true;
@@ -346,6 +346,12 @@ public class BackupJob : BaseJob
 
                 int tryCount = 0;
                 while (++tryCount <= Settings.RetryOnError) {
+                    if (_cancellationToken?.IsCancellationRequested == true) {
+                        LogInfo("Cancelled by user");
+                        if (!await SetBackupResult(backupFile, Backup.Results.Cancelled))
+                            LogWarning("Cannot set backup result");
+                        return;
+                    }
                     try {
                         // Compute file size of the backup file if possible
                         long? backupFileSize = Files.GetDestinationFileSize(fileToBackup.Size, Settings.CompressionLevel, encryptor != null);
@@ -486,7 +492,7 @@ public class BackupJob : BaseJob
 
                         if (encryptor != null)
                             await encryptor.Encrypt(backupItem, sourceStream, destStream, Settings.CompressionLevel,
-                                progressAction);
+                                progressAction, _cancellationToken);
                         else if (Settings.CompressionLevel != CompressionLevel.NoCompression)
                             await BackupFileFromSourceCompress(backupItem, sourceStream, destStream, Settings.CompressionLevel, progressAction);
                         else
@@ -508,6 +514,7 @@ public class BackupJob : BaseJob
                 int read;
                 byte[] buffer = new byte[32768];
                 while ((read = await sourceStream.ReadAsync(buffer, 0, buffer.Length)) > 0) {
+                    _cancellationToken?.ThrowIfCancellationRequested();
                     await hashStream.WriteAsync(buffer, 0, read);
                     copied += read;
                     progressAction?.Invoke(copied);
@@ -530,6 +537,7 @@ public class BackupJob : BaseJob
                         int read;
                         byte[] buffer = new byte[32768];
                         while ((read = await sourceStream.ReadAsync(buffer, 0, buffer.Length)) > 0) {
+                            _cancellationToken?.ThrowIfCancellationRequested();
                             sourceHasher.TransformBlock(buffer, 0, read, null, 0);
                             await compressorStream.WriteAsync(buffer, 0, read);
                             copied += read;

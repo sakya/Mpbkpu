@@ -101,7 +101,8 @@ public class BackupFile : IDisposable
         _context?.Dispose();
     }
 
-    public static async Task<OpenResult> OpenBackupFile(IFileManager backupFm, string backupPath, string? password = null, bool create = false)
+    public static async Task<OpenResult> OpenBackupFile(IFileManager backupFm, string backupPath, string? password = null,
+        bool create = false, CancellationToken? token = null)
     {
         if (!await backupFm.DirectoryExists(backupPath))
             throw new Exception($"Directory {backupPath} does not exists");
@@ -130,10 +131,10 @@ public class BackupFile : IDisposable
                 await using var sourceStream = await backupFm.OpenFile(backupDbPath);
                 await using var tempStream = await tempFm.OpenFile(tempDbPath, true);
                 if (string.IsNullOrEmpty(password))
-                    await Utility.Files.Copy(sourceStream, tempStream);
+                    await Utility.Files.Copy(sourceStream, tempStream, token);
                 else {
                     var decrypt = new EncryptDecrypt(password);
-                    await decrypt.Decrypt(sourceStream, tempStream, backupFm.SupportCompression());
+                    await decrypt.Decrypt(sourceStream, tempStream, backupFm.SupportCompression(), null, token);
                 }
             }
         } else {
@@ -176,11 +177,15 @@ public class BackupFile : IDisposable
 
     private async Task ApplyMigrations()
     {
-        _context!.Database.SetCommandTimeout(1800000);
+        if (_context == null)
+            throw new Exception("The database il closed");
+
         if ((await _context.Database.GetPendingMigrationsAsync()).Any()) {
+            _context.Database.SetCommandTimeout(1800000);
             await _context.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = OFF;");
             await _context.Database.MigrateAsync();
             await _context.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = ON;");
+            _context.Database.SetCommandTimeout(60);
         }
     }
 
