@@ -35,7 +35,6 @@ public class VerifyJob: BaseJob
 
     #region delegates
     public delegate void StepHandler(object sender, Steps step);
-
     public event StepHandler? Step;
 
     public delegate void ProgressHandler(object sender, ProgressHandlerArgs args);
@@ -70,7 +69,7 @@ public class VerifyJob: BaseJob
         BackupFm = FileManagerFactory.GetFileManager(Settings.BackupPath, out BackupPath, Settings.BackupPathUser, Settings.BackupPathPassword, Settings.BackupOauthSettings);
         Step?.Invoke(this, Steps.OpenDatabase);
         VerifyJobResult? res;
-        using (var openRes = await BackupFile.OpenBackupFile(BackupFm, BackupPath, Settings.EncryptPassword)) {
+        using (var openRes = await BackupFile.OpenBackupFile(BackupFm, BackupPath, Settings.EncryptPassword, progressAction: OnOpenBackup, token: _cancellationToken)) {
             var backupFile = openRes.BackupFile;
             await backupFile.EmptyFiles();
             var transaction = backupFile.BeginTransaction();

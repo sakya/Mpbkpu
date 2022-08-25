@@ -116,7 +116,7 @@ public class RestoreJob : BaseJob
 
         Step?.Invoke(this, Steps.OpenDatabase);
         await CheckDestination();
-        using (var openRes = await BackupFile.OpenBackupFile(BackupFm, BackupPath, Settings.EncryptPassword, true)) {
+        using (var openRes = await BackupFile.OpenBackupFile(BackupFm, BackupPath, Settings.EncryptPassword, progressAction: OnOpenBackup, token: _cancellationToken)) {
             var backupFile = openRes.BackupFile;
             await backupFile.EmptyFiles();
             try {

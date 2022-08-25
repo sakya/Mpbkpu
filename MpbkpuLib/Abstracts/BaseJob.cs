@@ -28,8 +28,8 @@ public abstract class BaseJob : IDisposable
         public TimeSpan Eta { get; set; }
     }
     #endregion
-    #region private members
 
+    #region private members
     private readonly StreamWriter? _logWriter;
     protected IFileManager? BackupFm;
     protected string? BackupPath;
@@ -44,6 +44,8 @@ public abstract class BaseJob : IDisposable
     /// </summary>
     public event LogHandler? LogEmitted;
 
+    public delegate void OpenBackupHandler(object sender, long bytes, long totalBytes);
+    public event OpenBackupHandler? OpenBackup;
     #endregion
 
     protected BaseJob(BaseJobSettings? settings)
@@ -123,6 +125,10 @@ public abstract class BaseJob : IDisposable
         return fm.CombinePath(backupPath, item.Backup.Guid, item.Volume.Name!, item.Name!);
     }
 
+    protected void OnOpenBackup(long bytes, long totalBytes)
+    {
+        OpenBackup?.Invoke(this, bytes, totalBytes);
+    }
     /// <summary>
     /// Read content of a directory
     /// </summary>

@@ -31,6 +31,7 @@ public class VerifyAction : BaseAction
 
         var job = new VerifyJob(settings);
         job.Step += OnStep;
+        job.OpenBackup += OnOpenBackup;
         job.LogEmitted += OnLog;
         job.Progress += OnProgress;
         job.FileProgress += OnFileProgress;
@@ -61,6 +62,7 @@ public class VerifyAction : BaseAction
     #region private operations
     private void OnStep(object sender, VerifyJob.Steps step)
     {
+        Utility.Console.ClearLine();
         Console.ForegroundColor = Utility.Console.InfoColor;
         switch (step) {
             case VerifyJob.Steps.OpenDatabase:

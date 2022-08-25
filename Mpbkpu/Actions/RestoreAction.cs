@@ -50,6 +50,7 @@ public class RestoreAction : BaseAction
 
         var job = new RestoreJob(settings);
         job.Step += OnStep;
+        job.OpenBackup += OnOpenBackup;
         job.ConfirmRestore += OnConfirm;
         job.LogEmitted += OnLog;
         job.FileProgress += OnFileProgress;

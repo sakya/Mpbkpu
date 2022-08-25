@@ -11,18 +11,21 @@ public static class Files
     /// </summary>
     /// <param name="source">The source <see cref="Stream"/></param>
     /// <param name="destination">The destination <see cref="Stream"/></param>
+    /// <param name="progressAction">A <see cref="Action{T}"/> called to report progress</param>
     /// <param name="token">The <see cref="CancellationToken"/></param>
     /// <returns>True on success</returns>
-    public static async Task<bool> Copy(Stream source, Stream destination, CancellationToken? token = null)
+    public static async Task Copy(Stream source, Stream destination, Action<long>? progressAction = null, CancellationToken? token = null)
     {
         byte[] buffer = new byte[32768];
         int read;
+        long copied = 0;
         while ((read = await source.ReadAsync(buffer, 0, buffer.Length)) > 0) {
             token?.ThrowIfCancellationRequested();
             await destination.WriteAsync(buffer, 0, read);
-        }
 
-        return true;
+            copied += read;
+            progressAction?.Invoke(copied);
+        }
     }
 
     public static string CombinePath(char separator, params string[] paths)

@@ -31,6 +31,7 @@ public class DeleteAction : BaseAction
         };
         var job = new DeleteJob(settings);
         job.Step += OnStep;
+        job.OpenBackup += OnOpenBackup;
         job.ConfirmDelete += OnConfirm;
         job.LogEmitted += OnLog;
         job.Delete += OnDelete;
@@ -62,6 +63,7 @@ public class DeleteAction : BaseAction
     #region private operations
     private void OnStep(object sender, DeleteJob.Steps step)
     {
+        Utility.Console.ClearLine();
         Console.ForegroundColor = Utility.Console.InfoColor;
         switch (step) {
             case DeleteJob.Steps.OpenDatabase:

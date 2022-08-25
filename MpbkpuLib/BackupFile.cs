@@ -102,7 +102,7 @@ public class BackupFile : IDisposable
     }
 
     public static async Task<OpenResult> OpenBackupFile(IFileManager backupFm, string backupPath, string? password = null,
-        bool create = false, CancellationToken? token = null)
+        bool create = false, Action<long, long>? progressAction = null, CancellationToken? token = null)
     {
         if (!await backupFm.DirectoryExists(backupPath))
             throw new Exception($"Directory {backupPath} does not exists");
@@ -111,6 +111,8 @@ public class BackupFile : IDisposable
         string? tempDbPath = null;
         bool encrypted = false;
         if (await backupFm.FileExists(backupDbPath)) {
+            var info = await backupFm.GetFileInfo(backupDbPath);
+            progressAction?.Invoke(0, info.Size);
             // Check header
             using (var sourceStream = await backupFm.OpenFile(backupDbPath)) {
                 var header = new byte[EncryptDecrypt.HeaderSize];
@@ -125,16 +127,20 @@ public class BackupFile : IDisposable
             }
 
             if (!string.IsNullOrEmpty(password) || !backupFm.CanOpenDatabase()) {
+                var action = new Action<long>((copied) =>
+                {
+                    progressAction?.Invoke(copied, info.Size);
+                });
                 // Copy database to temp file
                 tempDbPath = TempFile.GetTempFileName();
                 using var tempFm = FileManagerFactory.GetFileManager(tempDbPath, out _);
                 await using var sourceStream = await backupFm.OpenFile(backupDbPath);
                 await using var tempStream = await tempFm.OpenFile(tempDbPath, true);
                 if (string.IsNullOrEmpty(password))
-                    await Utility.Files.Copy(sourceStream, tempStream, token);
+                    await Utility.Files.Copy(sourceStream, tempStream, action, token);
                 else {
                     var decrypt = new EncryptDecrypt(password);
-                    await decrypt.Decrypt(sourceStream, tempStream, backupFm.SupportCompression(), null, token);
+                    await decrypt.Decrypt(sourceStream, tempStream, backupFm.SupportCompression(), action, token);
                 }
             }
         } else {

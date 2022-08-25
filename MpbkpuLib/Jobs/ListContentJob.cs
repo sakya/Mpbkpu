@@ -53,7 +53,7 @@ public class ListContentJob : BaseJob
         BackupFm = FileManagerFactory.GetFileManager(Settings.BackupPath, out BackupPath, Settings.BackupPathUser, Settings.BackupPathPassword, Settings.BackupOauthSettings);
         Step?.Invoke(this, Steps.OpenDatabase);
         ListContentJobResult? res;
-        using (var openRes = await BackupFile.OpenBackupFile(BackupFm, BackupPath, Settings.EncryptPassword)) {
+        using (var openRes = await BackupFile.OpenBackupFile(BackupFm, BackupPath, Settings.EncryptPassword, progressAction: OnOpenBackup, token: _cancellationToken)) {
             var backupFile = openRes.BackupFile;
             try {
                 res = await RunPrimitive(backupFile);

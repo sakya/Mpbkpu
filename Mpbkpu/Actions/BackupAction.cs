@@ -62,6 +62,7 @@ public class BackupAction : BaseAction
 
         var job = new BackupJob(settings);
         job.Step += OnStep;
+        job.OpenBackup += OnOpenBackup;
         job.ConfirmBackup += OnConfirm;
         job.LogEmitted += OnLog;
         job.FileProgress += OnFileProgress;

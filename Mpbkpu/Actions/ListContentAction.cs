@@ -31,6 +31,7 @@ public class ListContentAction : BaseAction
 
         var job = new ListContentJob(settings);
         job.Step += OnStep;
+        job.OpenBackup += OnOpenBackup;
         job.LogEmitted += OnLog;
         job.Content += OnContent;
 
@@ -60,6 +61,7 @@ public class ListContentAction : BaseAction
     #region private operations
     private void OnStep(object sender, ListContentJob.Steps step)
     {
+        Utility.Console.ClearLine();
         Console.ForegroundColor = Utility.Console.InfoColor;
         switch (step) {
             case ListContentJob.Steps.OpenDatabase:

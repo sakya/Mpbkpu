@@ -24,7 +24,7 @@ public abstract class BaseAction : IAction
         CancellationTokenSource.Cancel();
     }
 
-    protected void WriteLog(BaseJobSettings.LogLevels level, string message)
+    private void WriteLog(BaseJobSettings.LogLevels level, string message)
     {
         switch (level) {
             case BaseJobSettings.LogLevels.Debug:
@@ -54,6 +54,14 @@ public abstract class BaseAction : IAction
             Console.ForegroundColor = Utility.Console.SuccessColor;
         Console.WriteLine(enabled ? "Enabled" : "Disabled");
         Console.ForegroundColor = Utility.Console.DefaultColor;
+    }
+
+
+    protected void OnOpenBackup(object sender, long bytes, long totalBytes)
+    {
+        var perc = totalBytes >= 0 ? bytes / (double)totalBytes * 100.0 : 0;
+        Console.CursorLeft = 0;
+        Console.Write($"[{perc,5:0.0}%] Copying database");
     }
 
     protected void OnLog(object sender, BaseJobSettings.LogLevels level, string message)
