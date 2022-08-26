@@ -7,6 +7,7 @@ public static class Console
     public const ConsoleColor DefaultColor = ConsoleColor.Gray;
     public const ConsoleColor HighlightColor = ConsoleColor.White;
 
+    public const ConsoleColor DebugColor = ConsoleColor.DarkGray;
     public const ConsoleColor InfoColor = ConsoleColor.Blue;
     public const ConsoleColor SuccessColor = ConsoleColor.Green;
     public const ConsoleColor WarningColor = ConsoleColor.Yellow;

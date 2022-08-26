@@ -402,6 +402,9 @@ public class BackupJob : BaseJob
 
         if (Settings.RetryOnError <= 0)
             throw new ArgumentException("RetryOnError must be greater than zero");
+
+        if (!string.IsNullOrEmpty(Settings.EncryptPassword) && Settings.EncryptPassword.Length < 8)
+            throw new ArgumentException("EncryptPassword must have at least 8 characters");
     }
 
     /// <summary>
@@ -465,18 +468,18 @@ public class BackupJob : BaseJob
                 }
 
                 var size = 9;
-                FileProgress?.Invoke(this, sourceFile.FullPath!, 0, size);
+                FileProgress?.Invoke(this, sourceFile.RelativePath!, 0, size);
                 using (var sourceStream = new MemoryStream(Encoding.ASCII.GetBytes("DIRECTORY"))) {
                     await using (var destStream = await BackupFm.OpenFile(destFilePath, true, size)) {
                         await sourceStream.CopyToAsync(destStream);
                     }
                 }
 
-                FileProgress?.Invoke(this, sourceFile.FullPath!, size, size);
+                FileProgress?.Invoke(this, sourceFile.RelativePath!, size, size);
                 break;
             case File.FileTyes.File:
                 LogDebug($"Backing up {sourceFile.FullPath} to {destFilePath}");
-                FileProgress?.Invoke(this, sourceFile.FullPath!, 0, sourceFile.Size);
+                FileProgress?.Invoke(this, sourceFile.RelativePath!, 0, sourceFile.Size);
                 DateTime? lastFileProgress = null;
                 using (var sourceStream = await _sourceFm.OpenFile(sourceFile.FullPath)) {
                     using (var destStream = await BackupFm.OpenFile(destFilePath, true, backupFileSize)) {

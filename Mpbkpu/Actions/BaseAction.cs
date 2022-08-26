@@ -30,19 +30,19 @@ public abstract class BaseAction : IAction
     {
         switch (level) {
             case BaseJobSettings.LogLevels.Debug:
-                Console.ForegroundColor = ConsoleColor.DarkGray;
+                Console.ForegroundColor = Utility.Console.DebugColor;
                 message = $"[DBG]{message}";
                 break;
             case BaseJobSettings.LogLevels.Info:
-                Console.ForegroundColor = ConsoleColor.White;
+                Console.ForegroundColor = Utility.Console.InfoColor;
                 message = $"[INF]{message}";
                 break;
             case BaseJobSettings.LogLevels.Warning:
-                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.ForegroundColor = Utility.Console.WarningColor;
                 message = $"[WRN]{message}";
                 break;
             case BaseJobSettings.LogLevels.Error:
-                Console.ForegroundColor = ConsoleColor.Red;
+                Console.ForegroundColor = Utility.Console.ErrorColor;
                 message = $"[ERR]{message}";
                 break;
         }
@@ -59,7 +59,7 @@ public abstract class BaseAction : IAction
     }
 
 
-    protected void OnCopyBackup(object sender, long bytes, long totalBytes)
+    protected static void OnCopyBackup(object sender, long bytes, long totalBytes)
     {
         var perc = GetPercentage(bytes, totalBytes);
         Console.CursorLeft = 0;
@@ -78,7 +78,7 @@ public abstract class BaseAction : IAction
     /// <param name="value">The value</param>
     /// <param name="total">The total value</param>
     /// <returns>The percentage</returns>
-    protected float GetPercentage(long value, long total)
+    protected static float GetPercentage(long value, long total)
     {
         if (value == 0 && total == 0)
             return 100;

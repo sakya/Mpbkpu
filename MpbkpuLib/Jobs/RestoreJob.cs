@@ -385,7 +385,7 @@ public class RestoreJob : BaseJob
         LogDebug($"Restoring {fileToRestore.FullPath} to {destFilePath}");
         switch (fileToRestore.Type) {
             case File.FileTyes.Directory:
-                FileProgress?.Invoke(this, destFilePath, 0, 9);
+                FileProgress?.Invoke(this, fileToRestore.RelativePath!, 0, 9);
                 if (!await _destinationFm.DirectoryExists(destFilePath))
                     await _destinationFm.CreateDirectory(destFilePath);
 
@@ -393,7 +393,7 @@ public class RestoreJob : BaseJob
                 if (_destinationFm is FileSystem && fileToRestore.BackupItem!.OriginalLastModified.HasValue) {
                     Directory.SetLastWriteTime(destFilePath, fileToRestore.BackupItem.OriginalLastModified.Value);
                 }
-                FileProgress?.Invoke(this, destFilePath, 9, 9);
+                FileProgress?.Invoke(this, fileToRestore.RelativePath!, 9, 9);
                 break;
             case File.FileTyes.File:
                 DateTime? lastFileProgress = null;
@@ -403,7 +403,7 @@ public class RestoreJob : BaseJob
                         {
                             if (lastFileProgress == null || copied == fileToRestore.Size ||
                                 (DateTime.UtcNow - lastFileProgress.Value).TotalMilliseconds >= 500) {
-                                FileProgress?.Invoke(this, destFilePath, copied, fileToRestore.Size);
+                                FileProgress?.Invoke(this, fileToRestore.RelativePath!, copied, fileToRestore.Size);
                                 RestoreProgress?.Invoke(this, new ProgressHandlerArgs(_progressData!.RestoreFileIndex, _progressData.RestoreTotalFiles, _progressData.RestoreBytes + copied, _progressData.RestoreTotalBytes, TimeSpan.Zero));
                                 lastFileProgress = DateTime.UtcNow;
                             }
