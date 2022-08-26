@@ -171,6 +171,8 @@ public class BackupJob : BaseJob
     {
         if (BackupFm == null)
             throw new Exception("Backup file manager not initialized");
+        if (_sourceFm == null)
+            throw new Exception("Source file manager not initialized");
 
         _lastUsedVolume = null;
         Backup? lastBackup = await backupFile.LastBackup();

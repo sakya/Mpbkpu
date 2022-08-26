@@ -45,6 +45,7 @@ public class BackupAction : BaseAction
 
             SkipHashCheck = pArgs.SkipHashCheck,
 
+            IncludeHiddenFiles = true,
             Exclude = pArgs.Exclude,
             RetryOnError = pArgs.RetryOnError ?? 3,
             EncryptPassword = pArgs.Password,

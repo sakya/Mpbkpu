@@ -21,7 +21,9 @@ public class Arguments : IOptions
         [Description("Delete a backup")]
         Delete,
         [Description("Verify a backup")]
-        Verify
+        Verify,
+        [Description("Sync a destination directory to a source directory")]
+        SyncDirectory
     }
 
     [Option("action", Verb = true, Required = true)]
@@ -31,37 +33,37 @@ public class Arguments : IOptions
     [Option("source", ShortName = 's',
         Required = true,
         Description = "The source path to backup",
-        OnlyForVerbs = "Backup")]
+        OnlyForVerbs = "Backup;SyncDirectory")]
     public string? SourcePath { get; set; }
 
     [Option("sourceUser",
         Description = "The user for accessing the source file system",
-        OnlyForVerbs = "Backup")]
+        OnlyForVerbs = "Backup;SyncDirectory")]
     public string? SourceUser { get; set; }
     [Option("sourcePassword",
         Description = "The password for accessing the source file system",
-        OnlyForVerbs = "Backup")]
+        OnlyForVerbs = "Backup;SyncDirectory")]
     public string? SourcePassword { get; set; }
 
     [Option("sourceOauthServer",
         Description = "The OAuth server url for accessing the source file system",
-        OnlyForVerbs = "Backup")]
+        OnlyForVerbs = "Backup;SyncDirectory")]
     public Uri? SourceOauthServerUrl { get; set; }
     [Option("sourceOauthRedirect",
         Description = "The OAuth redirect url for accessing the source file system",
-        OnlyForVerbs = "Backup")]
+        OnlyForVerbs = "Backup;SyncDirectory")]
     public Uri? SourceOauthRedirectUrl { get; set; }
     [Option("sourceOauthApp",
         Description = "The OAuth app name for accessing the source file system",
-        OnlyForVerbs = "Backup")]
+        OnlyForVerbs = "Backup;SyncDirectory")]
     public string? SourceOauthAppName { get; set; }
     [Option("sourceOauthAppId",
         Description = "The OAuth app id for accessing the source file system",
-        OnlyForVerbs = "Backup")]
+        OnlyForVerbs = "Backup;SyncDirectory")]
     public string? SourceOauthAppId { get; set; }
     [Option("sourceOauthSecret",
         Description = "The OAuth app secret for accessing the source file system",
-        OnlyForVerbs = "Backup")]
+        OnlyForVerbs = "Backup;SyncDirectory")]
     public string? SourceOauthAppSecret { get; set; }
     #endregion
 
@@ -69,37 +71,37 @@ public class Arguments : IOptions
     [Option("destination", ShortName = 'd',
         Required = true,
         Description = "The destination path of a backup",
-        OnlyForVerbs = "Backup;Restore")]
+        OnlyForVerbs = "Backup;Restore;SyncDirectory")]
     public string? DestinationPath { get; set; }
 
     [Option("destinationUser",
         Description = "The user for accessing the destination file system",
-        OnlyForVerbs = "Backup;Restore")]
+        OnlyForVerbs = "Backup;Restore;SyncDirectory")]
     public string? DestinationUser { get; set; }
     [Option("destinationPassword",
         Description = "The password for accessing the destination file system",
-        OnlyForVerbs = "Backup;Restore")]
+        OnlyForVerbs = "Backup;Restore;SyncDirectory")]
 
     public string? DestinationPassword { get; set; }
     [Option("destinationOauthServer",
         Description = "The OAuth server url for accessing the destination file system",
-        OnlyForVerbs = "Backup")]
+        OnlyForVerbs = "Backup;Restore;SyncDirectory")]
     public Uri? DestinationOauthServerUrl { get; set; }
     [Option("destinationOauthRedirect",
         Description = "The OAuth redirect url for accessing the destination file system",
-        OnlyForVerbs = "Backup")]
+        OnlyForVerbs = "Backup;Restore;SyncDirectory")]
     public Uri? DestinationOauthRedirectUrl { get; set; }
     [Option("destinationOauthApp",
         Description = "The OAuth app name for accessing the destination file system",
-        OnlyForVerbs = "Backup")]
+        OnlyForVerbs = "Backup;Restore;SyncDirectory")]
     public string? DestinationOauthAppName { get; set; }
     [Option("destinationOauthAppId",
         Description = "The OAuth app id for accessing the destination file system",
-        OnlyForVerbs = "Backup")]
+        OnlyForVerbs = "Backup;Restore;SyncDirectory")]
     public string? DestinationOauthAppId { get; set; }
     [Option("destinationOauthSecret",
         Description = "The OAuth app secret for accessing the destination file system",
-        OnlyForVerbs = "Backup")]
+        OnlyForVerbs = "Backup;Restore;SyncDirectory")]
     public string? DestinationOauthAppSecret { get; set; }
     #endregion
 
@@ -143,15 +145,17 @@ public class Arguments : IOptions
 
     [Option("exclude", 'e',
         Description = "File or directory to exclude from the backup",
-        OnlyForVerbs = "Backup;Restore")]
+        OnlyForVerbs = "Backup;Restore;SyncDirectory")]
     public List<string>? Exclude { get; set; }
 
     [Option("password", ShortName = 'p',
         MutuallyExclusive = "password",
+        OnlyForVerbs = "Backup;Restore;List;ListContent;Delete;Verify",
         Description = "Password to encrypt/decrypt a backup")]
     public string? Password { get; set; }
     [Option("interactive", ShortName = 'i',
         MutuallyExclusive = "password",
+        OnlyForVerbs = "Backup;Restore;List;ListContent;Delete;Verify",
         Description = "Ask for encrypt/decrypt password")]
     public bool InteractivePassword { get; set; }
 
@@ -183,7 +187,7 @@ public class Arguments : IOptions
 
     [Option("retry",
         Description = "Number of retries in case of error",
-        OnlyForVerbs = "Backup;Restore",
+        OnlyForVerbs = "Backup;Restore;SyncDirectory",
         DefaultValue = "3")]
     public int? RetryOnError { get; set; }
 
@@ -193,7 +197,7 @@ public class Arguments : IOptions
 
     [Option("skipHash",
         Description = "Skip SHA256 hash check on existing file in the destination directory",
-        OnlyForVerbs = "Backup;Restore")]
+        OnlyForVerbs = "Backup;Restore;SyncDirectory")]
     public bool SkipHashCheck { get; set; }
 
     [Option("filter",

@@ -79,6 +79,7 @@ public static class Program
             Arguments.Actions.ListContent => new ListContentAction(),
             Arguments.Actions.Restore => new RestoreAction(),
             Arguments.Actions.Verify => new VerifyAction(),
+            Arguments.Actions.SyncDirectory => new SyncAction(),
             _ => null
         };
 
