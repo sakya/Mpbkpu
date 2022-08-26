@@ -61,7 +61,7 @@ public abstract class BaseAction : IAction
 
     protected void OnCopyBackup(object sender, long bytes, long totalBytes)
     {
-        var perc = totalBytes >= 0 ? bytes / (double)totalBytes * 100.0 : 0;
+        var perc = GetPercentage(bytes, totalBytes);
         Console.CursorLeft = 0;
         Console.Write($"[{perc,5:0.0}%]Copying database");
     }
@@ -70,5 +70,21 @@ public abstract class BaseAction : IAction
     {
         Utility.Console.ClearLine();
         WriteLog(level, message);
+    }
+
+    /// <summary>
+    /// Get the completed percentage with one decimal
+    /// </summary>
+    /// <param name="value">The value</param>
+    /// <param name="total">The total value</param>
+    /// <returns>The percentage</returns>
+    protected float GetPercentage(long value, long total)
+    {
+        if (value == 0 && total == 0)
+            return 100;
+        if (total == 0)
+            return 0;
+        var res = value / (float)total * 100f;
+        return (float)Math.Floor(res * 10) / 10f;
     }
 }

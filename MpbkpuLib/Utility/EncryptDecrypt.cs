@@ -1,5 +1,4 @@
 ﻿using System.IO.Compression;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Security.Cryptography;
 using MpbkpuLib.DataModel;
@@ -20,7 +19,7 @@ namespace MpbkpuLib.Utility
         public const int PasswordSaltByteSize = 128 / 8;
         private const int PasswordByteSize = 256 / 8;
         private const int PasswordIterationCount = 100000;
-        private readonly RandomNumberGenerator _random = RandomNumberGenerator.Create();
+        private static readonly RandomNumberGenerator Random = RandomNumberGenerator.Create();
 
         public EncryptDecrypt(string? password)
         {
@@ -86,7 +85,7 @@ namespace MpbkpuLib.Utility
                 throw new Exception("Cannot encrypt without a password");
 
             // Header
-            byte[] header = Encoding.ASCII.GetBytes(Header);
+            var header = Encoding.ASCII.GetBytes(Header);
             await destination.WriteAsync(header);
 
             using (var aesAlg = CreateAes()) {
@@ -105,7 +104,7 @@ namespace MpbkpuLib.Utility
                         using (var encryptor = aesAlg.CreateEncryptor(key, iv)) {
                             using (CryptoStream hashStream = new CryptoStream(destination, destHasher, CryptoStreamMode.Write, true)) {
                                 using (var csEncrypt = new CryptoStream(hashStream, encryptor, CryptoStreamMode.Write)) {
-                                    byte[] buffer = new byte[32768];
+                                    var buffer = new byte[32768];
 
                                     long processed = 0;
                                     int read;
@@ -172,7 +171,7 @@ namespace MpbkpuLib.Utility
             // Check header
             var header = new byte[HeaderSize];
             var hRead = await source.ReadAsync(header);
-            if (hRead != header.Length || Encoding.ASCII.GetString(header) != Header)
+            if (hRead != HeaderSize || Encoding.ASCII.GetString(header) != Header)
                 throw new Exception("This file is not encrypted");
 
             var iv = new byte[AesBlockByteSize];
@@ -188,9 +187,10 @@ namespace MpbkpuLib.Utility
                 using (var hasher = SHA256.Create()) {
                     using (var decryptor = aesAlg.CreateDecryptor(key, iv)) {
                         using (var csDecrypt = new CryptoStream(source, decryptor, CryptoStreamMode.Read)) {
-                            byte[] buffer = new byte[32768];
+                            var buffer = new byte[32768];
 
-                            long processed = 0;
+                            long processed = HeaderSize + AesBlockByteSize + PasswordSaltByteSize;
+                            processed += AesBlockByteSize; // Padding
                             int read;
                             if (decompress) {
                                 using (var gzipStream = new GZipStream(csDecrypt, CompressionMode.Decompress, true)) {
@@ -224,7 +224,7 @@ namespace MpbkpuLib.Utility
             return res;
         } // Decrypt
 
-        private Aes CreateAes()
+        private static Aes CreateAes()
         {
             var aes = Aes.Create();
             aes.Mode = CipherMode.CBC;
@@ -232,14 +232,14 @@ namespace MpbkpuLib.Utility
             return aes;
         }
 
-        private byte[] GenerateRandomBytes(int numberOfBytes)
+        private static byte[] GenerateRandomBytes(int numberOfBytes)
         {
             var randomBytes = new byte[numberOfBytes];
-            _random.GetBytes(randomBytes);
+            Random.GetBytes(randomBytes);
             return randomBytes;
         }
 
-        private byte[] GetKey(string password, byte[] passwordSalt)
+        private static byte[] GetKey(string password, byte[] passwordSalt)
         {
             var keyBytes = Encoding.UTF8.GetBytes(password);
             using var derivator = new Rfc2898DeriveBytes(

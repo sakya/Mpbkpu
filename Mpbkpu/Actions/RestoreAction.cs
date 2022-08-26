@@ -126,7 +126,7 @@ public class RestoreAction : BaseAction
 
     private void OnFileProgress(object sender, string filePath, long bytes, long totalBytes)
     {
-        var perc = bytes / (double)totalBytes * 100.0;
+        var perc = GetPercentage(bytes, totalBytes);
         if (bytes == 0 && totalBytes == 0)
             perc = 100;
         var progress = $"[{_totalPerc,5:0.0}% {MpbkpuLib.Utility.String.TimeSpanToString(_eta)}][{perc,5:0.0}%]";
@@ -140,7 +140,7 @@ public class RestoreAction : BaseAction
 
     private void OnRestoreProgress(object sender, BaseJob.ProgressHandlerArgs args)
     {
-        _totalPerc = args.Bytes / (double)args.TotalBytes * 100.0;
+        _totalPerc = GetPercentage(args.Bytes, args.TotalBytes);
         _eta = args.Eta;
         Console.CursorLeft = 0;
         Console.Write($"[{_totalPerc,5:0.0}% {MpbkpuLib.Utility.String.TimeSpanToString(_eta)}]");

@@ -123,7 +123,7 @@ public class DeleteAction : BaseAction
 
     private void OnProgress(object sender, BaseJob.ProgressHandlerArgs args)
     {
-        var perc = args.Bytes / (double)args.TotalBytes * 100.0;
+        var perc = GetPercentage(args.Bytes, args.TotalBytes);
         var progress = $"[{perc,5:0.0}% {MpbkpuLib.Utility.String.TimeSpanToString(args.Eta)}]";
 
         Console.CursorLeft = 0;
