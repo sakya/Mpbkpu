@@ -314,7 +314,7 @@ public class Nextcloud : IFileManager, IOAuth2
                 ServerUri = ServerUrl,
                 RedirectUri = RedirectUrl,
 
-                AppName = AppName,
+                ClientName = AppName,
                 ClientId = AppId,
                 ClientSecret = AppSecret,
 

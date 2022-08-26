@@ -16,7 +16,7 @@ namespace NextcloudClient
 </html>";
         }
 
-        public string AppName { get; set; }
+        public string ClientName { get; set; }
         public Uri ServerUri { get; set; }
         public string ClientId { get; set; }
         public string ClientSecret { get; set; }
