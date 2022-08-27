@@ -11,9 +11,11 @@ public class AppSettings
 {
     public AppSettings()
     {
+        Language = "en-US";
         Jobs = new List<Job>();
     }
 
+    public string Language { get; set; }
     public List<Job> Jobs { get; set; }
 
     public static async Task<AppSettings?> Load(string fileName)

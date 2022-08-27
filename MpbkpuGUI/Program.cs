@@ -68,6 +68,8 @@ namespace MpbkpuGUI
                 await App.Settings.Save(App.SettingFile);
             }
 
+            Localizer.Localizer.Instance.LoadLanguage(App.Settings.Language);
+
             return new Views.MainWindow();
         }
     }

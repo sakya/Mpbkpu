@@ -2,11 +2,25 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:i="clr-namespace:Projektanker.Icons.Avalonia;assembly=Projektanker.Icons.Avalonia"
+        xmlns:i18n="clr-namespace:MpbkpuGUI.Localizer"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         WindowStartupLocation="CenterScreen"
         x:Class="MpbkpuGUI.Views.MainWindow"
         Title="Mpbkpu">
-  <Grid Margin="5">
+    <DockPanel>
+        <Menu Name="Menu" DockPanel.Dock="Top">
+            <MenuItem Header="{i18n:Localize _Help}">
+                <MenuItem Header="{i18n:Localize _About}" InputGesture="F1">
+                    <MenuItem.Icon>
+                        <i:Icon FontSize="14" Value="far fa-question-circle" />
+                    </MenuItem.Icon>
+                </MenuItem>
+            </MenuItem>
+        </Menu>
 
-  </Grid>
+        <Grid>
+
+        </Grid>
+    </DockPanel>
 </Window>
