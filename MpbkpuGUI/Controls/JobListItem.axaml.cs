@@ -1,6 +1,8 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using MpbkpuGUI.Abstracts;
 using MpbkpuGUI.Models;
 using Projektanker.Icons.Avalonia;
 
@@ -16,6 +18,10 @@ public partial class JobListItem : UserControl
 
     private Job? _item;
 
+    #region events
+    public delegate void JoSettingsHandler(object sender, Job job);
+    public event JoSettingsHandler? JobSettings;
+    #endregion
     public JobListItem()
     {
         InitializeComponent();
@@ -44,4 +50,8 @@ public partial class JobListItem : UserControl
         AvaloniaXamlLoader.Load(this);
     }
 
+    private void OnSettingsClick(object? sender, RoutedEventArgs e)
+    {
+        JobSettings?.Invoke(this, _item!);
+    }
 }

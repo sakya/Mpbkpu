@@ -11,33 +11,21 @@
         MinWidth="500"
         MinHeight="200"
         Title="Multi Platform Backup Utility">
-    <DockPanel>
-        <controls:TitleBar DockPanel.Dock="Top"/>
-        <Menu Name="Menu" DockPanel.Dock="Top">
-            <MenuItem Header="{i18n:Localize _File}">
-                <MenuItem Header="{i18n:Localize _NewBackup}">
-                    <MenuItem.Icon>
-                        <i:Icon FontSize="14" Value="fas fa-plus" />
-                    </MenuItem.Icon>
-                </MenuItem>
-            </MenuItem>
-            <MenuItem Header="{i18n:Localize _Help}">
-                <MenuItem Header="{i18n:Localize _About}" InputGesture="F1">
-                    <MenuItem.Icon>
-                        <i:Icon FontSize="14" Value="far fa-question-circle" />
-                    </MenuItem.Icon>
-                </MenuItem>
-            </MenuItem>
-        </Menu>
+    <Panel>
+        <ExperimentalAcrylicBorder IsHitTestVisible="False">
+            <ExperimentalAcrylicBorder.Material>
+                <ExperimentalAcrylicMaterial
+                    BackgroundSource="Digger"
+                    TintColor="Black"
+                    TintOpacity="1"
+                    MaterialOpacity="0.65" />
+            </ExperimentalAcrylicBorder.Material>
+        </ExperimentalAcrylicBorder>
 
-        <Grid>
-            <ListBox Name="JobList">
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <controls:JobListItem Item="{Binding}" />
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
-        </Grid>
-    </DockPanel>
+        <DockPanel>
+            <controls:TitleBar Name="TitleBar" DockPanel.Dock="Top"/>
+            <Grid Name="Container">
+            </Grid>
+        </DockPanel>
+    </Panel>
 </Window>

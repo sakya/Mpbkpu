@@ -1,6 +1,6 @@
 using System;
 
-namespace MpbkpuGUI.Models;
+namespace MpbkpuGUI.Abstracts;
 
 public abstract class Job
 {

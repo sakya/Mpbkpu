@@ -35,5 +35,10 @@
   </ItemGroup>  
   <ItemGroup>
     <UpToDateCheckInput Remove="Assets\Styles\Style.axaml" />
+  </ItemGroup>  
+  <ItemGroup>
+    <Compile Update="Pages\JobListPage.cs">
+      <DependentUpon>JobListPage.axaml</DependentUpon>
+    </Compile>
   </ItemGroup>
 </Project>

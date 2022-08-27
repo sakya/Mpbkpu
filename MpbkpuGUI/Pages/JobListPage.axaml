@@ -1,0 +1,40 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:i="clr-namespace:Projektanker.Icons.Avalonia;assembly=Projektanker.Icons.Avalonia"
+             xmlns:i18n="clr-namespace:MpbkpuGUI.Localizer"
+             xmlns:controls="clr-namespace:MpbkpuGUI.Controls"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="MpbkpuGUI.Pages.JobListPage">
+    <DockPanel>
+        <Menu Name="Menu" DockPanel.Dock="Top">
+            <MenuItem Header="{i18n:Localize _File}">
+                <MenuItem Header="{i18n:Localize _NewBackup}">
+                    <MenuItem.Icon>
+                        <i:Icon FontSize="14" Value="fas fa-plus" />
+                    </MenuItem.Icon>
+                </MenuItem>
+            </MenuItem>
+            <MenuItem Header="{i18n:Localize _Help}">
+                <MenuItem Header="{i18n:Localize _About}" InputGesture="F1">
+                    <MenuItem.Icon>
+                        <i:Icon FontSize="14" Value="far fa-question-circle" />
+                    </MenuItem.Icon>
+                </MenuItem>
+            </MenuItem>
+        </Menu>
+
+        <Grid>
+            <ListBox Name="JobList">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <controls:JobListItem
+                            Item="{Binding}"
+                            JobSettings="OnJobSettings"/>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Grid>
+    </DockPanel>
+</UserControl>
