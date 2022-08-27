@@ -4,12 +4,16 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:i="clr-namespace:Projektanker.Icons.Avalonia;assembly=Projektanker.Icons.Avalonia"
         xmlns:i18n="clr-namespace:MpbkpuGUI.Localizer"
+        xmlns:controls="clr-namespace:MpbkpuGUI.Controls"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         WindowStartupLocation="CenterScreen"
         x:Class="MpbkpuGUI.Views.MainWindow"
         Title="Mpbkpu">
     <DockPanel>
         <Menu Name="Menu" DockPanel.Dock="Top">
+            <MenuItem Header="{i18n:Localize _File}">
+
+            </MenuItem>
             <MenuItem Header="{i18n:Localize _Help}">
                 <MenuItem Header="{i18n:Localize _About}" InputGesture="F1">
                     <MenuItem.Icon>
@@ -20,7 +24,13 @@
         </Menu>
 
         <Grid>
-
+            <ListBox Name="JobList">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <controls:JobListItem Item="{Binding}" />
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
         </Grid>
     </DockPanel>
 </Window>

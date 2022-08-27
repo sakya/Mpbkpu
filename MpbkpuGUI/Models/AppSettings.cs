@@ -22,13 +22,15 @@ public class AppSettings
     {
         await using var fs = new FileStream(fileName, FileMode.Open, FileAccess.Read);
         using var sr = new StreamReader(fs);
-        return JsonConvert.DeserializeObject<AppSettings>(await sr.ReadToEndAsync());
+        var settings = new JsonSerializerSettings() { TypeNameHandling = TypeNameHandling.Objects };
+        return JsonConvert.DeserializeObject<AppSettings>(await sr.ReadToEndAsync(), settings);
     }
 
     public async Task Save(string fileName)
     {
         await using var fs = new FileStream(fileName, FileMode.Create, FileAccess.Write);
         await using var sw = new StreamWriter(fs);
-        await sw.WriteAsync(JsonConvert.SerializeObject(this));
+        var settings = new JsonSerializerSettings() { TypeNameHandling = TypeNameHandling.Objects };
+        await sw.WriteAsync(JsonConvert.SerializeObject(this, settings));
     }
 }

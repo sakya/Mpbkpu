@@ -3,5 +3,22 @@
              x:Class="MpbkpuGUI.App">
     <Application.Styles>
         <FluentTheme Mode="Dark"/>
+
+        <Style Selector="Window">
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontWeight" Value="Light" />
+        </Style>
+
+        <Style Selector="TextBlock">
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+
+        <Style Selector="TextBlock.Main">
+            <Setter Property="FontSize" Value="18" />
+        </Style>
+        <Style Selector="TextBlock.Secondary">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="Light" />
+        </Style>
     </Application.Styles>
 </Application>
