@@ -177,7 +177,7 @@ public class RestoreJob : BaseJob
         // Read destination
         Step?.Invoke(this, Steps.ReadDestination);
         LogInfo($"Reading destination {Settings.Destination}");
-        if (!ReadPathContent(backupFile, _destinationFm, _destinationPath, true, File.FileActions.Delete, _cancellationToken).Result) {
+        if (!await ReadPathContent(backupFile, _destinationFm, _destinationPath, true, File.FileActions.Delete, _cancellationToken)) {
             LogError("Failed to read destination");
             return false;
         }
@@ -288,7 +288,7 @@ public class RestoreJob : BaseJob
                     return false;
                 }
 
-                int tryCount = 0;
+                var tryCount = 0;
                 while (++tryCount <= Settings.RetryOnError) {
                     try {
                         await DeleteFile(fileToDelete);
@@ -319,7 +319,7 @@ public class RestoreJob : BaseJob
             .Where(f => f.FileAction == File.FileActions.Restore)
             .OrderByDescending(f => f.Type);
         foreach (var fileToRestore in filesToRestore) {
-            int tryCount = 0;
+            var tryCount = 0;
             while (++tryCount <= Settings.RetryOnError) {
                 if (_cancellationToken?.IsCancellationRequested == true) {
                     LogInfo("Cancelled by user");

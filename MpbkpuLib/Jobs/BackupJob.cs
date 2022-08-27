@@ -207,7 +207,7 @@ public class BackupJob : BaseJob
         // Read source
         Step?.Invoke(this, Steps.ReadSource);
         LogInfo($"Reading source {Settings.Source}");
-        if (!ReadPathContent(backupFile, _sourceFm, _sourcePath, Settings.IncludeHiddenFiles, File.FileActions.Backup, _cancellationToken).Result) {
+        if (!await ReadPathContent(backupFile, _sourceFm, _sourcePath, Settings.IncludeHiddenFiles, File.FileActions.Backup, _cancellationToken)) {
             LogError("Failed to read source");
             if (!await SetBackupResult(backupFile, Backup.Results.Error))
                 LogWarning("Cannot set backup result");
@@ -346,7 +346,7 @@ public class BackupJob : BaseJob
                     }
                 }
 
-                int tryCount = 0;
+                var tryCount = 0;
                 while (++tryCount <= Settings.RetryOnError) {
                     if (_cancellationToken?.IsCancellationRequested == true) {
                         LogInfo("Cancelled by user");

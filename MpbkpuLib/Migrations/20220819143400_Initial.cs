@@ -183,6 +183,11 @@ namespace MpbkpuLib.Migrations
                 name: "IX_Files_FullPath",
                 table: "Files",
                 column: "FullPath");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Files_RelativePath",
+                table: "Files",
+                column: "RelativePath");
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)

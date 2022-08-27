@@ -59,6 +59,8 @@ public class BackupAction : BaseAction
         WriteEnabled(pArgs.CompressionLevel != CompressionLevel.NoCompression);
         Console.Write("Encryption : ");
         WriteEnabled(!string.IsNullOrEmpty(pArgs.Password));
+        Console.Write("Hash check : ");
+        WriteEnabled(!pArgs.SkipHashCheck);
         Console.WriteLine();
 
         var job = new BackupJob(settings);

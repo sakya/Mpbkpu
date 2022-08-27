@@ -164,7 +164,7 @@ public class BackupFile : IDisposable
         return new OpenResult(backupFile, backupDbPath, tempDbPath);
     }
 
-    private async Task Open(string? path)
+    public async Task Open(string? path)
     {
         if (string.IsNullOrEmpty(path))
             throw new ArgumentNullException(nameof(path));

@@ -227,6 +227,8 @@ namespace MpbkpuLib.Migrations
 
                     b.HasIndex("FullPath");
 
+                    b.HasIndex("RelativePath");
+
                     b.ToTable("Files");
                 });
 

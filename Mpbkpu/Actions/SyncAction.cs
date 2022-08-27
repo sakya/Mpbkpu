@@ -50,6 +50,10 @@ public class SyncAction : BaseAction
             LogFile = pArgs.LogFile
         };
 
+        Console.Write("Hash check : ");
+        WriteEnabled(!pArgs.SkipHashCheck);
+        Console.WriteLine();
+
         var job = new SyncDirectoryJob(settings);
         job.Step += OnStep;
         job.OpenBackup += OnCopyBackup;

@@ -1,10 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 
 namespace MpbkpuLib.Context
@@ -18,8 +11,7 @@ namespace MpbkpuLib.Context
         public DbSet<DataModel.BackupWarning> BackupWarnings => Set<DataModel.BackupWarning>();
         public DbSet<DataModel.File> Files => Set<DataModel.File>();
 
-        public BackupContext() :
-            base()
+        public BackupContext()
         {
         }
 
@@ -39,32 +31,35 @@ namespace MpbkpuLib.Context
         {
             base.OnModelCreating(modelBuilder);
 
-            modelBuilder.Entity<DataModel.Backup>(e =>
+            modelBuilder.Entity<DataModel.Backup>(entity =>
             {
-                e.HasIndex(e => e.Guid)
-                    .IsUnique(true);
+                entity.HasIndex(e => e.Guid)
+                    .IsUnique();
             });
 
-            modelBuilder.Entity<DataModel.BackupItem>(e =>
+            modelBuilder.Entity<DataModel.BackupItem>(entity =>
             {
-                e.HasIndex(e => new { e.BackupId, e.OriginalPath })
+                entity.HasIndex(e => new { e.BackupId, e.OriginalPath })
                     .IsUnique(false);
-                e.HasIndex(e => new { e.BackupId, e.OriginalRelativePath })
+                entity.HasIndex(e => new { e.BackupId, e.OriginalRelativePath })
                     .IsUnique(false);
             });
 
-            modelBuilder.Entity<DataModel.BackupVolume>(e =>
+            modelBuilder.Entity<DataModel.BackupVolume>(entity =>
             {
-                e.HasIndex(e => new { e.BackupId, e.Name })
-                    .IsUnique(true);
+                entity.HasIndex(e => new { e.BackupId, e.Name })
+                    .IsUnique();
             });
 
-            modelBuilder.Entity<DataModel.File>(e =>
+            modelBuilder.Entity<DataModel.File>(entity =>
             {
-                e.HasIndex(e => e.FullPath)
+                entity.HasIndex(e => e.FullPath)
                     .IsUnique(false);
 
-                e.HasIndex(e => e.FileAction)
+                entity.HasIndex(e => e.RelativePath)
+                    .IsUnique(false);
+
+                entity.HasIndex(e => e.FileAction)
                     .IsUnique(false);
             });
         }
