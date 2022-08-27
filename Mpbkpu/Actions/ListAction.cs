@@ -1,4 +1,3 @@
-using MpbkpuLib.Abstracts;
 using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
 using MpbkpuLib.Jobs;
@@ -35,20 +34,20 @@ public class ListAction : BaseAction
         job.LogEmitted += OnLog;
         job.ListBackup += OnListBackup;
 
-        CancellationTokenSource = new CancellationTokenSource();
-        try {
-            Console.CursorVisible = false;
-            var task = Task.Run(() => job.Run(CancellationTokenSource.Token));
-            await task;
-            Console.WriteLine();
-        } catch (Exception ex) {
-            Console.ForegroundColor = Utility.Console.ErrorColor;
-            Console.WriteLine();
-            Console.WriteLine($"ERROR: {ex.Message}");
-            Console.ForegroundColor = Utility.Console.DefaultColor;
-        } finally {
-            Console.CursorVisible = true;
-            CancellationTokenSource.Dispose();
+        using (CancellationTokenSource = new CancellationTokenSource()) {
+            try {
+                Console.CursorVisible = false;
+                var task = Task.Run(() => job.Run(CancellationTokenSource.Token));
+                await task;
+                Console.WriteLine();
+            } catch (Exception ex) {
+                Console.ForegroundColor = Utility.Console.ErrorColor;
+                Console.WriteLine();
+                Console.WriteLine($"ERROR: {ex.Message}");
+                Console.ForegroundColor = Utility.Console.DefaultColor;
+            } finally {
+                Console.CursorVisible = true;
+            }
         }
 
         return true;

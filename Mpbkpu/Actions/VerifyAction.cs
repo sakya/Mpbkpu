@@ -36,21 +36,21 @@ public class VerifyAction : BaseAction
         job.Progress += OnProgress;
         job.FileProgress += OnFileProgress;
 
-        CancellationTokenSource = new CancellationTokenSource();
         BaseJobResult? jobRes = null;
-        try {
-            Console.CursorVisible = false;
-            var task = Task.Run(() => job.Run(CancellationTokenSource.Token));
-            jobRes = await task;
-            Console.WriteLine();
-        } catch (Exception ex) {
-            Console.ForegroundColor = Utility.Console.ErrorColor;
-            Console.WriteLine();
-            Console.WriteLine($"ERROR: {ex.Message}");
-            Console.ForegroundColor = Utility.Console.DefaultColor;
-        } finally {
-            Console.CursorVisible = true;
-            CancellationTokenSource.Dispose();
+        using (CancellationTokenSource = new CancellationTokenSource()) {
+            try {
+                Console.CursorVisible = false;
+                var task = Task.Run(() => job.Run(CancellationTokenSource.Token));
+                jobRes = await task;
+                Console.WriteLine();
+            } catch (Exception ex) {
+                Console.ForegroundColor = Utility.Console.ErrorColor;
+                Console.WriteLine();
+                Console.WriteLine($"ERROR: {ex.Message}");
+                Console.ForegroundColor = Utility.Console.DefaultColor;
+            } finally {
+                Console.CursorVisible = true;
+            }
         }
 
         Started = jobRes?.Started;

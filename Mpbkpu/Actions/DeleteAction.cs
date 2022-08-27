@@ -39,20 +39,20 @@ public class DeleteAction : BaseAction
         job.Progress += OnProgress;
 
         BaseJobResult? jobRes = null;
-        CancellationTokenSource = new CancellationTokenSource();
-        try {
-            Console.CursorVisible = false;
-            var task = Task.Run(() => job.Run(CancellationTokenSource.Token));
-            jobRes = await task;
-            Console.WriteLine();
-        } catch (Exception ex) {
-            Console.ForegroundColor = Utility.Console.ErrorColor;
-            Console.WriteLine();
-            Console.WriteLine($"ERROR: {ex.Message}");
-            Console.ForegroundColor = Utility.Console.DefaultColor;
-        } finally {
-            Console.CursorVisible = true;
-            CancellationTokenSource.Dispose();
+        using (CancellationTokenSource = new CancellationTokenSource()) {
+            try {
+                Console.CursorVisible = false;
+                var task = Task.Run(() => job.Run(CancellationTokenSource.Token));
+                jobRes = await task;
+                Console.WriteLine();
+            } catch (Exception ex) {
+                Console.ForegroundColor = Utility.Console.ErrorColor;
+                Console.WriteLine();
+                Console.WriteLine($"ERROR: {ex.Message}");
+                Console.ForegroundColor = Utility.Console.DefaultColor;
+            } finally {
+                Console.CursorVisible = true;
+            }
         }
 
         Started = jobRes?.Started;

@@ -35,24 +35,25 @@ public class ListContentAction : BaseAction
         job.LogEmitted += OnLog;
         job.Content += OnContent;
 
-        CancellationTokenSource = new CancellationTokenSource();
-        try {
-            Console.CursorVisible = false;
-            var res = await Task.Run(() => job.Run(CancellationTokenSource.Token));
-            if (!CancellationTokenSource.Token.IsCancellationRequested) {
+        using (CancellationTokenSource = new CancellationTokenSource()) {
+            try {
+                Console.CursorVisible = false;
+                var res = await Task.Run(() => job.Run(CancellationTokenSource.Token));
+                if (!CancellationTokenSource.Token.IsCancellationRequested) {
+                    Console.WriteLine();
+                    Console.WriteLine($"Directories: {((ListContentJobResult)res).DirectoriesCount}");
+                    Console.WriteLine($"Files      : {((ListContentJobResult)res).FilesCount}");
+                }
+
                 Console.WriteLine();
-                Console.WriteLine($"Directories: {((ListContentJobResult)res).DirectoriesCount}");
-                Console.WriteLine($"Files      : {((ListContentJobResult)res).FilesCount}");
+            } catch (Exception ex) {
+                Console.ForegroundColor = Utility.Console.ErrorColor;
+                Console.WriteLine();
+                Console.WriteLine($"ERROR: {ex.Message}");
+                Console.ForegroundColor = Utility.Console.DefaultColor;
+            } finally {
+                Console.CursorVisible = true;
             }
-            Console.WriteLine();
-        } catch (Exception ex) {
-            Console.ForegroundColor = Utility.Console.ErrorColor;
-            Console.WriteLine();
-            Console.WriteLine($"ERROR: {ex.Message}");
-            Console.ForegroundColor = Utility.Console.DefaultColor;
-        } finally {
-            Console.CursorVisible = true;
-            CancellationTokenSource.Dispose();
         }
 
         return true;

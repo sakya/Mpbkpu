@@ -9,6 +9,7 @@ Supported file system schemes:
   ftp://
   mediafire://
   mega://
+  nextcloud://
   onedrive://
   sftp://
   smb://</Description>
