@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using MpbkpuGUI.Models;
+using Projektanker.Icons.Avalonia;
 
 namespace MpbkpuGUI.Controls;
 
@@ -27,6 +28,13 @@ public partial class JobListItem : UserControl
         {
             if (SetAndRaise(ItemProperty, ref _item, value)) {
                 DataContext = _item;
+
+                var icon = this.FindControl<Icon>("Icon");
+                if (_item is BackupJob) {
+                    icon.Value = "fas fa-archive";
+                } else {
+                    icon.Value = "fas fa-sync";
+                }
             }
         }
     }

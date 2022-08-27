@@ -8,11 +8,18 @@
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         WindowStartupLocation="CenterScreen"
         x:Class="MpbkpuGUI.Views.MainWindow"
+        MinWidth="500"
+        MinHeight="200"
         Title="Multi Platform Backup Utility">
     <DockPanel>
+        <controls:TitleBar DockPanel.Dock="Top"/>
         <Menu Name="Menu" DockPanel.Dock="Top">
             <MenuItem Header="{i18n:Localize _File}">
-
+                <MenuItem Header="{i18n:Localize _NewBackup}">
+                    <MenuItem.Icon>
+                        <i:Icon FontSize="14" Value="fas fa-plus" />
+                    </MenuItem.Icon>
+                </MenuItem>
             </MenuItem>
             <MenuItem Header="{i18n:Localize _Help}">
                 <MenuItem Header="{i18n:Localize _About}" InputGesture="F1">
