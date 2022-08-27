@@ -364,6 +364,7 @@ public class SyncDirectoryJob : BaseJob
                 if (await BackupFm.FileExists(destFilePath))
                     await BackupFm.DeleteFile(destFilePath);
 
+                LogDebug($"Backing up {fileToBackup.FullPath} to {destFilePath}");
                 FileProgress?.Invoke(this, fileToBackup.RelativePath!, 0, fileToBackup.Size);
                 DateTime? lastFileProgress = null;
                 using (var sourceStream = await _sourceFm.OpenFile(fileToBackup.FullPath)) {
