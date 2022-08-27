@@ -1,5 +1,12 @@
 using Avalonia;
 using System;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+using MpbkpuGUI.Models;
+using Newtonsoft.Json;
+using Projektanker.Icons.Avalonia;
+using Projektanker.Icons.Avalonia.FontAwesome;
 
 namespace MpbkpuGUI
 {
@@ -9,13 +16,59 @@ namespace MpbkpuGUI
         // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
         // yet and stuff might break.
         [STAThread]
-        public static void Main(string[] args) => BuildAvaloniaApp()
-            .StartWithClassicDesktopLifetime(args);
+        public static void Main(string[] args)
+        {
+            // Set current directory to the one containing the executable
+            var exeDir = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location);
+            Directory.SetCurrentDirectory(exeDir!);
+
+            BuildAvaloniaApp()
+                .Start(AppMain, args);
+        }
 
         // Avalonia configuration, don't remove; also used by visual designer.
         public static AppBuilder BuildAvaloniaApp()
-            => AppBuilder.Configure<App>()
+        {
+            return AppBuilder.Configure<App>()
                 .UsePlatformDetect()
-                .LogToTrace();
+                .With(new X11PlatformOptions { UseGpu = false })
+                .With(new Win32PlatformOptions { AllowEglInitialization = false })
+                .LogToTrace()
+                .UseSkia()
+                .WithIcons(container => container.Register<FontAwesomeIconProvider>());
+        }
+
+        private static void AppMain(Application app, string[] args)
+        {
+            var stop = new CancellationTokenSource();
+            var mApp = ((App)app);
+
+            async void Start()
+            {
+                mApp.MainWindow = await InitializeApp(args);
+                mApp.MainWindow.Closed += (_, __) => stop.Cancel();
+                mApp.MainWindow.Show();
+                mApp.MainWindow.Activate();
+            }
+            Start();
+            mApp.Run(stop.Token);
+        }
+
+        private static async Task<Views.MainWindow> InitializeApp(string[] args)
+        {
+            App.LocalPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MpbkpuGUI");
+            if (!Directory.Exists(App.LocalPath))
+                Directory.CreateDirectory(App.LocalPath);
+            App.SettingFile = Path.Combine(App.LocalPath, "settings.json");
+            if (File.Exists(App.SettingFile))
+                App.Settings = JsonConvert.DeserializeObject<AppSettings>(App.SettingFile);
+
+            if (App.Settings == null) {
+                App.Settings = new AppSettings();
+                await App.Settings.Save(App.SettingFile);
+            }
+
+            return new Views.MainWindow();
+        }
     }
 }

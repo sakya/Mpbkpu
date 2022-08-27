@@ -1,11 +1,21 @@
+using System;
+using System.IO;
+using System.Threading;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
+using MpbkpuGUI.Models;
 
 namespace MpbkpuGUI
 {
     public partial class App : Application
     {
+        public Avalonia.Controls.Window? MainWindow { get; set; }
+        public static string? LocalPath;
+        public static string? SettingFile;
+        public static AppSettings? Settings;
+
         public override void Initialize()
         {
             AvaloniaXamlLoader.Load(this);
@@ -19,5 +29,25 @@ namespace MpbkpuGUI
 
             base.OnFrameworkInitializationCompleted();
         }
+
+        public void Run(CancellationToken ct)
+        {
+            try {
+                Dispatcher.UIThread.MainLoop(ct);
+            } catch (Exception ex) {
+                // Log the exception
+                using (var sw = new StreamWriter(Path.Combine(LocalPath!, "crash.log"))) {
+                    Exception? lex = ex;
+                    while (lex != null) {
+                        sw.WriteLine($"[{DateTime.Now.ToString("yyyyMMdd_HHmmss")}] {lex.Message}");
+                        if (!string.IsNullOrEmpty(lex.StackTrace))
+                            sw.WriteLine($"[{DateTime.Now.ToString("yyyyMMdd_HHmmss")}] {lex.StackTrace}");
+
+                        lex = lex.InnerException;
+                    }
+                    sw.Flush();
+                }
+            }
+        } // Run
     }
 }
