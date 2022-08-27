@@ -100,7 +100,7 @@ public class SyncDirectoryJob : BaseJob
         BackupFm = FileManagerFactory.GetFileManager(Settings.Destination, out BackupPath, Settings.DestinationUser, Settings.DestinationPassword, Settings.DestinationOauthSettings);
         _sourceFm = FileManagerFactory.GetFileManager(Settings.Source, out _sourcePath, Settings.SourceUser, Settings.SourcePassword, Settings.SourceOauthSettings);
 
-        var tempDbFile = Utility.TempFile.GetTempFileName(".db");
+        var tempDbFile = TempFile.GetTempFileName(".db");
         using var tempFm = FileManagerFactory.GetFileManager(tempDbFile, out _);
         try {
             var backupFile = new BackupFile();
@@ -334,7 +334,7 @@ public class SyncDirectoryJob : BaseJob
         }
     }
 
-    private async Task BackupFile(File? fileToBackup, Action<long>? progressAction = null)
+    private async Task BackupFile(File? fileToBackup)
     {
         if (_sourceFm == null)
             throw new Exception("Source file manager not initialized");

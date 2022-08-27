@@ -113,7 +113,10 @@ public class RestoreAction : BaseAction
         if (_pArgs!.AlwaysYes)
             return Task.FromResult(true);
         Console.CursorVisible = true;
-        var res = Utility.Console.Confirm($"Delete {e.FilesToDelete} ({MpbkpuLib.Utility.String.BytesToString(e.BytesToDelete)}), restore {e.FilesToRestore} files ({MpbkpuLib.Utility.String.BytesToString(e.BytesToRestore)})?", true, true);
+        var msg = e.FilesToDelete > 0 ?
+            $"Delete {e.FilesToDelete} ({MpbkpuLib.Utility.String.BytesToString(e.BytesToDelete)}), restore {e.FilesToRestore} files ({MpbkpuLib.Utility.String.BytesToString(e.BytesToRestore)})?" :
+            $"Restore {e.FilesToRestore} files ({MpbkpuLib.Utility.String.BytesToString(e.BytesToRestore)})?";
+        var res = Utility.Console.Confirm(msg, true, true);
         Console.CursorVisible = false;
         return Task.FromResult(res);
     }

@@ -60,6 +60,7 @@ public class SyncAction : BaseAction
         job.CopyBackup += OnCopyBackup;
         job.ConfirmBackup += OnConfirm;
         job.LogEmitted += OnLog;
+        job.DeleteProgress += OnDeleteProgress;
         job.FileProgress += OnFileProgress;
         job.Progress += OnProgress;
 
@@ -116,9 +117,18 @@ public class SyncAction : BaseAction
         if (_pArgs!.AlwaysYes)
             return Task.FromResult(true);
         Console.CursorVisible = true;
-        var res = Utility.Console.Confirm($"Backup {e.FilesToBackup} files ({MpbkpuLib.Utility.String.BytesToString(e.BytesToBackup)})?", true, true);
+        var msg = e.FilesToDelete > 0 ?
+            $"Delete {e.FilesToDelete} ({MpbkpuLib.Utility.String.BytesToString(e.BytesToDelete)}), backup {e.FilesToBackup} files ({MpbkpuLib.Utility.String.BytesToString(e.BytesToBackup)})?" :
+            $"Backup {e.FilesToBackup} files ({MpbkpuLib.Utility.String.BytesToString(e.BytesToBackup)})?";
+        var res = Utility.Console.Confirm(msg, true, true);
         Console.CursorVisible = false;
         return Task.FromResult(res);
+    }
+
+    private void OnDeleteProgress(object sender, BaseJob.ProgressHandlerArgs args)
+    {
+        Console.CursorLeft = 0;
+        Console.Write($"[{(args.File / (double)args.TotalFiles * 100.0),5:0.0}%]");
     }
 
     private void OnFileProgress(object sender, string filePath, long bytes, long totalBytes)
