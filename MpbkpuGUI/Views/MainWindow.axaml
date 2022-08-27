@@ -8,7 +8,7 @@
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         WindowStartupLocation="CenterScreen"
         x:Class="MpbkpuGUI.Views.MainWindow"
-        Title="Mpbkpu">
+        Title="Multi Platform Backup Utility">
     <DockPanel>
         <Menu Name="Menu" DockPanel.Dock="Top">
             <MenuItem Header="{i18n:Localize _File}">
