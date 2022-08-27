@@ -20,4 +20,6 @@ public abstract class Job
     public string? Name { get; set; }
     public Position? Source { get; set; }
     public Position? Destination { get; set; }
+    public DateTime? LastRun { get; set; }
+    public string? LogFile { get; set; }
 }

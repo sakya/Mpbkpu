@@ -7,28 +7,6 @@
         x:Class="MpbkpuGUI.Views.MainWindow"
         Title="Mpbkpu">
   <Grid Margin="5">
-    <Grid.RowDefinitions>
-      <RowDefinition Height="Auto" />
-      <RowDefinition Height="Auto" />
-      <RowDefinition Height="Auto" />
-      <RowDefinition Height="Auto" />
-      <RowDefinition Height="Auto" />
-      <RowDefinition Height="*" />
-    </Grid.RowDefinitions>
-    <TextBox Name="_source" />
-    <TextBox Name="_destination" Grid.Row="1" Margin="0,5,0,0"/>
-    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,5,0,0">
-      <Button Name="_startBtn" Click="OnStartClick" Content="Backup" />
-      <Button Name="_stopBtn" Click="OnStopClick" Content="Stop" IsEnabled="false" />
-    </StackPanel>
-    
-    <ProgressBar Grid.Row="3" Name="_progress" Minimum="0" Maximum="100" ShowProgressText="True" Height="20"
-                 Margin="0,5,0,0"></ProgressBar>
-    <ProgressBar Grid.Row="4" Name="_fileProgress" Minimum="0" Maximum="100" ShowProgressText="True" Height="20"
-                 Margin="0,5,0,0"></ProgressBar>    
-    <ScrollViewer Grid.Row="5" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
-                  Margin="0,5,0,0">
-      <TextBlock Name="_log" FontFamily="Consolas" />
-    </ScrollViewer>
+
   </Grid>
 </Window>

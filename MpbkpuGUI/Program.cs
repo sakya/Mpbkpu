@@ -19,7 +19,7 @@ namespace MpbkpuGUI
         public static void Main(string[] args)
         {
             // Set current directory to the one containing the executable
-            var exeDir = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location);
+            var exeDir = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly()!.Location);
             Directory.SetCurrentDirectory(exeDir!);
 
             BuildAvaloniaApp()
@@ -61,7 +61,7 @@ namespace MpbkpuGUI
                 Directory.CreateDirectory(App.LocalPath);
             App.SettingFile = Path.Combine(App.LocalPath, "settings.json");
             if (File.Exists(App.SettingFile))
-                App.Settings = JsonConvert.DeserializeObject<AppSettings>(App.SettingFile);
+                App.Settings = await AppSettings.Load(App.SettingFile);
 
             if (App.Settings == null) {
                 App.Settings = new AppSettings();

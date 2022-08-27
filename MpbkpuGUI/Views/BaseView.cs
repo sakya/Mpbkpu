@@ -12,25 +12,18 @@ namespace MpbkpuGUI.Views
 {
     public abstract class BaseView : Window
     {
-        private bool m_CenterDone = false;
-
         protected virtual void InitializeComponent()
         {
 #if DEBUG
             this.AttachDevTools();
 #endif
+        }
 
+        protected override void OnOpened(EventArgs e)
+        {
             // Fix for https://github.com/AvaloniaUI/Avalonia/issues/6433
-            if (!OperatingSystem.IsWindows()) {
-                var iv = this.GetObservable(Window.IsVisibleProperty);
-                iv.Subscribe(value =>
-                {
-                    if (value && !m_CenterDone) {
-                        m_CenterDone = true;
-                        CenterWindow();
-                    }
-                });
-            }
+            if (!OperatingSystem.IsWindows())
+                CenterWindow();
         }
 
         private async void CenterWindow()
