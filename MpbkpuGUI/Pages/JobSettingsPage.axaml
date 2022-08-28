@@ -6,12 +6,16 @@
              xmlns:i="clr-namespace:Projektanker.Icons.Avalonia;assembly=Projektanker.Icons.Avalonia"
              xmlns:i18n="clr-namespace:MpbkpuGUI.Localizer"
              xmlns:controls="clr-namespace:MpbkpuGUI.Controls"
+             xmlns:converters="clr-namespace:MpbkpuGUI.Converters"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="MpbkpuGUI.Pages.JobSettingsPage">
 
     <Design.DataContext>
         <local:Job />
     </Design.DataContext>
+    <UserControl.Resources>
+        <converters:IsBackupJobConverter x:Key="IsBackupJobConverter"/>
+    </UserControl.Resources>
 
     <Grid Margin="5,0,5,0">
         <Grid.RowDefinitions>
@@ -34,20 +38,45 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
 
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
                 <Label Content="{i18n:Localize Name}" />
                 <TextBox Name="Name" Grid.Row="1" Text="{Binding Name}" />
 
-                <Label Grid.Row="2" Content="{i18n:Localize Type}" Margin="0,5,0,0" />
-                <ComboBox Grid.Row="3" Name="CmbType" />
+                <Label Grid.Row="2" Content="{i18n:Localize Type}" Margin="0,5,0,0"
+                       IsVisible="{Binding ., Converter={StaticResource IsBackupJobConverter}}"/>
+                <ComboBox Grid.Row="3" Name="CmbType"
+                          IsVisible="{Binding ., Converter={StaticResource IsBackupJobConverter}}"/>
 
                 <Label Grid.Row="4" Content="{i18n:Localize Source}" Margin="0,5,0,0" />
                 <controls:Position Grid.Row="5" Value="{Binding Source}" />
 
                 <Label Grid.Row="6" Content="{i18n:Localize Destination}" Margin="0,5,0,0" />
                 <controls:Position Grid.Row="7" Value="{Binding Destination}" />
+
+                <Label Grid.Row="8" Content="{i18n:Localize CompressionLevel}" Margin="0,5,0,0"
+                       IsVisible="{Binding ., Converter={StaticResource IsBackupJobConverter}}"/>
+                <ComboBox Grid.Row="9" Name="CmbCompressionLevel"
+                          IsVisible="{Binding ., Converter={StaticResource IsBackupJobConverter}}"/>
+
+                <Label Grid.Row="10" Content="{i18n:Localize HashCheck}" Margin="0,5,0,0" />
+                <CheckBox Grid.Row="11" IsChecked="{Binding !SkipHashCheck}"></CheckBox>
+
+                <Label Grid.Row="12" Content="{i18n:Localize RetryOnError}" Margin="0,5,0,0" />
+                <NumericUpDown Grid.Row="13" Value="{Binding RetryOnError}"
+                               Minimum="1"
+                               Maximum="255"/>
+
             </Grid>
         </ScrollViewer>
 

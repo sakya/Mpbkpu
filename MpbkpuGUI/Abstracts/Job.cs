@@ -26,6 +26,8 @@ public abstract class Job
     public string? Name { get; set; }
     public Position? Source { get; set; }
     public Position? Destination { get; set; }
+    public bool SkipHashCheck { get; set; } = false;
+    public int RetryOnError { get; set; } = 3;
     public DateTime? LastRun { get; set; }
     public string? LogFile { get; set; }
 }

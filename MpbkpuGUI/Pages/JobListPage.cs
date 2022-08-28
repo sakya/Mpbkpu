@@ -55,6 +55,8 @@ public class JobListPage : BasePage
 
     private async void OnJobRun(object sender, Job job)
     {
-        await MainWindow!.NavigateTo(new JobRunningPage(job));
+        if (await MessageWindow.ShowConfirmMessage(MainWindow, Localizer.Localizer.Instance["Confirm"], Localizer.Localizer.Instance["ConfirmRunJob"])) {
+            await MainWindow!.NavigateTo(new JobRunningPage(job));
+        }
     }
 }

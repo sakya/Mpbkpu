@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO.Compression;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -33,13 +34,27 @@ public class JobSettingsPage : BasePage
         PageTitle = Localizer.Localizer.Instance["JobSettings"];
         NavigateBackWithKeyboard = false;
 
-        var cmb = this.FindControl<ComboBox>("CmbType");
-        cmb.Items = new List<Backup.BackupTypes>()
+        var cmbType = this.FindControl<ComboBox>("CmbType");
+        cmbType.Items = new List<Backup.BackupTypes>()
         {
             Backup.BackupTypes.Full,
             Backup.BackupTypes.Differential,
             Backup.BackupTypes.Incremental
         };
+
+        var cmbCompression = this.FindControl<ComboBox>("CmbCompressionLevel");
+        cmbCompression.Items = new List<CompressionLevel>()
+        {
+            CompressionLevel.NoCompression,
+            CompressionLevel.Fastest,
+            CompressionLevel.Optimal,
+            CompressionLevel.SmallestSize
+        };
+
+        if (_job is BackupJob backupJob) {
+            cmbType.SelectedItem = backupJob.Type;
+            cmbCompression.SelectedItem = backupJob.CompressionLevel;
+        }
     }
 
     public override void OnNavigatedTo(NavigationDirection direction)
