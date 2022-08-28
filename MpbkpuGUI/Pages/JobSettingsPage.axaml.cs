@@ -4,16 +4,18 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using MpbkpuGUI.Abstracts;
+using MpbkpuGUI.Models;
 using MpbkpuLib.DataModel;
-using MpbkpuLib.Jobs;
 
 namespace MpbkpuGUI.Pages;
 
 public class JobSettingsPage : BasePage
 {
-    private Job? _job;
+    private readonly Job _job;
+
     public JobSettingsPage()
     {
+        _job = new BackupJob();
         InitializeComponent();
     }
 
