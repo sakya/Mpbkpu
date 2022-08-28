@@ -1,4 +1,6 @@
 using System;
+using Microsoft.Graph;
+using Newtonsoft.Json;
 
 namespace MpbkpuGUI.Abstracts;
 
@@ -19,10 +21,12 @@ public abstract class Job
 
     protected Job()
     {
+        Id = Guid.NewGuid().ToString("N");
         Source = new Position();
         Destination = new Position();
     }
 
+    public string Id { get; set; }
     public string? Name { get; set; }
     public Position? Source { get; set; }
     public Position? Destination { get; set; }
@@ -30,4 +34,11 @@ public abstract class Job
     public int RetryOnError { get; set; } = 3;
     public DateTime? LastRun { get; set; }
     public string? LogFile { get; set; }
+
+    public Job Copy()
+    {
+        var settings = new JsonSerializerSettings() { TypeNameHandling = TypeNameHandling.Objects };
+        var objectSerialized = JsonConvert.SerializeObject(this, settings);
+        return JsonConvert.DeserializeObject<Job>(objectSerialized, settings);
+    }
 }

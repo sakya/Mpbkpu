@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO.Compression;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -12,17 +13,20 @@ namespace MpbkpuGUI.Pages;
 
 public class JobSettingsPage : BasePage
 {
+    private readonly string _jobId;
     private readonly Job _job;
 
     public JobSettingsPage()
     {
+        _jobId = string.Empty;
         _job = new BackupJob();
         InitializeComponent();
     }
 
     public JobSettingsPage(Job job)
     {
-        _job = job;
+        _jobId = job.Id;
+        _job = job.Copy();
         DataContext = _job;
         InitializeComponent();
     }
@@ -68,8 +72,17 @@ public class JobSettingsPage : BasePage
         await MainWindow!.NavigateBack();
     }
 
-    private void OnOkClick(object? sender, RoutedEventArgs e)
+    private async void OnOkClick(object? sender, RoutedEventArgs e)
     {
-
+        var job = App.Settings!.Jobs
+            .FirstOrDefault(j => j.Id == _jobId);
+        if (job != null) {
+            var idx = App.Settings.Jobs.IndexOf(job);
+            App.Settings.Jobs[idx] = _job;
+        } else {
+            App.Settings.Jobs.Add(_job);
+        }
+        await App.Settings.Save(App.SettingFile!);
+        await MainWindow!.NavigateBack();
     }
 }

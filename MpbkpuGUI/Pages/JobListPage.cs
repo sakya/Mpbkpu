@@ -24,9 +24,7 @@ public class JobListPage : BasePage
 
     public override void OnNavigatedTo(NavigationDirection direction)
     {
-        var list = this.FindControl<ListBox>("JobList");
-        list.Items = App.Settings!.Jobs.OrderBy(i => i.Name);
-
+        SetJobList();
         base.OnNavigatedTo(direction);
     }
 
@@ -40,6 +38,7 @@ public class JobListPage : BasePage
         if (await MessageWindow.ShowConfirmMessage(MainWindow, Localizer.Localizer.Instance["Confirm"], Localizer.Localizer.Instance["ConfirmDeleteJob"])) {
             App.Settings!.Jobs.Remove(job);
             await App.Settings!.Save(App.SettingFile!);
+            SetJobList();
         }
     }
 
@@ -58,5 +57,12 @@ public class JobListPage : BasePage
         if (await MessageWindow.ShowConfirmMessage(MainWindow, Localizer.Localizer.Instance["Confirm"], Localizer.Localizer.Instance["ConfirmRunJob"])) {
             await MainWindow!.NavigateTo(new JobRunningPage(job));
         }
+    }
+
+    private void SetJobList()
+    {
+        var list = this.FindControl<ListBox>("JobList");
+        list.Items = null;
+        list.Items = App.Settings!.Jobs.OrderBy(i => i.Name);
     }
 }
