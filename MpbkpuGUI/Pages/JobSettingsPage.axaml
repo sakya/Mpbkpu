@@ -59,7 +59,9 @@
                           IsVisible="{Binding ., Mode=TwoWay, Converter={StaticResource IsBackupJobConverter}}"/>
 
                 <Label Grid.Row="4" Content="{i18n:Localize Source}" Margin="0,5,0,0" />
-                <controls:Position Grid.Row="5" Value="{Binding Source, Mode=TwoWay}" />
+                <Border Grid.Row="5" >
+                    <controls:PositionDetail Value="{Binding Source, Mode=TwoWay}" />
+                </Border>
 
                 <Label Grid.Row="6" Content="{i18n:Localize Destination}" Margin="0,5,0,0" />
                 <controls:Position Grid.Row="7" Value="{Binding Destination, Mode=TwoWay}" />

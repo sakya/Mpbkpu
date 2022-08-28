@@ -9,9 +9,15 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <Label Content="{i18n:Localize Type}" />
-        <ComboBox Name="Type" Grid.Row="1" />
+        <Label Content="{i18n:Localize Path}" />
+        <TextBox Grid.Row="1" IsReadOnly="True" Text="{Binding Path}" />
+
+        <Label Grid.Row="2" Content="{i18n:Localize Type}" />
+        <ComboBox Grid.Row="3" Name="CmbType" />
     </Grid>
 </UserControl>
