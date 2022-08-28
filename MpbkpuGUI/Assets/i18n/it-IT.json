@@ -2,5 +2,15 @@
   "_About": "_About",
   "_File": "_File",
   "_Help": "_Help",
-  "_NewBackup": "Nuovo backup"
+  "_NewBackup": "Nuovo backup",
+  "_NewSync": "Nuova sincronizzazione directory",
+
+  "Cancel": "Anulla",
+  "Confirm": "Conferma",
+  "ConfirmDeleteJob": "Cancellare il job selezionato?",
+  "No": "No",
+  "Ok": "Ok",
+  "JobList": "Lista job",
+  "JobSettings": "Impostazioni job",
+  "Yes": "Sì"
 }

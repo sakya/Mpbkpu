@@ -31,8 +31,8 @@ namespace MpbkpuGUI
         {
             return AppBuilder.Configure<App>()
                 .UsePlatformDetect()
-                .With(new X11PlatformOptions { UseGpu = false })
-                .With(new Win32PlatformOptions { AllowEglInitialization = false })
+                .With(new X11PlatformOptions { UseGpu = true })
+                .With(new Win32PlatformOptions { AllowEglInitialization = true })
                 .LogToTrace()
                 .UseSkia()
                 .WithIcons(container => container.Register<FontAwesomeIconProvider>());

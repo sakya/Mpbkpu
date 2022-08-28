@@ -31,10 +31,10 @@ namespace MpbkpuGUI.Abstracts
             NavigateBackOnWindowClose = true;
         }
 
-        protected MainWindow MainWindow
+        protected MainWindow? MainWindow
         {
             get {
-                return ((App)Application.Current).MainWindow as MainWindow;
+                return ((App)Application.Current!).MainWindow as MainWindow;
             }
         }
 
@@ -45,7 +45,7 @@ namespace MpbkpuGUI.Abstracts
 
         public bool CanNavigateBack
         {
-            get { return MainWindow.CanNavigateBack; }
+            get { return MainWindow!.CanNavigateBack; }
         }
 
         /// <summary>
@@ -65,12 +65,12 @@ namespace MpbkpuGUI.Abstracts
         public virtual void OnNavigatedTo(NavigationDirection direction)
         {
             if (!string.IsNullOrEmpty(PageTitle)) {
-                if (!string.IsNullOrEmpty(MainWindow.WindowTitle))
+                if (!string.IsNullOrEmpty(MainWindow!.WindowTitle))
                     MainWindow.Title = $"{MainWindow.WindowTitle} - {PageTitle}";
                 else
                     MainWindow.Title = PageTitle;
             } else {
-                MainWindow.Title = MainWindow.WindowTitle;
+                MainWindow!.Title = MainWindow.WindowTitle;
             }
         }
 
@@ -81,21 +81,21 @@ namespace MpbkpuGUI.Abstracts
 
         public async Task<bool> NavigateTo(BasePage page)
         {
-            return await MainWindow.NavigateTo(page);
+            return await MainWindow!.NavigateTo(page);
         }
 
         public async Task<bool> NavigateBack()
         {
-            return await MainWindow.NavigateBack();
+            return await MainWindow!.NavigateBack();
         }
 
         public void SaveState(PageState state) {
-            MainWindow.SavePageState(state);
+            MainWindow!.SavePageState(state);
         } // SaveState
 
-        public PageState LoadState<T>() where T: PageState
+        public PageState? LoadState<T>() where T: PageState
         {
-            return MainWindow.LoadPageState<T>(this);
+            return MainWindow!.LoadPageState<T>(this);
         } // LoadState
     }
 }

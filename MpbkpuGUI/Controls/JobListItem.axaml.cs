@@ -19,8 +19,9 @@ public partial class JobListItem : UserControl
     private Job? _item;
 
     #region events
-    public delegate void JoSettingsHandler(object sender, Job job);
-    public event JoSettingsHandler? JobSettings;
+    public delegate void JobEventHandler(object sender, Job job);
+    public event JobEventHandler? JobSettings;
+    public event JobEventHandler? JobDelete;
     #endregion
     public JobListItem()
     {
@@ -53,5 +54,10 @@ public partial class JobListItem : UserControl
     private void OnSettingsClick(object? sender, RoutedEventArgs e)
     {
         JobSettings?.Invoke(this, _item!);
+    }
+
+    private void OnDeleteClick(object? sender, RoutedEventArgs e)
+    {
+        JobDelete?.Invoke(this, _item!);
     }
 }

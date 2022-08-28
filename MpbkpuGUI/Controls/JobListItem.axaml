@@ -32,7 +32,7 @@
             <Button Click="OnSettingsClick">
                 <i:Icon Value="fas fa-cogs"></i:Icon>
             </Button>
-            <Button>
+            <Button Click="OnDeleteClick">
                 <i:Icon Value="fas fa-trash"></i:Icon>
             </Button>
         </StackPanel>

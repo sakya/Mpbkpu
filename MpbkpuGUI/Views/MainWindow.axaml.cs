@@ -50,6 +50,7 @@ namespace MpbkpuGUI.Views
         {
             InitializeComponent();
 
+            WindowTitle = Title;
             Transition = new TransitionSettings(TransitionSettings.EnterTransitions.SlideLeft, TimeSpan.FromMilliseconds(250));
             BackKey = Key.Escape;
 

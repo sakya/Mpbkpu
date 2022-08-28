@@ -110,7 +110,7 @@ namespace MpbkpuGUI.Views
             }
         } // CloseOpenedWindow
 
-        public static async Task<bool> ShowMessage(Window owner, string title, string message, Icons icon = Icons.None)
+        public static async Task<bool> ShowMessage(Window? owner, string title, string message, Icons icon = Icons.None)
         {
             CloseOpenedWindow();
             _mOpenedMessageWindow = new MessageWindow(title, message, Buttons.Ok, icon);
@@ -119,7 +119,7 @@ namespace MpbkpuGUI.Views
             return true;
         } // ShowMessage
 
-        public static async Task<bool> ShowConfirmMessage(Window owner, string title, string message)
+        public static async Task<bool> ShowConfirmMessage(Window? owner, string title, string message)
         {
             CloseOpenedWindow();
             _mOpenedMessageWindow = new MessageWindow(title, message, Buttons.YesNo, Icons.Question);

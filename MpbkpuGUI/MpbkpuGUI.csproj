@@ -40,5 +40,8 @@
     <Compile Update="Pages\JobListPage.cs">
       <DependentUpon>JobListPage.axaml</DependentUpon>
     </Compile>
+    <Compile Update="Controls\OkCancelButtons.axaml.cs">
+      <DependentUpon>OkCancelButtons.axaml</DependentUpon>
+    </Compile>
   </ItemGroup>
 </Project>

@@ -83,11 +83,13 @@ namespace MpbkpuGUI.Controls
             btn = this.FindControl<Button>("MaximizeBtn");
             btn.Click += (e, a) =>
             {
-                var pw = this.VisualRoot as Window;
-                if (pw.WindowState == WindowState.Maximized)
-                    pw.WindowState = WindowState.Normal;
-                else
-                    pw.WindowState = WindowState.Maximized;
+                var parentWindow = VisualRoot as Window;
+                if (parentWindow != null) {
+                    if (parentWindow.WindowState == WindowState.Maximized)
+                        parentWindow.WindowState = WindowState.Normal;
+                    else
+                        parentWindow.WindowState = WindowState.Maximized;
+                }
             };
             btn.IsVisible = CanMinimize;
 

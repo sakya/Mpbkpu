@@ -10,9 +10,16 @@
     <DockPanel>
         <Menu Name="Menu" DockPanel.Dock="Top">
             <MenuItem Header="{i18n:Localize _File}">
-                <MenuItem Header="{i18n:Localize _NewBackup}">
+                <MenuItem Header="{i18n:Localize _NewBackup}"
+                          Click="OnNewBackupClick">
                     <MenuItem.Icon>
-                        <i:Icon FontSize="14" Value="fas fa-plus" />
+                        <i:Icon FontSize="14" Value="fas fa-archive" />
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="{i18n:Localize _NewSync}"
+                          Click="OnNewSyncClick">
+                    <MenuItem.Icon>
+                        <i:Icon FontSize="14" Value="fas fa-sync" />
                     </MenuItem.Icon>
                 </MenuItem>
             </MenuItem>
@@ -31,7 +38,8 @@
                     <DataTemplate>
                         <controls:JobListItem
                             Item="{Binding}"
-                            JobSettings="OnJobSettings"/>
+                            JobSettings="OnJobSettings"
+                            JobDelete="OnJobDelete"/>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
