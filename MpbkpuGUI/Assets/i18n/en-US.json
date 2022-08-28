@@ -18,9 +18,11 @@
   "JobRunning": "Running",
   "JobSettings": "Backup settings",
   "Name": "Name",
+  "Password": "Password",
   "Path": "Path",
   "RetryOnError": "Retry on error",
   "Source": "Source",
   "Type": "Type",
+  "UserName": "Username",
   "Yes": "Yes"
 }

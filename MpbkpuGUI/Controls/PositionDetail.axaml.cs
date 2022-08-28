@@ -64,5 +64,11 @@ public partial class PositionDetail : UserControl
             FileSystemTypes.Sftp,
             FileSystemTypes.Smb
         };
+        cmbType.SelectedItem = GetFileSystemType(_position);
+    }
+
+    private FileSystemTypes GetFileSystemType(Job.Position position)
+    {
+        return FileSystemTypes.FileSystem;
     }
 }

@@ -12,12 +12,24 @@
 
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <Label Content="{i18n:Localize Path}" />
-        <TextBox Grid.Row="1" IsReadOnly="True" Text="{Binding Path}" />
+        <Label Grid.Row="0" Content="{i18n:Localize Type}" />
+        <ComboBox Grid.Row="1" Name="CmbType" />
 
-        <Label Grid.Row="2" Content="{i18n:Localize Type}" />
-        <ComboBox Grid.Row="3" Name="CmbType" />
+        <Label Grid.Row="2" Content="{i18n:Localize Path}" Margin="0,5,0,0" />
+        <TextBox Grid.Row="3" Text="{Binding Path}" />
+
+        <Label Grid.Row="4" Content="{i18n:Localize UserName}" Margin="0,5,0,0" />
+        <TextBox Grid.Row="5" Text="{Binding User}" />
+
+        <Label Grid.Row="6" Content="{i18n:Localize Password}" Margin="0,5,0,0" />
+        <TextBox Grid.Row="7" PasswordChar="*" Text="{Binding Password}" />
     </Grid>
 </UserControl>
