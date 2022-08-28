@@ -8,9 +8,13 @@
   "Cancel": "Anulla",
   "Confirm": "Conferma",
   "ConfirmDeleteJob": "Cancellare il job selezionato?",
+  "Destination": "Destinazione",
   "No": "No",
   "Ok": "Ok",
   "JobList": "Lista job",
   "JobSettings": "Impostazioni job",
+  "Name": "Nome",
+  "Source": "Sorgente",
+  "Type": "Tipo",
   "Yes": "Sì"
 }

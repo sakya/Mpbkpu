@@ -8,9 +8,13 @@
   "Cancel": "Cancel",
   "Confirm": "Confirm",
   "ConfirmDeleteJob": "Delete the selected job?",
+  "Destination": "Destination",
   "No": "No",
   "Ok": "Ok",
   "JobList": "Job list",
   "JobSettings": "Job settings",
+  "Name": "Name",
+  "Source": "Source",
+  "Type": "Type",
   "Yes": "Yes"
 }

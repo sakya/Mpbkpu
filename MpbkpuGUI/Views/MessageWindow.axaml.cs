@@ -3,6 +3,7 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using System.Threading.Tasks;
+using MpbkpuGUI.Abstracts;
 
 namespace MpbkpuGUI.Views
 {

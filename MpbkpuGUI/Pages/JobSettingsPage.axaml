@@ -2,19 +2,55 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:local="clr-namespace:MpbkpuGUI.Abstracts"
              xmlns:i="clr-namespace:Projektanker.Icons.Avalonia;assembly=Projektanker.Icons.Avalonia"
              xmlns:i18n="clr-namespace:MpbkpuGUI.Localizer"
              xmlns:controls="clr-namespace:MpbkpuGUI.Controls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="MpbkpuGUI.Pages.JobSettingsPage">
-    <Grid>
+
+    <Design.DataContext>
+        <local:Job />
+    </Design.DataContext>
+
+    <Grid Margin="5,0,5,0">
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <ScrollViewer>
 
+        <ScrollViewer>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Label Content="{i18n:Localize Name}" />
+                <TextBox Grid.Row="1" Text="{Binding Name}" />
+
+                <Label Grid.Row="2" Content="{i18n:Localize Type}" Margin="0,5,0,0" />
+                <ComboBox Grid.Row="3" Name="CmbType" />
+
+                <Label Grid.Row="4" Content="{i18n:Localize Source}" Margin="0,5,0,0" />
+                <controls:Position Grid.Row="5" Value="{Binding Source}" />
+
+                <Label Grid.Row="6" Content="{i18n:Localize Destination}" Margin="0,5,0,0" />
+                <controls:Position Grid.Row="7" Value="{Binding Destination}" />
+            </Grid>
         </ScrollViewer>
+
         <controls:OkCancelButtons
             Grid.Row="1"
             OkClick="OnOkClick"

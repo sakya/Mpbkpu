@@ -1,8 +1,10 @@
+using System.Collections.Generic;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using MpbkpuGUI.Abstracts;
+using MpbkpuLib.DataModel;
 
 namespace MpbkpuGUI.Pages;
 
@@ -17,6 +19,7 @@ public class JobSettingsPage : BasePage
     public JobSettingsPage(Job job)
     {
         _job = job;
+        DataContext = _job;
         InitializeComponent();
     }
 
@@ -26,6 +29,14 @@ public class JobSettingsPage : BasePage
 
         PageTitle = Localizer.Localizer.Instance["JobSettings"];
         NavigateBackWithKeyboard = false;
+
+        var cmb = this.FindControl<ComboBox>("CmbType");
+        cmb.Items = new List<Backup.BackupTypes>()
+        {
+            Backup.BackupTypes.Full,
+            Backup.BackupTypes.Differential,
+            Backup.BackupTypes.Incremental
+        };
     }
 
     private async void OnCancelClick(object? sender, RoutedEventArgs e)

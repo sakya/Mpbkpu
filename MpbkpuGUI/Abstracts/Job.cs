@@ -17,6 +17,12 @@ public abstract class Job
         public string? OauthAppSecret { get; set; }
     }
 
+    protected Job()
+    {
+        Source = new Position();
+        Destination = new Position();
+    }
+
     public string? Name { get; set; }
     public Position? Source { get; set; }
     public Position? Destination { get; set; }

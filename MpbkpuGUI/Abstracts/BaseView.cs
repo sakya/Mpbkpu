@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using MpbkpuLib;
 using System;
 
-namespace MpbkpuGUI.Views
+namespace MpbkpuGUI.Abstracts
 {
     public abstract class BaseView : Window
     {
