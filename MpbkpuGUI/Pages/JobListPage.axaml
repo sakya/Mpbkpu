@@ -38,6 +38,7 @@
                     <DataTemplate>
                         <controls:JobListItem
                             Item="{Binding}"
+                            JobRun="OnJobRun"
                             JobSettings="OnJobSettings"
                             JobDelete="OnJobDelete"/>
                     </DataTemplate>

@@ -26,7 +26,7 @@
 
         <TextBlock Grid.Row="0" Grid.RowSpan="3" Grid.Column="2" FontSize="16" VerticalAlignment="Center" Text="{Binding LastRun}" />
         <StackPanel Grid.Row="0" Grid.RowSpan="3" Grid.Column="3" Orientation="Horizontal" Margin="12,0,0,0">
-            <Button>
+            <Button Click="OnRunClick">
                 <i:Icon Value="fas fa-play"></i:Icon>
             </Button>
             <Button Click="OnSettingsClick">

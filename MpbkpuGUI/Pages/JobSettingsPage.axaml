@@ -38,7 +38,7 @@
                 </Grid.RowDefinitions>
 
                 <Label Content="{i18n:Localize Name}" />
-                <TextBox Grid.Row="1" Text="{Binding Name}" />
+                <TextBox Name="Name" Grid.Row="1" Text="{Binding Name}" />
 
                 <Label Grid.Row="2" Content="{i18n:Localize Type}" Margin="0,5,0,0" />
                 <ComboBox Grid.Row="3" Name="CmbType" />

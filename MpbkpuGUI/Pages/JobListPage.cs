@@ -52,4 +52,9 @@ public class JobListPage : BasePage
     {
         await MainWindow!.NavigateTo(new JobSettingsPage(new SyncJob()));
     }
+
+    private async void OnJobRun(object sender, Job job)
+    {
+        await MainWindow!.NavigateTo(new JobRunningPage(job));
+    }
 }

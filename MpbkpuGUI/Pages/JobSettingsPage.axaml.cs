@@ -5,6 +5,7 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using MpbkpuGUI.Abstracts;
 using MpbkpuLib.DataModel;
+using MpbkpuLib.Jobs;
 
 namespace MpbkpuGUI.Pages;
 
@@ -37,6 +38,12 @@ public class JobSettingsPage : BasePage
             Backup.BackupTypes.Differential,
             Backup.BackupTypes.Incremental
         };
+    }
+
+    public override void OnNavigatedTo(NavigationDirection direction)
+    {
+        this.FindControl<TextBox>("Name").Focus();
+        base.OnNavigatedTo(direction);
     }
 
     private async void OnCancelClick(object? sender, RoutedEventArgs e)
