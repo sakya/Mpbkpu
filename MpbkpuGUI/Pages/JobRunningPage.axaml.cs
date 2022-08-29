@@ -71,7 +71,7 @@ public class JobRunningPage : BasePage
             {
                 BackupType = bkp.Type ?? Backup.BackupTypes.Full,
                 EncryptPassword = bkp.Password,
-                Source = bkp.Source!.Path,
+                Source = bkp.Source!.FullPath,
                 SourceUser = bkp.Source.User,
                 SourcePassword = bkp.Source.Password,
                 SourceOauthSettings = new OAuth2Settings()
@@ -83,7 +83,7 @@ public class JobRunningPage : BasePage
                     RedirectUrl = bkp.Source.OauthRedirectUrl
                 },
 
-                Destination = bkp.Destination!.Path,
+                Destination = bkp.Destination!.FullPath,
                 DestinationUser = bkp.Destination.User,
                 DestinationPassword = bkp.Destination.Password,
                 DestinationOauthSettings = new OAuth2Settings()

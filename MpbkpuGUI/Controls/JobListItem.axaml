@@ -26,8 +26,8 @@
         <i:Icon Name="Icon" Grid.Row="0" Grid.RowSpan="3" Grid.Column="0" FontSize="32" Value="fas fa-archive" Margin="0,0,12,0" />
 
         <TextBlock Grid.Row="0" Grid.Column="1" Classes="Main" Text="{Binding Path=Name}" />
-        <TextBlock Grid.Row="1" Grid.Column="1" Classes="Secondary" Text="{Binding Path=Source.Path}" />
-        <TextBlock Grid.Row="2" Grid.Column="1" Classes="Secondary" Text="{Binding Path=Destination.Path}" />
+        <TextBlock Grid.Row="1" Grid.Column="1" Classes="Secondary" Text="{Binding Path=Source.FullPath}" />
+        <TextBlock Grid.Row="2" Grid.Column="1" Classes="Secondary" Text="{Binding Path=Destination.FullPath}" />
 
         <TextBlock Grid.Row="0" Grid.RowSpan="3" Grid.Column="2" FontSize="16" VerticalAlignment="Center" Text="{Binding LastRun}" />
         <StackPanel Grid.Row="0" Grid.RowSpan="3" Grid.Column="3" Orientation="Horizontal" Margin="12,0,0,0">

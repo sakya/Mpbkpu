@@ -106,39 +106,6 @@ public class PositionDetail : UserControl
         return Job.Position.FileSystemTypes.FileSystem;
     }
 
-    private static string? GetScheme(Job.Position.FileSystemTypes type)
-    {
-        IFileManager? fm = null;
-        switch (type) {
-            case Job.Position.FileSystemTypes.Ftp:
-                fm = new Ftp();
-                break;
-            case Job.Position.FileSystemTypes.Mega:
-                fm = new Mega("account", "account");
-                break;
-            case Job.Position.FileSystemTypes.Nextcloud:
-                fm = new Nextcloud("account");
-                break;
-            case Job.Position.FileSystemTypes.Sftp:
-                fm = new Sftp();
-                break;
-            case Job.Position.FileSystemTypes.Smb:
-                fm = new Smb(string.Empty, string.Empty, string.Empty, string.Empty);
-                break;
-            case Job.Position.FileSystemTypes.DropBox:
-                fm = new MpbkpuLib.FileManagers.Dropbox("account");
-                break;
-            case Job.Position.FileSystemTypes.MediaFire:
-                fm = new MediaFire("account", "account");
-                break;
-            case Job.Position.FileSystemTypes.OneDrive:
-                fm = new OneDrive("account");
-                break;
-        }
-
-        return fm?.GetScheme();
-    }
-
     private void OnTypeChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (sender is ComboBox { SelectedItem: { } } cmb) {
