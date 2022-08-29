@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.IO.Compression;
 using System.Linq;
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;

@@ -30,6 +30,7 @@ public class PositionDetailModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(IsLocalFileSystem));
                 OnPropertyChanged(nameof(SupportUserPassword));
                 OnPropertyChanged(nameof(SupportOAuth));
+                OnPropertyChanged(nameof(SupportOAuthServerUrl));
             }
         }
     }
@@ -50,6 +51,9 @@ public class PositionDetailModel : INotifyPropertyChanged
     public bool SupportOAuth =>
         Type is FileSystemTypes.Nextcloud or FileSystemTypes.DropBox or FileSystemTypes.OneDrive;
 
+
+    public bool SupportOAuthServerUrl =>
+        Type is FileSystemTypes.Nextcloud;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 

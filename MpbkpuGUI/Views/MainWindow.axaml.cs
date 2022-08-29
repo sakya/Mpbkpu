@@ -72,8 +72,8 @@ namespace MpbkpuGUI.Views
         {
             get
             {
-                if (_container?.Children.Count > 0)
-                    return _container.Children[0] as BasePage;
+                if (_container?.Children.Count > 1)
+                    return _container.Children[1] as BasePage;
                 return null;
             }
         }
@@ -87,6 +87,7 @@ namespace MpbkpuGUI.Views
             base.OnOpened(e);
             await Task.Delay(250);
             await NavigateTo(new JobListPage());
+            SetWaitAnimation(false);
         }
 
         protected sealed override void InitializeComponent()
@@ -174,7 +175,7 @@ namespace MpbkpuGUI.Views
         } // RemovePageState
         #endregion
 
-        private async Task<bool> ChangePage(BasePage? exiting, BasePage? entering, bool back)
+        private async Task ChangePage(BasePage? exiting, BasePage? entering, bool back)
         {
             if (entering == null)
                 throw new ArgumentNullException(nameof(entering));
@@ -185,14 +186,14 @@ namespace MpbkpuGUI.Views
             if (exiting == null) {
                 entering.Opacity = 1;
                 _changingPage = false;
-                return true;
+                return;
             }
 
             if (Transition == null || Transition.Type == TransitionSettings.EnterTransitions.None) {
                 _container.Children.Remove(exiting);
                 entering.Opacity = 1;
                 _changingPage = false;
-                return true;
+                return;
             }
 
             exiting.IsHitTestVisible = false;
@@ -308,7 +309,6 @@ namespace MpbkpuGUI.Views
 
             _titleBar!.CanGoBack = CanNavigateBack;
             _changingPage = false;
-            return true;
         } // ChangePage
 
         private async void OnWindowClosing(object? sender, CancelEventArgs args)
@@ -336,5 +336,17 @@ namespace MpbkpuGUI.Views
                 await NavigateBack();
             }
         } // OnKeyDown
+
+        private void SetWaitAnimation(bool visible)
+        {
+            var wait = this.FindControl<Grid>("Spinner");
+            wait.IsVisible = visible;
+            var stack = this.FindControl<StackPanel>("WaitSpinner");
+            if (visible)
+                stack.Classes.Add("spinner");
+            else
+                stack.Classes.Remove("spinner");
+        } // SetWaitAnimation
+
     }
 }

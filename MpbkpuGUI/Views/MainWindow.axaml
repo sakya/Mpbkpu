@@ -25,6 +25,13 @@
         <DockPanel>
             <controls:TitleBar Name="TitleBar" DockPanel.Dock="Top"/>
             <Grid Name="Container">
+                <Grid Name="Spinner" IsVisible="True">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <StackPanel Name="WaitSpinner" Classes="spinner" VerticalAlignment="Center" HorizontalAlignment="Center" Width="40" Height="40">
+                            <i:Icon HorizontalAlignment="Center" VerticalAlignment="Center" Width="40" Height="40" FontSize="32" Value="fas fa-circle-notch" />
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
             </Grid>
         </DockPanel>
     </Panel>

@@ -3,12 +3,13 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Markup.Xaml;
 using System;
+using MpbkpuGUI.Views;
 
 namespace MpbkpuGUI.Controls
 {
     public class TitleBar : UserControl
     {
-        bool _canGoBack = false;
+        bool _canGoBack;
 
         public TitleBar()
         {
@@ -71,33 +72,39 @@ namespace MpbkpuGUI.Controls
                         btn.Content = new Projektanker.Icons.Avalonia.Icon() { Value = "fas fa-window-maximize" };
                     }
                 });
+
+                var btn = this.FindControl<Button>("MinimizeBtn");
+                btn.Click += (s, a) =>
+                {
+                    pw.WindowState = WindowState.Minimized;
+                };
+                btn.IsVisible = CanMinimize;
+
+                btn = this.FindControl<Button>("MaximizeBtn");
+                btn.Click += (s, a) =>
+                {
+                    var parentWindow = VisualRoot as Window;
+                    if (parentWindow != null) {
+                        if (parentWindow.WindowState == WindowState.Maximized)
+                            parentWindow.WindowState = WindowState.Normal;
+                        else
+                            parentWindow.WindowState = WindowState.Maximized;
+                    }
+                };
+                btn.IsVisible = CanMinimize;
+
+                btn = this.FindControl<Button>("CloseBtn");
+                btn.Click += (s, a) =>
+                {
+                    pw.Close();
+                };
+
+                btn = this.FindControl<Button>("BackBtn");
+                btn.Click += async (s, a) =>
+                {
+                    await (pw as MainWindow)!.NavigateBack();
+                };
             }
-
-            var btn = this.FindControl<Button>("MinimizeBtn");
-            btn.Click += (e, a) =>
-            {
-                (this.VisualRoot as Window)!.WindowState = WindowState.Minimized;
-            };
-            btn.IsVisible = CanMinimize;
-
-            btn = this.FindControl<Button>("MaximizeBtn");
-            btn.Click += (e, a) =>
-            {
-                var parentWindow = VisualRoot as Window;
-                if (parentWindow != null) {
-                    if (parentWindow.WindowState == WindowState.Maximized)
-                        parentWindow.WindowState = WindowState.Normal;
-                    else
-                        parentWindow.WindowState = WindowState.Maximized;
-                }
-            };
-            btn.IsVisible = CanMinimize;
-
-            btn = this.FindControl<Button>("CloseBtn");
-            btn.Click += (e, a) =>
-            {
-                (this.VisualRoot as Window)!.Close();
-            };
         }
 
         private void SetTitle(string title)

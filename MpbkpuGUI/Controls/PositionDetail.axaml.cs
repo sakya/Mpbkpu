@@ -32,7 +32,9 @@ public class PositionDetail : UserControl
         {
             if (SetAndRaise(ValueProperty, ref _position, value)) {
                 _model.Position = _position;
-                _model.Type = GetFileSystemType();
+                _model.Type = GetFileSystemType(out var scheme);
+                if (string.IsNullOrEmpty(_model.Position!.Path))
+                    _model.Position.Path = scheme;
             }
         }
     }
@@ -54,16 +56,18 @@ public class PositionDetail : UserControl
             PositionDetailModel.FileSystemTypes.Sftp,
             PositionDetailModel.FileSystemTypes.Smb
         };
-        cmbType.SelectedItem = GetFileSystemType();
+        cmbType.SelectedItem = GetFileSystemType(out _);
     }
 
-    private PositionDetailModel.FileSystemTypes GetFileSystemType()
+    private PositionDetailModel.FileSystemTypes GetFileSystemType(out string? scheme)
     {
+        scheme = null;
         if (_position == null)
             return PositionDetailModel.FileSystemTypes.FileSystem;
 
         try {
             using var fm = FileManagerFactory.GetFileManager(_position.Path, out _);
+            scheme = fm.GetScheme();
             switch (fm) {
                 case MpbkpuLib.FileManagers.Dropbox:
                     return PositionDetailModel.FileSystemTypes.DropBox;

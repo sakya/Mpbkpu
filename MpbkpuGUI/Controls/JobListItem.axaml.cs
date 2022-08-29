@@ -23,7 +23,9 @@ public partial class JobListItem : UserControl
     public event JobEventHandler? JobSettings;
     public event JobEventHandler? JobDelete;
     public event JobEventHandler? JobRun;
+    public event JobEventHandler? JobOpen;
     #endregion
+
     public JobListItem()
     {
         InitializeComponent();
@@ -65,5 +67,10 @@ public partial class JobListItem : UserControl
     private void OnRunClick(object? sender, RoutedEventArgs e)
     {
         JobRun?.Invoke(this, _item!);
+    }
+
+    private void OnOpenClick(object? sender, RoutedEventArgs e)
+    {
+        JobOpen?.Invoke(this, _item!);
     }
 }
