@@ -1,5 +1,6 @@
 using System;
 using Microsoft.Graph;
+using MpbkpuGUI.Controls.Models;
 using Newtonsoft.Json;
 
 namespace MpbkpuGUI.Abstracts;
@@ -8,6 +9,20 @@ public abstract class Job
 {
     public class Position
     {
+        public enum FileSystemTypes
+        {
+            FileSystem,
+            DropBox,
+            Ftp,
+            MediaFire,
+            Mega,
+            Nextcloud,
+            OneDrive,
+            Sftp,
+            Smb
+        }
+
+        public FileSystemTypes Type { get; set; }
         public string? Path { get; set; }
         public string? User { get; set; }
         public string? Password { get; set; }

@@ -37,6 +37,11 @@ public class JobSettingsPage : BasePage
         PageTitle = Localizer.Localizer.Instance["JobSettings"];
         NavigateBackWithKeyboard = false;
 
+        var ctrl = this.FindControl<Controls.PositionDetail>("Source");
+        ctrl.Value = _job.Source;
+        ctrl = this.FindControl<Controls.PositionDetail>("Destination");
+        ctrl.Value = _job.Destination;
+
         var cmbType = this.FindControl<ComboBox>("CmbType");
         cmbType.Items = new List<Backup.BackupTypes>()
         {

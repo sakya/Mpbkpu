@@ -8,21 +8,8 @@ namespace MpbkpuGUI.Controls.Models;
 
 public sealed class PositionDetailModel : INotifyPropertyChanged
 {
-    public enum FileSystemTypes
-    {
-        FileSystem,
-        DropBox,
-        Ftp,
-        MediaFire,
-        Mega,
-        Nextcloud,
-        OneDrive,
-        Sftp,
-        Smb
-    }
-
-    private FileSystemTypes _type;
-    public FileSystemTypes Type
+    private Job.Position.FileSystemTypes _type;
+    public Job.Position.FileSystemTypes Type
     {
         get => _type;
         set
@@ -93,21 +80,21 @@ public sealed class PositionDetailModel : INotifyPropertyChanged
         set => SetField(ref _oauthAppSecret, value);
     }
 
-    public bool IsLocalFileSystem => Type == FileSystemTypes.FileSystem;
+    public bool IsLocalFileSystem => Type == Job.Position.FileSystemTypes.FileSystem;
 
     public bool SupportCompression =>
-        Type is FileSystemTypes.FileSystem or FileSystemTypes.Ftp or FileSystemTypes.Sftp or FileSystemTypes.Smb;
+        Type is Job.Position.FileSystemTypes.FileSystem or Job.Position.FileSystemTypes.Ftp or Job.Position.FileSystemTypes.Sftp or Job.Position.FileSystemTypes.Smb;
 
     public bool SupportUserPassword =>
-        Type is FileSystemTypes.Ftp or FileSystemTypes.Mega or FileSystemTypes.Nextcloud or
-            FileSystemTypes.Sftp or FileSystemTypes.Smb or FileSystemTypes.MediaFire;
+        Type is Job.Position.FileSystemTypes.Ftp or Job.Position.FileSystemTypes.Mega or Job.Position.FileSystemTypes.Nextcloud or
+            Job.Position.FileSystemTypes.Sftp or Job.Position.FileSystemTypes.Smb or Job.Position.FileSystemTypes.MediaFire;
 
     public bool SupportOAuth =>
-        Type is FileSystemTypes.Nextcloud or FileSystemTypes.DropBox or FileSystemTypes.OneDrive;
+        Type is Job.Position.FileSystemTypes.Nextcloud or Job.Position.FileSystemTypes.DropBox or Job.Position.FileSystemTypes.OneDrive;
 
 
     public bool SupportOAuthServerUrl =>
-        Type is FileSystemTypes.Nextcloud;
+        Type is Job.Position.FileSystemTypes.Nextcloud;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 

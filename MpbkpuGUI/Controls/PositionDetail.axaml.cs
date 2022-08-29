@@ -29,7 +29,8 @@ public class PositionDetail : UserControl
     {
         get => new()
         {
-            Path = $"{GetScheme(_model.Type)}{_model.Path}",
+            Type = _model.Type,
+            Path = _model.Path,
             User = _model.User,
 
             OauthServerUrl = _model.OauthServerUrl,
@@ -40,6 +41,7 @@ public class PositionDetail : UserControl
         };
         set
         {
+            _model.Type = value?.Type ?? Job.Position.FileSystemTypes.FileSystem;
             _model.Path = value?.Path;
             _model.User = value?.User;
             _model.Password = value?.Password;
@@ -48,8 +50,6 @@ public class PositionDetail : UserControl
             _model.OauthAppSecret = value?.OauthAppSecret;
             _model.OauthRedirectUrl = value?.OauthRedirectUrl;
             _model.OauthServerUrl = value?.OauthServerUrl;
-
-            _model.Type = GetFileSystemType();
         }
     }
 
@@ -58,79 +58,78 @@ public class PositionDetail : UserControl
         AvaloniaXamlLoader.Load(this);
 
         var cmbType = this.FindControl<ComboBox>("CmbType");
-        cmbType.Items = new List<PositionDetailModel.FileSystemTypes>()
+        cmbType.Items = new List<Job.Position.FileSystemTypes>()
         {
-            PositionDetailModel.FileSystemTypes.FileSystem,
-            PositionDetailModel.FileSystemTypes.DropBox,
-            PositionDetailModel.FileSystemTypes.Ftp,
-            PositionDetailModel.FileSystemTypes.MediaFire,
-            PositionDetailModel.FileSystemTypes.Mega,
-            PositionDetailModel.FileSystemTypes.Nextcloud,
-            PositionDetailModel.FileSystemTypes.OneDrive,
-            PositionDetailModel.FileSystemTypes.Sftp,
-            PositionDetailModel.FileSystemTypes.Smb
+            Job.Position.FileSystemTypes.FileSystem,
+            Job.Position.FileSystemTypes.DropBox,
+            Job.Position.FileSystemTypes.Ftp,
+            Job.Position.FileSystemTypes.MediaFire,
+            Job.Position.FileSystemTypes.Mega,
+            Job.Position.FileSystemTypes.Nextcloud,
+            Job.Position.FileSystemTypes.OneDrive,
+            Job.Position.FileSystemTypes.Sftp,
+            Job.Position.FileSystemTypes.Smb
         };
-        cmbType.SelectedItem = GetFileSystemType();
     }
 
-    private PositionDetailModel.FileSystemTypes GetFileSystemType()
+    private Job.Position.FileSystemTypes GetFileSystemType()
     {
         if (string.IsNullOrEmpty(_model.Path))
-            return PositionDetailModel.FileSystemTypes.FileSystem;
+            return Job.Position.FileSystemTypes.FileSystem;
 
         try {
             using var fm = FileManagerFactory.GetFileManager(_model.Path, out _);
             switch (fm) {
                 case MpbkpuLib.FileManagers.Dropbox:
-                    return PositionDetailModel.FileSystemTypes.DropBox;
+                    return Job.Position.FileSystemTypes.DropBox;
                 case Ftp:
-                    return PositionDetailModel.FileSystemTypes.Ftp;
+                    return Job.Position.FileSystemTypes.Ftp;
                 case Mega:
-                    return PositionDetailModel.FileSystemTypes.Mega;
+                    return Job.Position.FileSystemTypes.Mega;
                 case Nextcloud:
-                    return PositionDetailModel.FileSystemTypes.Nextcloud;
+                    return Job.Position.FileSystemTypes.Nextcloud;
                 case Sftp:
-                    return PositionDetailModel.FileSystemTypes.Sftp;
+                    return Job.Position.FileSystemTypes.Sftp;
                 case Smb:
-                    return PositionDetailModel.FileSystemTypes.Smb;
+                    return Job.Position.FileSystemTypes.Smb;
                 case MediaFire:
-                    return PositionDetailModel.FileSystemTypes.MediaFire;
+                    return Job.Position.FileSystemTypes.MediaFire;
                 case OneDrive:
-                    return PositionDetailModel.FileSystemTypes.OneDrive;
+                    return Job.Position.FileSystemTypes.OneDrive;
             }
         } catch {
             // ignored
         }
 
-        return PositionDetailModel.FileSystemTypes.FileSystem;
+        return Job.Position.FileSystemTypes.FileSystem;
     }
 
-    private static string? GetScheme(PositionDetailModel.FileSystemTypes type)
+    private static string? GetScheme(Job.Position.FileSystemTypes type)
     {
         IFileManager? fm = null;
         switch (type) {
-            case PositionDetailModel.FileSystemTypes.Ftp:
+            case Job.Position.FileSystemTypes.Ftp:
                 fm = new Ftp();
                 break;
-            case PositionDetailModel.FileSystemTypes.Mega:
+            case Job.Position.FileSystemTypes.Mega:
                 fm = new Mega("account", "account");
                 break;
-            case PositionDetailModel.FileSystemTypes.Nextcloud:
+            case Job.Position.FileSystemTypes.Nextcloud:
                 fm = new Nextcloud("account");
                 break;
-            case PositionDetailModel.FileSystemTypes.Sftp:
+            case Job.Position.FileSystemTypes.Sftp:
                 fm = new Sftp();
                 break;
-            case PositionDetailModel.FileSystemTypes.Smb:
+            case Job.Position.FileSystemTypes.Smb:
                 fm = new Smb(string.Empty, string.Empty, string.Empty, string.Empty);
                 break;
-            case PositionDetailModel.FileSystemTypes.DropBox:
+            case Job.Position.FileSystemTypes.DropBox:
                 fm = new MpbkpuLib.FileManagers.Dropbox("account");
                 break;
-            case PositionDetailModel.FileSystemTypes.MediaFire:
+            case Job.Position.FileSystemTypes.MediaFire:
                 fm = new MediaFire("account", "account");
                 break;
-            case PositionDetailModel.FileSystemTypes.OneDrive:
+            case Job.Position.FileSystemTypes.OneDrive:
                 fm = new OneDrive("account");
                 break;
         }
@@ -141,7 +140,7 @@ public class PositionDetail : UserControl
     private void OnTypeChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (sender is ComboBox { SelectedItem: { } } cmb) {
-            _model.Type = (PositionDetailModel.FileSystemTypes)cmb.SelectedItem;
+            _model.Type = (Job.Position.FileSystemTypes)cmb.SelectedItem;
         }
     }
 }

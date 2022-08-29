@@ -41,7 +41,8 @@
         </Grid.RowDefinitions>
 
         <Label Grid.Row="0" Content="{i18n:Localize Type}" />
-        <ComboBox Grid.Row="1" Name="CmbType" SelectionChanged="OnTypeChanged" />
+        <ComboBox Grid.Row="1" Name="CmbType" SelectionChanged="OnTypeChanged"
+                  SelectedItem="{Binding Type}"/>
 
         <Label Grid.Row="2" Content="{i18n:Localize Path}" Margin="0,5,0,0" />
         <TextBox Grid.Row="3" Text="{Binding  Path, Mode=TwoWay}" />

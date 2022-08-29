@@ -74,8 +74,7 @@
                             BorderThickness="0.5"
                             Padding="15">
                         <controls:PositionDetail
-                            Name="Source"
-                            Value="{Binding Source, Mode=TwoWay}" />
+                            Name="Source" />
                     </Border>
 
                     <Label Grid.Row="0" Grid.Column="1" Content="{i18n:Localize Destination}" Margin="5,5,0,0" />
@@ -87,8 +86,7 @@
                             BorderThickness="0.5"
                             Padding="15">
                         <controls:PositionDetail
-                            Name="Destination"
-                            Value="{Binding Destination, Mode=TwoWay}" />
+                            Name="Destination" />
                     </Border>
                 </Grid>
 
