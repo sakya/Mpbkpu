@@ -27,6 +27,13 @@
   "Path": "Percorso",
   "RetryOnError": "Tentativi in caso di errore",
   "Source": "Sorgente",
+  "Step_OpenDatabase": "Apertura database",
+  "Step_ReadSource": "Lettura file sorgente",
+  "Step_ReadDestination,": "Lettura file destinazione",
+  "Step_CalculateFilesToBackup": "Calcolo file per il backup",
+  "Step_DeleteFiles": "Cancellazione file",
+  "Step_BackupFiles": "Backup dei file",
+  "Step_CopyDatabase": "Copia del database",
   "Type": "Tipo",
   "UserName": "Utente",
   "Yes": "Sì"
