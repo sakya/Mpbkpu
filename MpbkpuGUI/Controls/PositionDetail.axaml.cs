@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using MpbkpuGUI.Abstracts;
 using MpbkpuGUI.Controls.Models;
@@ -70,6 +71,7 @@ public class PositionDetail : UserControl
             Job.Position.FileSystemTypes.Sftp,
             Job.Position.FileSystemTypes.Smb
         };
+        cmbType.SelectedItem = Job.Position.FileSystemTypes.FileSystem;
     }
 
     private Job.Position.FileSystemTypes GetFileSystemType()
@@ -141,6 +143,15 @@ public class PositionDetail : UserControl
     {
         if (sender is ComboBox { SelectedItem: { } } cmb) {
             _model.Type = (Job.Position.FileSystemTypes)cmb.SelectedItem;
+        }
+    }
+
+    private async void OnBrowseClick(object? sender, RoutedEventArgs e)
+    {
+        var dlg = new OpenFolderDialog();
+        var dir = await dlg.ShowAsync(((App)Application.Current).MainWindow);
+        if (!string.IsNullOrEmpty(dir)) {
+            _model.Path = dir;
         }
     }
 }
