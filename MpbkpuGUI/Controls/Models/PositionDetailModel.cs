@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using MpbkpuGUI.Abstracts;
@@ -36,11 +37,60 @@ public sealed class PositionDetailModel : INotifyPropertyChanged
         }
     }
 
-    private Job.Position? _position;
-    public Job.Position? Position
+    private string? _path;
+    public string? Path
     {
-        get => _position;
-        set => SetField(ref _position, value);
+        get => _path;
+        set => SetField(ref _path, value);
+    }
+
+    private string? _user;
+    public string? User
+    {
+        get => _user;
+        set => SetField(ref _user, value);
+    }
+
+    private string? _password;
+    public string? Password
+    {
+        get => _password;
+        set => SetField(ref _password, value);
+    }
+
+    private Uri? _oauthServerUrl;
+    public Uri? OauthServerUrl
+    {
+        get => _oauthServerUrl;
+        set => SetField(ref _oauthServerUrl, value);
+    }
+
+    private Uri? _oauthRedirectUrl;
+    public Uri? OauthRedirectUrl
+    {
+        get => _oauthRedirectUrl;
+        set => SetField(ref _oauthRedirectUrl, value);
+    }
+
+    private string? _oauthAppName;
+    public string? OauthAppName
+    {
+        get => _oauthAppName;
+        set => SetField(ref _oauthAppName, value);
+    }
+
+    private string? _oauthAppId;
+    public string? OauthAppId
+    {
+        get => _oauthAppId;
+        set => SetField(ref _oauthAppId, value);
+    }
+
+    private string? _oauthAppSecret;
+    public string? OauthAppSecret
+    {
+        get => _oauthAppSecret;
+        set => SetField(ref _oauthAppSecret, value);
     }
 
     public bool IsLocalFileSystem => Type == FileSystemTypes.FileSystem;

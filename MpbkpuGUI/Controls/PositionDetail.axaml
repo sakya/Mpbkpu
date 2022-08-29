@@ -44,41 +44,41 @@
         <ComboBox Grid.Row="1" Name="CmbType" SelectionChanged="OnTypeChanged" />
 
         <Label Grid.Row="2" Content="{i18n:Localize Path}" Margin="0,5,0,0" />
-        <TextBox Grid.Row="3" Text="{Binding  Position.Path, Mode=TwoWay}" />
+        <TextBox Grid.Row="3" Text="{Binding  Path, Mode=TwoWay}" />
 
         <Label Grid.Row="4" Content="{i18n:Localize UserName}" Margin="0,5,0,0"
                IsVisible="{Binding SupportUserPassword}"/>
-        <TextBox Grid.Row="5" Text="{Binding Position.User, Mode=TwoWay}"
+        <TextBox Grid.Row="5" Text="{Binding User, Mode=TwoWay}"
                  IsVisible="{Binding SupportUserPassword}"/>
 
         <Label Grid.Row="6" Content="{i18n:Localize Password}" Margin="0,5,0,0"
                IsVisible="{Binding SupportUserPassword}"/>
-        <TextBox Grid.Row="7" PasswordChar="*" Text="{Binding Position.Password, Mode=TwoWay}"
+        <TextBox Grid.Row="7" PasswordChar="*" Text="{Binding Password, Mode=TwoWay}"
                  IsVisible="{Binding SupportUserPassword}"/>
 
         <Label Grid.Row="8" Content="{i18n:Localize OauthServerUrl}" Margin="0,5,0,0"
                IsVisible="{Binding SupportOAuthServerUrl}"/>
-        <TextBox Grid.Row="9" Text="{Binding Position.OauthServerUrl, Mode=TwoWay}"
+        <TextBox Grid.Row="9" Text="{Binding OauthServerUrl, Mode=TwoWay}"
                  IsVisible="{Binding SupportOAuthServerUrl}"/>
 
         <Label Grid.Row="10" Content="{i18n:Localize OauthRedirectUrl}" Margin="0,5,0,0"
                IsVisible="{Binding SupportOAuth}"/>
-        <TextBox Grid.Row="11" Text="{Binding Position.OauthRedirectUrl, Mode=TwoWay}"
+        <TextBox Grid.Row="11" Text="{Binding OauthRedirectUrl, Mode=TwoWay}"
                  IsVisible="{Binding SupportOAuth}"/>
 
         <Label Grid.Row="12" Content="{i18n:Localize OauthAppName}" Margin="0,5,0,0"
                IsVisible="{Binding SupportOAuth}"/>
-        <TextBox Grid.Row="13" Text="{Binding Position.OauthAppName, Mode=TwoWay}"
+        <TextBox Grid.Row="13" Text="{Binding OauthAppName, Mode=TwoWay}"
                  IsVisible="{Binding SupportOAuth}"/>
 
         <Label Grid.Row="14" Content="{i18n:Localize OauthAppId}" Margin="0,5,0,0"
                IsVisible="{Binding SupportOAuth}"/>
-        <TextBox Grid.Row="15" Text="{Binding Position.OauthAppId, Mode=TwoWay}"
+        <TextBox Grid.Row="15" Text="{Binding OauthAppId, Mode=TwoWay}"
                  IsVisible="{Binding SupportOAuth}"/>
 
         <Label Grid.Row="16" Content="{i18n:Localize OauthAppSecret}" Margin="0,5,0,0"
                IsVisible="{Binding SupportOAuth}"/>
-        <TextBox Grid.Row="17" Text="{Binding Position.OauthAppSecret, Mode=TwoWay}"
+        <TextBox Grid.Row="17" Text="{Binding OauthAppSecret, Mode=TwoWay}"
                  IsVisible="{Binding SupportOAuth}"/>
     </Grid>
 </UserControl>

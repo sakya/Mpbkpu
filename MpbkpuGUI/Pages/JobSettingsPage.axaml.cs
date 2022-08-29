@@ -73,6 +73,10 @@ public class JobSettingsPage : BasePage
 
     private async void OnOkClick(object? sender, RoutedEventArgs e)
     {
+        var ctrl = this.FindControl<Controls.PositionDetail>("Source");
+        _job.Source = ctrl.Value;
+        ctrl = this.FindControl<Controls.PositionDetail>("Destination");
+        _job.Destination = ctrl.Value;
         var job = App.Settings!.Jobs
             .FirstOrDefault(j => j.Id == _jobId);
         if (job != null) {

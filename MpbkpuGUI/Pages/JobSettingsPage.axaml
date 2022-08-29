@@ -73,7 +73,9 @@
                             BorderBrush="{DynamicResource SystemControlBackgroundBaseHighBrush}"
                             BorderThickness="0.5"
                             Padding="15">
-                        <controls:PositionDetail Value="{Binding Source, Mode=TwoWay}" />
+                        <controls:PositionDetail
+                            Name="Source"
+                            Value="{Binding Source, Mode=TwoWay}" />
                     </Border>
 
                     <Label Grid.Row="0" Grid.Column="1" Content="{i18n:Localize Destination}" Margin="5,5,0,0" />
@@ -84,7 +86,9 @@
                             BorderBrush="{DynamicResource SystemControlBackgroundBaseHighBrush}"
                             BorderThickness="0.5"
                             Padding="15">
-                        <controls:PositionDetail Value="{Binding Destination, Mode=TwoWay}" />
+                        <controls:PositionDetail
+                            Name="Destination"
+                            Value="{Binding Destination, Mode=TwoWay}" />
                     </Border>
                 </Grid>
 

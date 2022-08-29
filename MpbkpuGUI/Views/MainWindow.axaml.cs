@@ -85,7 +85,7 @@ namespace MpbkpuGUI.Views
         protected override async void OnOpened(EventArgs e)
         {
             base.OnOpened(e);
-            await Task.Delay(250);
+            await Task.Delay(500);
             await NavigateTo(new JobListPage());
             SetWaitAnimation(false);
         }

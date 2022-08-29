@@ -11,8 +11,7 @@ namespace MpbkpuGUI.Controls;
 
 public class PositionDetail : UserControl
 {
-    private readonly PositionDetailModel _model = new PositionDetailModel();
-    private Job.Position? _position;
+    private readonly PositionDetailModel _model = new();
 
     public static readonly DirectProperty<PositionDetail, Job.Position?> ValueProperty =
         AvaloniaProperty.RegisterDirect<PositionDetail, Job.Position?>(
@@ -28,13 +27,29 @@ public class PositionDetail : UserControl
 
     public Job.Position? Value
     {
-        get => _position;
+        get => new()
+        {
+            Path = $"{GetScheme(_model.Type)}{_model.Path}",
+            User = _model.User,
+
+            OauthServerUrl = _model.OauthServerUrl,
+            OauthAppId = _model.OauthAppId,
+            OauthAppName = _model.OauthAppName,
+            OauthAppSecret = _model.OauthAppSecret,
+            OauthRedirectUrl = _model.OauthRedirectUrl
+        };
         set
         {
-            if (SetAndRaise(ValueProperty, ref _position, value)) {
-                _model.Position = _position;
-                _model.Type = GetFileSystemType();
-            }
+            _model.Path = value?.Path;
+            _model.User = value?.User;
+            _model.Password = value?.Password;
+            _model.OauthAppId = value?.OauthAppId;
+            _model.OauthAppName = value?.OauthAppName;
+            _model.OauthAppSecret = value?.OauthAppSecret;
+            _model.OauthRedirectUrl = value?.OauthRedirectUrl;
+            _model.OauthServerUrl = value?.OauthServerUrl;
+
+            _model.Type = GetFileSystemType();
         }
     }
 
@@ -60,11 +75,11 @@ public class PositionDetail : UserControl
 
     private PositionDetailModel.FileSystemTypes GetFileSystemType()
     {
-        if (_position == null)
+        if (string.IsNullOrEmpty(_model.Path))
             return PositionDetailModel.FileSystemTypes.FileSystem;
 
         try {
-            using var fm = FileManagerFactory.GetFileManager(_position.Path, out _);
+            using var fm = FileManagerFactory.GetFileManager(_model.Path, out _);
             switch (fm) {
                 case MpbkpuLib.FileManagers.Dropbox:
                     return PositionDetailModel.FileSystemTypes.DropBox;
@@ -90,7 +105,7 @@ public class PositionDetail : UserControl
         return PositionDetailModel.FileSystemTypes.FileSystem;
     }
 
-    private string? GetScheme(PositionDetailModel.FileSystemTypes type)
+    private static string? GetScheme(PositionDetailModel.FileSystemTypes type)
     {
         IFileManager? fm = null;
         switch (type) {
@@ -127,9 +142,6 @@ public class PositionDetail : UserControl
     {
         if (sender is ComboBox { SelectedItem: { } } cmb) {
             _model.Type = (PositionDetailModel.FileSystemTypes)cmb.SelectedItem;
-            if (_model.Position == null)
-                _model.Position = new Job.Position();
-            _model.Position.Path = GetScheme(_model.Type);
         }
     }
 }
