@@ -70,6 +70,7 @@ public class JobRunningPage : BasePage
             var settings = new BackupJobSettings()
             {
                 BackupType = bkp.Type ?? Backup.BackupTypes.Full,
+                EncryptPassword = bkp.Password,
                 Source = bkp.Source!.Path,
                 SourceUser = bkp.Source.User,
                 SourcePassword = bkp.Source.Password,
@@ -158,14 +159,29 @@ public class JobRunningPage : BasePage
             var backupRes = await _backupJob.Run(_cts.Token);
             _job.LastRun = DateTime.Now;
         } catch (Exception ex) {
-
+            BackupJobOnLogEmitted(null, BaseJobSettings.LogLevels.Error, ex.Message);
         }
     }
 
-    private void BackupJobOnLogEmitted(object sender, BaseJobSettings.LogLevels level, string message)
+    private void BackupJobOnLogEmitted(object? sender, BaseJobSettings.LogLevels level, string message)
     {
         while (_log.Count > 200)
             _log.RemoveAt(0);
+
+        switch (level) {
+            case BaseJobSettings.LogLevels.Debug:
+                message = $"[DBG]{message}";
+                break;
+            case BaseJobSettings.LogLevels.Info:
+                message = $"[INF]{message}";
+                break;
+            case BaseJobSettings.LogLevels.Warning:
+                message = $"[WRN]{message}";
+                break;
+            case BaseJobSettings.LogLevels.Error:
+                message = $"[ERR]{message}";
+                break;
+        }
         _log.Add(message);
         _model.Log = $"{string.Join('\n', _log)}\n";
         Dispatcher.UIThread.Post(() =>

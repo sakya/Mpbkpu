@@ -11,6 +11,7 @@
   "ConfirmDeleteJob": "Delete the selected backup?",
   "ConfirmRunJob": "Run the selected backup?",
   "Destination": "Destination",
+  "Encrypted": "Encrypted",
   "HashCheck": "Check file hash",
   "No": "No",
   "Ok": "Ok",

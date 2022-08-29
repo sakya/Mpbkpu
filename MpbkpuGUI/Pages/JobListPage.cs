@@ -55,6 +55,14 @@ public class JobListPage : BasePage
     private async void OnJobRun(object sender, Job job)
     {
         if (await MessageWindow.ShowConfirmMessage(MainWindow, Localizer.Localizer.Instance["Confirm"], Localizer.Localizer.Instance["ConfirmRunJob"])) {
+            if (job is BackupJob bkp && bkp.Encrypted) {
+                var dlg = new PasswordWindow();
+                var pwd = await dlg.ShowDialog<string>(MainWindow);
+                if (string.IsNullOrEmpty(pwd))
+                    return;
+
+                bkp.Password = pwd;
+            }
             await MainWindow!.NavigateTo(new JobRunningPage(job));
         }
     }
@@ -68,7 +76,14 @@ public class JobListPage : BasePage
 
     private async void OnJobOpen(object sender, Job job)
     {
-        if (job is BackupJob backup)
-            await MainWindow!.NavigateTo(new BackupOpen(backup));
+        if (job is BackupJob bkp) {
+            var dlg = new PasswordWindow();
+            var pwd = await dlg.ShowDialog<string>(MainWindow);
+            if (string.IsNullOrEmpty(pwd))
+                return;
+
+            bkp.Password = pwd;
+            await MainWindow!.NavigateTo(new BackupOpen(bkp));
+        }
     }
 }

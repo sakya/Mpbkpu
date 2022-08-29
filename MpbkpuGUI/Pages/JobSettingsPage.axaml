@@ -43,6 +43,9 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
 
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
@@ -96,11 +99,14 @@
                           IsVisible="{Binding ., Mode=TwoWay, Converter={StaticResource IsBackupJobConverter}}"
                           SelectedItem="{Binding CompressionLevel, Mode=TwoWay}"/>
 
-                <Label Grid.Row="7" Content="{i18n:Localize HashCheck}" Margin="0,5,0,0" />
-                <CheckBox Grid.Row="8" IsChecked="{Binding !SkipHashCheck, Mode=TwoWay}"></CheckBox>
+                <Label Grid.Row="7" Content="{i18n:Localize Encrypted}" Margin="0,5,0,0" />
+                <CheckBox Grid.Row="8" IsChecked="{Binding Encrypted, Mode=TwoWay}"></CheckBox>
 
-                <Label Grid.Row="9" Content="{i18n:Localize RetryOnError}" Margin="0,5,0,0" />
-                <NumericUpDown Grid.Row="10" Value="{Binding RetryOnError, Mode=TwoWay}"
+                <Label Grid.Row="9" Content="{i18n:Localize HashCheck}" Margin="0,5,0,0" />
+                <CheckBox Grid.Row="10" IsChecked="{Binding !SkipHashCheck, Mode=TwoWay}"></CheckBox>
+
+                <Label Grid.Row="11" Content="{i18n:Localize RetryOnError}" Margin="0,5,0,0" />
+                <NumericUpDown Grid.Row="12" Value="{Binding RetryOnError, Mode=TwoWay}"
                                Minimum="1"
                                Maximum="255"/>
             </Grid>
