@@ -65,6 +65,11 @@
             <Setter Property="Padding" Value="15" />
         </Style>
 
+        <Style Selector="Button.Small">
+            <Setter Property="Padding" Value="14,5,14,5" />
+            <Setter Property="MinWidth" Value="70" />
+        </Style>
+
         <Style Selector="Button.Accent">
             <Setter Property="Background" Value="{DynamicResource SystemAccentColor}"/>
         </Style>
