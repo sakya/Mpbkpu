@@ -5,7 +5,7 @@ using MpbkpuGUI.Abstracts;
 
 namespace MpbkpuGUI.Controls.Models;
 
-public class PositionDetailModel : INotifyPropertyChanged
+public sealed class PositionDetailModel : INotifyPropertyChanged
 {
     public enum FileSystemTypes
     {
@@ -31,6 +31,7 @@ public class PositionDetailModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(SupportUserPassword));
                 OnPropertyChanged(nameof(SupportOAuth));
                 OnPropertyChanged(nameof(SupportOAuthServerUrl));
+                OnPropertyChanged(nameof(SupportCompression));
             }
         }
     }
@@ -43,6 +44,9 @@ public class PositionDetailModel : INotifyPropertyChanged
     }
 
     public bool IsLocalFileSystem => Type == FileSystemTypes.FileSystem;
+
+    public bool SupportCompression =>
+        Type is FileSystemTypes.FileSystem or FileSystemTypes.Ftp or FileSystemTypes.Sftp or FileSystemTypes.Smb;
 
     public bool SupportUserPassword =>
         Type is FileSystemTypes.Ftp or FileSystemTypes.Mega or FileSystemTypes.Nextcloud or
@@ -57,12 +61,12 @@ public class PositionDetailModel : INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 
-    protected bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
+    private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
     {
         if (EqualityComparer<T>.Default.Equals(field, value)) return false;
         field = value;

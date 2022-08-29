@@ -108,6 +108,10 @@ public class Mega : IFileManager
 
     public Mega(string username, string password)
     {
+        if (string.IsNullOrEmpty(username))
+            throw new ArgumentNullException(nameof(username));
+        if (string.IsNullOrEmpty(password))
+            throw new ArgumentNullException(nameof(password));
         _username = username;
         _password = password;
     }

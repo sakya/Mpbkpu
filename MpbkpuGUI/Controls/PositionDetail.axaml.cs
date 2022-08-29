@@ -5,6 +5,7 @@ using Avalonia.Markup.Xaml;
 using MpbkpuGUI.Abstracts;
 using MpbkpuGUI.Controls.Models;
 using MpbkpuLib.FileManagers;
+using MpbkpuLib.Interfaces;
 
 namespace MpbkpuGUI.Controls;
 
@@ -32,9 +33,7 @@ public class PositionDetail : UserControl
         {
             if (SetAndRaise(ValueProperty, ref _position, value)) {
                 _model.Position = _position;
-                _model.Type = GetFileSystemType(out var scheme);
-                if (string.IsNullOrEmpty(_model.Position!.Path))
-                    _model.Position.Path = scheme;
+                _model.Type = GetFileSystemType();
             }
         }
     }
@@ -56,18 +55,16 @@ public class PositionDetail : UserControl
             PositionDetailModel.FileSystemTypes.Sftp,
             PositionDetailModel.FileSystemTypes.Smb
         };
-        cmbType.SelectedItem = GetFileSystemType(out _);
+        cmbType.SelectedItem = GetFileSystemType();
     }
 
-    private PositionDetailModel.FileSystemTypes GetFileSystemType(out string? scheme)
+    private PositionDetailModel.FileSystemTypes GetFileSystemType()
     {
-        scheme = null;
         if (_position == null)
             return PositionDetailModel.FileSystemTypes.FileSystem;
 
         try {
             using var fm = FileManagerFactory.GetFileManager(_position.Path, out _);
-            scheme = fm.GetScheme();
             switch (fm) {
                 case MpbkpuLib.FileManagers.Dropbox:
                     return PositionDetailModel.FileSystemTypes.DropBox;
@@ -93,10 +90,46 @@ public class PositionDetail : UserControl
         return PositionDetailModel.FileSystemTypes.FileSystem;
     }
 
+    private string? GetScheme(PositionDetailModel.FileSystemTypes type)
+    {
+        IFileManager? fm = null;
+        switch (type) {
+            case PositionDetailModel.FileSystemTypes.Ftp:
+                fm = new Ftp();
+                break;
+            case PositionDetailModel.FileSystemTypes.Mega:
+                fm = new Mega("account", "account");
+                break;
+            case PositionDetailModel.FileSystemTypes.Nextcloud:
+                fm = new Nextcloud("account");
+                break;
+            case PositionDetailModel.FileSystemTypes.Sftp:
+                fm = new Sftp();
+                break;
+            case PositionDetailModel.FileSystemTypes.Smb:
+                fm = new Smb(string.Empty, string.Empty, string.Empty, string.Empty);
+                break;
+            case PositionDetailModel.FileSystemTypes.DropBox:
+                fm = new MpbkpuLib.FileManagers.Dropbox("account");
+                break;
+            case PositionDetailModel.FileSystemTypes.MediaFire:
+                fm = new MediaFire("account", "account");
+                break;
+            case PositionDetailModel.FileSystemTypes.OneDrive:
+                fm = new OneDrive("account");
+                break;
+        }
+
+        return fm?.GetScheme();
+    }
+
     private void OnTypeChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (sender is ComboBox { SelectedItem: { } } cmb) {
             _model.Type = (PositionDetailModel.FileSystemTypes)cmb.SelectedItem;
+            if (_model.Position == null)
+                _model.Position = new Job.Position();
+            _model.Position.Path = GetScheme(_model.Type);
         }
     }
 }

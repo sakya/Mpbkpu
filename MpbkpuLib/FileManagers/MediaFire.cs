@@ -159,6 +159,10 @@ public class MediaFire : IFileManager
 
     public MediaFire(string username, string password)
     {
+        if (string.IsNullOrEmpty(username))
+            throw new ArgumentNullException(nameof(username));
+        if (string.IsNullOrEmpty(password))
+            throw new ArgumentNullException(nameof(password));
         _username = username;
         _password = password;
     }

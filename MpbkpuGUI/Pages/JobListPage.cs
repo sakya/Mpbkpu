@@ -65,4 +65,10 @@ public class JobListPage : BasePage
         list.Items = null;
         list.Items = App.Settings!.Jobs.OrderBy(i => i.Name);
     }
+
+    private async void OnJobOpen(object sender, Job job)
+    {
+        if (job is BackupJob backup)
+            await MainWindow!.NavigateTo(new BackupOpen(backup));
+    }
 }
