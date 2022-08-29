@@ -39,6 +39,6 @@ public abstract class Job
     {
         var settings = new JsonSerializerSettings() { TypeNameHandling = TypeNameHandling.Objects };
         var objectSerialized = JsonConvert.SerializeObject(this, settings);
-        return JsonConvert.DeserializeObject<Job>(objectSerialized, settings);
+        return JsonConvert.DeserializeObject<Job>(objectSerialized, settings)!;
     }
 }

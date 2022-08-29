@@ -17,6 +17,11 @@ namespace MpbkpuGUI.Abstracts
 #if DEBUG
             this.AttachDevTools();
 #endif
+            if (OperatingSystem.IsWindows()) {
+                this.ExtendClientAreaToDecorationsHint = true;
+                this.ExtendClientAreaTitleBarHeightHint = -1;
+                this.ExtendClientAreaChromeHints = ExtendClientAreaChromeHints.NoChrome;
+            }
         }
 
         protected override void OnOpened(EventArgs e)

@@ -3,10 +3,30 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:i18n="clr-namespace:MpbkpuGUI.Localizer"
+             xmlns:models="clr-namespace:MpbkpuGUI.Controls.Models"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="MpbkpuGUI.Controls.PositionDetail">
+    <Design.DataContext>
+        <models:PositionDetailModel />
+    </Design.DataContext>
+
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
 
@@ -21,15 +41,44 @@
         </Grid.RowDefinitions>
 
         <Label Grid.Row="0" Content="{i18n:Localize Type}" />
-        <ComboBox Grid.Row="1" Name="CmbType" />
+        <ComboBox Grid.Row="1" Name="CmbType" SelectionChanged="OnTypeChanged" />
 
         <Label Grid.Row="2" Content="{i18n:Localize Path}" Margin="0,5,0,0" />
-        <TextBox Grid.Row="3" Text="{Binding Path}" />
+        <TextBox Grid.Row="3" Text="{Binding  Position.Path}" />
 
-        <Label Grid.Row="4" Content="{i18n:Localize UserName}" Margin="0,5,0,0" />
-        <TextBox Grid.Row="5" Text="{Binding User}" />
+        <Label Grid.Row="4" Content="{i18n:Localize UserName}" Margin="0,5,0,0"
+               IsVisible="{Binding SupportUserPassword}"/>
+        <TextBox Grid.Row="5" Text="{Binding Position.User}"
+                 IsVisible="{Binding SupportUserPassword}"/>
 
-        <Label Grid.Row="6" Content="{i18n:Localize Password}" Margin="0,5,0,0" />
-        <TextBox Grid.Row="7" PasswordChar="*" Text="{Binding Password}" />
+        <Label Grid.Row="6" Content="{i18n:Localize Password}" Margin="0,5,0,0"
+               IsVisible="{Binding SupportUserPassword}"/>
+        <TextBox Grid.Row="7" PasswordChar="*" Text="{Binding Position.Password}"
+                 IsVisible="{Binding SupportUserPassword}"/>
+
+        <Label Grid.Row="8" Content="{i18n:Localize OauthServerUrl}" Margin="0,5,0,0"
+               IsVisible="{Binding SupportOAuth}"/>
+        <TextBox Grid.Row="9" Text="{Binding Position.OauthServerUrl}"
+                 IsVisible="{Binding SupportOAuth}"/>
+
+        <Label Grid.Row="10" Content="{i18n:Localize OauthRedirectUrl}" Margin="0,5,0,0"
+               IsVisible="{Binding SupportOAuth}"/>
+        <TextBox Grid.Row="11" Text="{Binding Position.OauthRedirectUrl}"
+                 IsVisible="{Binding SupportOAuth}"/>
+
+        <Label Grid.Row="12" Content="{i18n:Localize OauthAppName}" Margin="0,5,0,0"
+               IsVisible="{Binding SupportOAuth}"/>
+        <TextBox Grid.Row="13" Text="{Binding Position.OauthAppName}"
+                 IsVisible="{Binding SupportOAuth}"/>
+
+        <Label Grid.Row="14" Content="{i18n:Localize OauthAppId}" Margin="0,5,0,0"
+               IsVisible="{Binding SupportOAuth}"/>
+        <TextBox Grid.Row="15" Text="{Binding Position.OauthAppId}"
+                 IsVisible="{Binding SupportOAuth}"/>
+
+        <Label Grid.Row="16" Content="{i18n:Localize OauthAppSecret}" Margin="0,5,0,0"
+               IsVisible="{Binding SupportOAuth}"/>
+        <TextBox Grid.Row="17" Text="{Binding Position.OauthAppSecret}"
+                 IsVisible="{Binding SupportOAuth}"/>
     </Grid>
 </UserControl>
