@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using MpbkpuGUI.Abstracts;
@@ -21,12 +22,11 @@ namespace MpbkpuGUI.Pages;
 
 public class JobRunningPage : BasePage
 {
-    private readonly JobRunningPageModel _model = new JobRunningPageModel();
+    private readonly JobRunningPageModel _model = new();
     private readonly Job _job;
     private readonly CancellationTokenSource _cts = new();
     private BaseJob? _backupJob;
     private Thread? _worker;
-    private bool _running;
 
     public JobRunningPage()
     {
@@ -67,6 +67,7 @@ public class JobRunningPage : BasePage
 
         _model.Source = _job.Source?.FullPath;
         _model.Destination = _job.Destination?.FullPath;
+        _model.Running = true;
         App.UpdateLayout();
 
         _worker = new Thread(DoWork);
@@ -75,7 +76,7 @@ public class JobRunningPage : BasePage
 
     public override async Task<bool> OnNavigatingFrom(NavigationDirection direction)
     {
-        if (_running) {
+        if (_model.Running) {
             if (await MessageWindow.ShowConfirmMessage(App.GetMainWindow(),
                     Localizer.Localizer.Instance["Confirm"],
                     Localizer.Localizer.Instance["ConfirmAbortBackup"], MessageWindow.Icons.Warning)) {
@@ -180,7 +181,7 @@ public class JobRunningPage : BasePage
                 throw new Exception("BackupJob not initialized");
 
             _backupJob.LogEmitted += BackupJobOnLogEmitted;
-            _running = true;
+            _model.Running = true;
             var backupRes = await _backupJob.Run(_cts.Token);
             _job.LastRun = DateTime.Now;
         } catch (Exception ex) {
@@ -188,7 +189,7 @@ public class JobRunningPage : BasePage
             await MessageWindow.ShowMessage(App.GetMainWindow(), Localizer.Localizer.Instance["Error"],
                 $"{Localizer.Localizer.Instance["AnErrorOccurred"]}{ex.Message}", MessageWindow.Icons.Error);
         } finally {
-            _running = false;
+            _model.Running = false;
         }
     }
 
@@ -253,5 +254,10 @@ public class JobRunningPage : BasePage
         _model.ProgressMessageEta = MpbkpuLib.Utility.String.TimeSpanToString(args.Eta);
         _model.ProgressMessageFiles = $"{args.File}/{args.TotalFiles}";
         _model.ProgressMessageBytes = $"{MpbkpuLib.Utility.String.BytesToString(args.Bytes)}/{MpbkpuLib.Utility.String.BytesToString(args.TotalBytes)}";
+    }
+
+    private async void OnOkCancelClick(object? sender, RoutedEventArgs e)
+    {
+        await NavigateBack();
     }
 }

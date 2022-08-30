@@ -54,34 +54,25 @@ namespace MpbkpuGUI.Controls
 
         public string? OkText
         {
-            get { return _okText; }
-            set
-            {
-                SetAndRaise(OkTextProperty, ref _okText, value);
-            }
+            get => _okText;
+            set => SetAndRaise(OkTextProperty, ref _okText, value);
         }
 
         public bool OkEnabled
         {
-            get { return _okEnabled; }
-            set
-            {
-                SetAndRaise(OkEnabledProperty, ref _okEnabled, value);
-            }
+            get => _okEnabled;
+            set => SetAndRaise(OkEnabledProperty, ref _okEnabled, value);
         }
 
         public string? CancelText
         {
-            get { return _cancelText; }
-            set
-            {
-                SetAndRaise(CancelTextProperty, ref _cancelText, value);
-            }
+            get => _cancelText;
+            set => SetAndRaise(CancelTextProperty, ref _cancelText, value);
         }
 
         public bool CancelVisible
         {
-            get { return _cancelVisible; }
+            get => _cancelVisible;
             set
             {
                 if (SetAndRaise(CancelVisibleProperty, ref _cancelVisible, value)) {

@@ -13,6 +13,13 @@ public class JobRunningPageModel : BaseModel
         public string? Message { get; set; }
     }
 
+    private bool _running;
+    public bool Running
+    {
+        get => _running;
+        set => SetField(ref _running, value);
+    }
+
     private string? _source;
     public string? Source
     {

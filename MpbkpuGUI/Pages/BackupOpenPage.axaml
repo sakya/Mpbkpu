@@ -14,6 +14,7 @@
     </Design.DataContext>
     <UserControl.Resources>
         <converters:BytesToStringConverter x:Key="BytesToStringConverter"/>
+        <converters:DateTimeConverter x:Key="DateTimeConverter"/>
     </UserControl.Resources>
 
     <Grid>
@@ -35,7 +36,7 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
 
-                        <TextBlock Grid.Row="0" Grid.Column="0" Classes="Main" Text="{Binding Backup.StartedAt, FallbackValue=null}" />
+                        <TextBlock Grid.Row="0" Grid.Column="0" Classes="Main" Text="{Binding Backup.StartedAt, Converter={StaticResource DateTimeConverter}, FallbackValue=null}" />
                         <TextBlock Grid.Row="1" Grid.Column="0" Classes="Secondary" Text="{Binding Backup.Type, FallbackValue=null}" />
 
                         <TextBlock Grid.Row="0" Grid.RowSpan="2" Grid.Column="1" Classes="Main" Text="{Binding Size, Converter={StaticResource BytesToStringConverter}}"
@@ -63,6 +64,6 @@
         </ListBox>
 
         <controls:Spinner Grid.Row="0" Name="Spinner"
-                          Message="{Binding SpinnerMessage}"/>
+                          Message="{Binding $parent.DataContext.SpinnerMessage}"/>
     </Grid>
 </UserControl>

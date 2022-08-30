@@ -25,6 +25,7 @@
             <RowDefinition Height="Auto" />
 
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <Grid Grid.Row="0">
@@ -88,6 +89,13 @@
             </ListBox.ItemTemplate>
         </ListBox>
 
+        <controls:OkCancelButtons
+            Grid.Row="5"
+            Margin="0,5,0,0"
+            OkEnabled="{Binding !$parent.DataContext.Running}"
+            CancelVisible="{Binding $parent.DataContext.Running}"
+            CancelClick="OnOkCancelClick"
+            OkClick="OnOkCancelClick"/>
         <controls:Spinner Grid.Row="0" Grid.RowSpan="4" Name="Spinner" />
     </Grid>
 </UserControl>
