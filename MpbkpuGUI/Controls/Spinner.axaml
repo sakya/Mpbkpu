@@ -3,13 +3,21 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:i="clr-namespace:Projektanker.Icons.Avalonia;assembly=Projektanker.Icons.Avalonia"
+             xmlns:models="clr-namespace:MpbkpuGUI.Controls.Models"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="MpbkpuGUI.Controls.Spinner">
-    <Grid Name="Spinner">
+    <Design.DataContext>
+        <models:SpinnerModel />
+    </Design.DataContext>
+
+    <Grid>
         <Border Background="#000000" Opacity="0.4" />
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-            <StackPanel Name="WaitSpinner" Classes="spinner" VerticalAlignment="Center" HorizontalAlignment="Center" Width="40" Height="40">
+            <StackPanel Name="WaitSpinner"
+                        Orientation="Vertical"
+                        Classes="spinner" VerticalAlignment="Center" HorizontalAlignment="Center" Width="40" Height="40">
                 <i:Icon HorizontalAlignment="Center" VerticalAlignment="Center" Width="40" Height="40" FontSize="32" Value="fas fa-circle-notch" />
+                <TextBlock Text="{Binding Message}"/>
             </StackPanel>
         </StackPanel>
     </Grid>

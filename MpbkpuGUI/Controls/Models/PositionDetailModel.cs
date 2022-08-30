@@ -6,7 +6,7 @@ using MpbkpuGUI.Abstracts;
 
 namespace MpbkpuGUI.Controls.Models;
 
-public sealed class PositionDetailModel : INotifyPropertyChanged
+public sealed class PositionDetailModel : BaseModel
 {
     private Job.Position.FileSystemTypes _type;
     public Job.Position.FileSystemTypes Type
@@ -101,19 +101,4 @@ public sealed class PositionDetailModel : INotifyPropertyChanged
 
     public bool SupportOAuthServerUrl =>
         Type is Job.Position.FileSystemTypes.Nextcloud;
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
-
-    private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
-    {
-        if (EqualityComparer<T>.Default.Equals(field, value)) return false;
-        field = value;
-        OnPropertyChanged(propertyName);
-        return true;
-    }
 }

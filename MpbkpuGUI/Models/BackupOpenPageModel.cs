@@ -2,11 +2,12 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using MpbkpuGUI.Abstracts;
 using MpbkpuLib.DataModel;
 
 namespace MpbkpuGUI.Models;
 
-public class BackupOpenPageModel : INotifyPropertyChanged
+public class BackupOpenPageModel : BaseModel
 {
     public class BackupData
     {
@@ -15,28 +16,17 @@ public class BackupOpenPageModel : INotifyPropertyChanged
         public long Size { get; set; }
     }
 
-    public event PropertyChangedEventHandler? PropertyChanged;
+    private string? _spinnerMessage;
+    public string? SpinnerMessage
+    {
+        get => _spinnerMessage;
+        set => SetField(ref _spinnerMessage, value);
+    }
 
     private ObservableCollection<BackupData>? _backups;
     public ObservableCollection<BackupData>? Backups
     {
         get => _backups;
-        set
-        {
-            SetField(ref _backups, value);
-        }
-    }
-
-    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
-
-    protected bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
-    {
-        if (EqualityComparer<T>.Default.Equals(field, value)) return false;
-        field = value;
-        OnPropertyChanged(propertyName);
-        return true;
+        set => SetField(ref _backups, value);
     }
 }

@@ -2,14 +2,36 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
+using MpbkpuGUI.Controls.Models;
 
 namespace MpbkpuGUI.Controls;
 
 public partial class Spinner : UserControl
 {
+    public static readonly DirectProperty<Spinner, string?> MessageProperty =
+        AvaloniaProperty.RegisterDirect<Spinner, string?>(
+            nameof(Message),
+            o => o.Message,
+            (o, v) => o.Message = v);
+
+    private readonly SpinnerModel _model = new();
+    private string? _message;
+
     public Spinner()
     {
+        DataContext = _model;
         InitializeComponent();
+    }
+
+    public string? Message
+    {
+        get => _message;
+        set
+        {
+            if (SetAndRaise(MessageProperty, ref _message, value)) {
+                _model.Message = value;
+            }
+        }
     }
 
     private void InitializeComponent()
@@ -25,4 +47,6 @@ public partial class Spinner : UserControl
                 stack.Classes.Remove("spinner");
         });
     }
+
+
 }

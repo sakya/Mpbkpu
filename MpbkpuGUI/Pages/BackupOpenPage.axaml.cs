@@ -18,6 +18,7 @@ public partial class BackupOpenPage : BasePage
 {
     private BackupJob _backup;
     private BackupFile.OpenResult? _backupFile;
+
     private BackupOpenPageModel _model = new();
 
     public BackupOpenPage()
@@ -45,6 +46,7 @@ public partial class BackupOpenPage : BasePage
         base.OnNavigatedTo(direction);
 
         await Task.Delay(500);
+        _model.SpinnerMessage = Localizer.Localizer.Instance["Step_OpenDatabase"];
         var oauthSettings = new OAuth2Settings()
         {
             AppName = _backup.Destination!.OauthAppName,
