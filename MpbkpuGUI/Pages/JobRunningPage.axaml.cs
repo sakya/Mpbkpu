@@ -247,7 +247,7 @@ public class JobRunningPage : BasePage
 
     private void BackupJobOnProgress(object sender, BaseJob.ProgressHandlerArgs args)
     {
-        var percentage = Math.Floor(args.Bytes / (double)args.TotalBytes);
+        var percentage = Math.Floor(args.Bytes / (double)args.TotalBytes * 100.0);
         _model.Progress = percentage;
         _model.ProgressMessageEta = MpbkpuLib.Utility.String.TimeSpanToString(args.Eta);
         _model.ProgressMessageFiles = $"{args.File}/{args.TotalFiles}";
