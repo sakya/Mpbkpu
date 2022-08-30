@@ -1,4 +1,5 @@
-﻿using System.Collections.ObjectModel;
+﻿using System;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
@@ -44,7 +45,12 @@ public class BackupOpenPage : BasePage
         base.OnNavigatedTo(direction);
 
         _model.SpinnerMessage = Localizer.Localizer.Instance["Step_OpenDatabase"];
-        await Task.Run(OpenDatabase);
+        try {
+            await Task.Run(OpenDatabase);
+        } catch (Exception ex) {
+            await MessageWindow.ShowMessage(App.GetMainWindow(), Localizer.Localizer.Instance["Error"],
+                $"{Localizer.Localizer.Instance["AnErrorOccurred"]}{ex.Message}", MessageWindow.Icons.Error);
+        }
 
         var spinner = this.FindControl<Controls.Spinner>("Spinner");
         spinner.IsVisible = false;

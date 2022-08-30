@@ -119,7 +119,7 @@ namespace MpbkpuGUI.Views
 
             var exitingPage = CurrentPage;
             if (exitingPage != null) {
-                if (!exitingPage.OnNavigatingFrom(BasePage.NavigationDirection.Forward))
+                if (!await exitingPage.OnNavigatingFrom(BasePage.NavigationDirection.Forward))
                     return false;
                 _pageHistory.Add(exitingPage);
             }
@@ -141,7 +141,7 @@ namespace MpbkpuGUI.Views
 
             if (_pageHistory.Count > 0) {
                 var exitingPage = CurrentPage;
-                if (exitingPage?.OnNavigatingFrom(BasePage.NavigationDirection.Backward) == false)
+                if (exitingPage != null && await exitingPage.OnNavigatingFrom(BasePage.NavigationDirection.Backward) == false)
                     return false;
 
                 var enteringPage = _pageHistory.Last();

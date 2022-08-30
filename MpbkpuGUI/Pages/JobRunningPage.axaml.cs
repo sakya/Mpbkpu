@@ -10,6 +10,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using MpbkpuGUI.Abstracts;
 using MpbkpuGUI.Models;
+using MpbkpuGUI.Views;
 using MpbkpuLib.Abstracts;
 using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
@@ -25,6 +26,7 @@ public class JobRunningPage : BasePage
     private readonly CancellationTokenSource _cts = new();
     private BaseJob? _backupJob;
     private Thread? _worker;
+    private bool _running;
 
     public JobRunningPage()
     {
@@ -69,6 +71,21 @@ public class JobRunningPage : BasePage
 
         _worker = new Thread(DoWork);
         _worker.Start();
+    }
+
+    public override async Task<bool> OnNavigatingFrom(NavigationDirection direction)
+    {
+        if (_running) {
+            if (await MessageWindow.ShowConfirmMessage(App.GetMainWindow(),
+                    Localizer.Localizer.Instance["Confirm"],
+                    Localizer.Localizer.Instance["ConfirmAbortBackup"], MessageWindow.Icons.Warning)) {
+                return true;
+            }
+
+            return false;
+        }
+
+        return true;
     }
 
     private async void DoWork()
@@ -163,10 +180,15 @@ public class JobRunningPage : BasePage
                 throw new Exception("BackupJob not initialized");
 
             _backupJob.LogEmitted += BackupJobOnLogEmitted;
+            _running = true;
             var backupRes = await _backupJob.Run(_cts.Token);
             _job.LastRun = DateTime.Now;
         } catch (Exception ex) {
             BackupJobOnLogEmitted(null, BaseJobSettings.LogLevels.Error, ex.Message);
+            await MessageWindow.ShowMessage(App.GetMainWindow(), Localizer.Localizer.Instance["Error"],
+                $"{Localizer.Localizer.Instance["AnErrorOccurred"]}{ex.Message}", MessageWindow.Icons.Error);
+        } finally {
+            _running = false;
         }
     }
 

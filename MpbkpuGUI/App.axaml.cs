@@ -8,6 +8,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Threading;
 using MpbkpuGUI.Models;
+using MpbkpuGUI.Views;
 
 namespace MpbkpuGUI
 {
@@ -51,6 +52,15 @@ namespace MpbkpuGUI
                 }
             }
         } // Run
+
+        public static Window? GetMainWindow()
+        {
+            if (Current is App app && app.MainWindow != null) {
+                return app.MainWindow;
+            }
+
+            return null;
+        }
 
         public static void UpdateLayout()
         {

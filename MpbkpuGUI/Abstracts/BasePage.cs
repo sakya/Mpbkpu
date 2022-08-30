@@ -53,9 +53,9 @@ namespace MpbkpuGUI.Abstracts
         /// </summary>
         /// <param name="direction">The navigation direction</param>
         /// <returns>True to allow the navigation, false to deny it</returns>
-        public virtual bool OnNavigatingFrom(NavigationDirection direction)
+        public virtual Task<bool> OnNavigatingFrom(NavigationDirection direction)
         {
-            return true;
+            return Task.FromResult(true);
         }
 
         /// <summary>
