@@ -52,6 +52,13 @@ namespace MpbkpuGUI
             }
         } // Run
 
+        public static void UpdateLayout()
+        {
+            if (Current is App app && app.MainWindow != null) {
+                app.MainWindow.LayoutManager.ExecuteLayoutPass();
+            }
+        }
+
         public static Color? GetStyleColor(string name)
         {
             if (Current is App app && app.MainWindow != null) {

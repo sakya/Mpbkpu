@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
@@ -64,6 +65,7 @@ public class JobRunningPage : BasePage
 
         _model.Source = _job.Source?.FullPath;
         _model.Destination = _job.Destination?.FullPath;
+        App.UpdateLayout();
 
         _worker = new Thread(DoWork);
         _worker.Start();
@@ -200,7 +202,6 @@ public class JobRunningPage : BasePage
             var log = this.FindControl<ListBox>("Log");
             log.SelectedItems = new List<JobRunningPageModel.LogMessage>() { _model.Log!.Last() };
         }, DispatcherPriority.Background);
-
     }
 
     private Task<bool> BackupJobOnConfirmBackup(object sender, SyncDirectoryJob.ConfirmArgs e)
