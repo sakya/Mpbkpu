@@ -35,7 +35,8 @@ public class JobListPage : BasePage
 
     private async void OnJobDelete(object sender, Job job)
     {
-        if (await MessageWindow.ShowConfirmMessage(MainWindow, Localizer.Localizer.Instance["Confirm"], Localizer.Localizer.Instance["ConfirmDeleteJob"])) {
+        if (await MessageWindow.ShowConfirmMessage(MainWindow, Localizer.Localizer.Instance["Confirm"],
+                Localizer.Localizer.Instance["ConfirmDeleteJob"], MessageWindow.Icons.Warning)) {
             App.Settings!.Jobs.Remove(job);
             await App.Settings.Save(App.SettingFile!);
             SetJobList();
@@ -54,7 +55,8 @@ public class JobListPage : BasePage
 
     private async void OnJobRun(object sender, Job job)
     {
-        if (await MessageWindow.ShowConfirmMessage(MainWindow, Localizer.Localizer.Instance["Confirm"], Localizer.Localizer.Instance["ConfirmRunJob"])) {
+        if (await MessageWindow.ShowConfirmMessage(MainWindow, Localizer.Localizer.Instance["Confirm"],
+                Localizer.Localizer.Instance["ConfirmRunJob"])) {
             if (job is BackupJob bkp && bkp.Encrypted) {
                 var dlg = new PasswordWindow();
                 var pwd = await dlg.ShowDialog<string>(MainWindow);

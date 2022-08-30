@@ -21,6 +21,7 @@ namespace MpbkpuGUI.Views
         public enum Icons
         {
             None,
+            Warning,
             Error,
             Question,
             Info
@@ -70,6 +71,12 @@ namespace MpbkpuGUI.Views
             switch (icon) {
                 case Icons.None:
                     i.IsVisible = false;
+                    break;
+                case Icons.Warning:
+                    i.Value = "fas fa-exclamation-triangle";
+                    var wc = App.GetStyleColor("WarningColor");
+                    if (wc != null)
+                        i.Foreground = new SolidColorBrush(wc.Value);
                     break;
                 case Icons.Error:
                     i.Value = "fas fa-exclamation-triangle";
@@ -126,10 +133,10 @@ namespace MpbkpuGUI.Views
             return true;
         } // ShowMessage
 
-        public static async Task<bool> ShowConfirmMessage(Window? owner, string title, string message)
+        public static async Task<bool> ShowConfirmMessage(Window? owner, string title, string message, Icons icon = Icons.Question)
         {
             CloseOpenedWindow();
-            _mOpenedMessageWindow = new MessageWindow(title, message, Buttons.YesNo, Icons.Question);
+            _mOpenedMessageWindow = new MessageWindow(title, message, Buttons.YesNo, icon);
             return await _mOpenedMessageWindow.ShowDialog<bool>(owner);
         } // ShowConfirmMessage
         #endregion

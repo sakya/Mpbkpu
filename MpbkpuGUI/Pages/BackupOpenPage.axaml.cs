@@ -6,6 +6,7 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using MpbkpuGUI.Abstracts;
 using MpbkpuGUI.Models;
+using MpbkpuGUI.Views;
 using MpbkpuLib;
 using MpbkpuLib.FileManagers;
 
@@ -42,8 +43,23 @@ public class BackupOpenPage : BasePage
     {
         base.OnNavigatedTo(direction);
 
-        await Task.Delay(500);
         _model.SpinnerMessage = Localizer.Localizer.Instance["Step_OpenDatabase"];
+        await Task.Run(OpenDatabase);
+
+        var spinner = this.FindControl<Controls.Spinner>("Spinner");
+        spinner.IsVisible = false;
+    }
+
+    private void InitializeComponent()
+    {
+        AvaloniaXamlLoader.Load(this);
+
+        PageTitle = $"{Localizer.Localizer.Instance["Backup"]}: {_backup.Name}";
+    }
+
+    private async Task OpenDatabase()
+    {
+        await Task.Delay(500);
         var oauthSettings = new OAuth2Settings()
         {
             AppName = _backup.Destination!.OauthAppName,
@@ -76,21 +92,14 @@ public class BackupOpenPage : BasePage
                 Size = bkp.Bytes
             });
         }
-
-        var wait = this.FindControl<Controls.Spinner>("Spinner");
-        wait.IsVisible = false;
     }
 
-    private void InitializeComponent()
+    private async void OnDeleteClick(object? sender, RoutedEventArgs e)
     {
-        AvaloniaXamlLoader.Load(this);
-
-        PageTitle = $"{Localizer.Localizer.Instance["Backup"]}: {_backup.Name}";
-    }
-
-    private void OnDeleteClick(object? sender, RoutedEventArgs e)
-    {
-
+        if (await MessageWindow.ShowConfirmMessage(MainWindow, Localizer.Localizer.Instance["Confirm"],
+                Localizer.Localizer.Instance["ConfirmDeleteBackup"],
+                MessageWindow.Icons.Warning)) {
+        }
     }
 
     private void OnOpenClick(object? sender, RoutedEventArgs e)

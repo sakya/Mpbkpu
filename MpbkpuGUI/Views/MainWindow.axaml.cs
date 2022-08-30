@@ -339,8 +339,8 @@ namespace MpbkpuGUI.Views
 
         private void SetWaitAnimation(bool visible)
         {
-            var wait = this.FindControl<Controls.Spinner>("Spinner");
-            wait.IsVisible = visible;
+            var spinner = this.FindControl<Controls.Spinner>("Spinner");
+            spinner.IsVisible = visible;
         } // SetWaitAnimation
 
     }

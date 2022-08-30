@@ -35,11 +35,12 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
 
-                        <TextBlock Grid.Row="0" Grid.Column="0" Classes="Main" Text="{Binding Backup.StartedAt}" />
-                        <TextBlock Grid.Row="1" Grid.Column="0" Classes="Secondary" Text="{Binding Backup.Type}" />
+                        <TextBlock Grid.Row="0" Grid.Column="0" Classes="Main" Text="{Binding Backup.StartedAt, FallbackValue=null}" />
+                        <TextBlock Grid.Row="1" Grid.Column="0" Classes="Secondary" Text="{Binding Backup.Type, FallbackValue=null}" />
 
-                        <TextBlock Grid.Row="0" Grid.Column="1" Classes="Main" Text="{Binding Size, Converter={StaticResource BytesToStringConverter}}"
-                                   HorizontalAlignment="Right"/>
+                        <TextBlock Grid.Row="0" Grid.RowSpan="2" Grid.Column="1" Classes="Main" Text="{Binding Size, Converter={StaticResource BytesToStringConverter}}"
+                                   HorizontalAlignment="Right"
+                                   VerticalAlignment="Center"/>
                         <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="2" Orientation="Horizontal" Margin="12,0,0,0">
                             <Button Click="OnOpenClick">
                                 <i:Icon Value="fas fa-folder-open"></i:Icon>
