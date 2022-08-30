@@ -1,20 +1,17 @@
 ﻿using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
-using Microsoft.EntityFrameworkCore;
 using MpbkpuGUI.Abstracts;
 using MpbkpuGUI.Models;
 using MpbkpuLib;
-using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
 
 namespace MpbkpuGUI.Pages;
 
-public partial class BackupOpenPage : BasePage
+public class BackupOpenPage : BasePage
 {
     private BackupJob _backup;
     private BackupFile.OpenResult? _backupFile;
@@ -56,7 +53,12 @@ public partial class BackupOpenPage : BasePage
             RedirectUrl = _backup.Destination.OauthRedirectUrl
         };
         using var fm = FileManagerFactory.GetFileManager(_backup.Destination.FullPath, out var backupPath, oauth2Settings: oauthSettings);
-        _backupFile = await BackupFile.OpenBackupFile(fm, backupPath, _backup.Password);
+        _backupFile = await BackupFile.OpenBackupFile(fm, backupPath, _backup.Password,
+            progressAction: (bytes, total) =>
+            {
+                double percentage = bytes / (double)total * 100.0;
+                _model.SpinnerMessage = $"{Localizer.Localizer.Instance["Step_OpenDatabase"]}: {percentage,5:0.0}";
+            });
 
         _model.Backups = new ObservableCollection<BackupOpenPageModel.BackupData>();
         var backups = _backupFile.BackupFile.Backups.OrderBy(b => b.Id)

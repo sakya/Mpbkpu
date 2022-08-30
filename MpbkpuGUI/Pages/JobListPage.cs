@@ -37,7 +37,7 @@ public class JobListPage : BasePage
     {
         if (await MessageWindow.ShowConfirmMessage(MainWindow, Localizer.Localizer.Instance["Confirm"], Localizer.Localizer.Instance["ConfirmDeleteJob"])) {
             App.Settings!.Jobs.Remove(job);
-            await App.Settings!.Save(App.SettingFile!);
+            await App.Settings.Save(App.SettingFile!);
             SetJobList();
         }
     }

@@ -11,14 +11,21 @@
     </Design.DataContext>
 
     <Grid>
-        <Border Background="#000000" Opacity="0.4" />
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Border Grid.Row="0" Grid.RowSpan="4" Background="#000000" Opacity="0.4" />
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center">
             <StackPanel Name="WaitSpinner"
-                        Orientation="Vertical"
                         Classes="spinner" VerticalAlignment="Center" HorizontalAlignment="Center" Width="40" Height="40">
                 <i:Icon HorizontalAlignment="Center" VerticalAlignment="Center" Width="40" Height="40" FontSize="32" Value="fas fa-circle-notch" />
-                <TextBlock Text="{Binding Message}"/>
             </StackPanel>
         </StackPanel>
+        <TextBlock Grid.Row="2"
+                   HorizontalAlignment="Center"
+                   Text="{Binding Message}"/>
     </Grid>
 </UserControl>
