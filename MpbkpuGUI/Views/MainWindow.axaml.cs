@@ -17,11 +17,11 @@ namespace MpbkpuGUI.Views
 {
     public class MainWindow : BaseView
     {
-        Grid? _container;
-        Controls.TitleBar? _titleBar;
-        List<BasePage> _pageHistory = new List<BasePage>();
-        Dictionary<string, BasePage.PageState> _pageStates = new Dictionary<string, BasePage.PageState>();
-        bool _changingPage;
+        private Grid? _container;
+        private Controls.TitleBar? _titleBar;
+        readonly List<BasePage> _pageHistory = new();
+        private readonly Dictionary<string, BasePage.PageState> _pageStates = new();
+        private bool _changingPage;
 
         #region classes
         public class TransitionSettings
@@ -200,8 +200,8 @@ namespace MpbkpuGUI.Views
             entering.IsHitTestVisible = false;
 
             AvaloniaProperty? property = null;
-            double from = 0.0;
-            double to = 0.0;
+            var from = 0.0;
+            var to = 0.0;
             switch (Transition.Type) {
                 case TransitionSettings.EnterTransitions.SlideLeft:
                     property = TranslateTransform.XProperty;
@@ -231,7 +231,7 @@ namespace MpbkpuGUI.Views
             }
 
             // Exiting
-            Animation exitAnim = new Animation()
+            var exitAnim = new Animation()
             {
                 Duration = Transition.Duration,
                 Easing = Transition.Easing
@@ -260,7 +260,7 @@ namespace MpbkpuGUI.Views
             exitAnim.Children.Add(kf);
 
             // Entering
-            Animation enterAnim = new Animation()
+            var enterAnim = new Animation()
             {
                 Duration = Transition.Duration,
                 Easing = Transition.Easing
@@ -294,7 +294,7 @@ namespace MpbkpuGUI.Views
                 await enterAnim.RunAsync(entering, null);
                 entering.Opacity = 1.0;
             } else {
-                List<Task> tasks = new List<Task>();
+                var tasks = new List<Task>();
                 tasks.Add(exitAnim.RunAsync(exiting, null));
                 tasks.Add(enterAnim.RunAsync(entering, null));
                 entering.Opacity = 1;

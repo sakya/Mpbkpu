@@ -11,7 +11,7 @@ public class JobRunningPageModel : INotifyPropertyChanged
     public class LogMessage
     {
         public BaseJobSettings.LogLevels Level { get; set; }
-        public string Message { get; set; }
+        public string? Message { get; set; }
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

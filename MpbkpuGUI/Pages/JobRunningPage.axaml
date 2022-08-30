@@ -24,7 +24,8 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <TextBlock Text="{Binding Step}" />
+        <TextBlock Text="{Binding Step}"
+                   Foreground="{DynamicResource InfoColor}"/>
         <ProgressBar Grid.Row="1" Minimum="0" Maximum="100" Value="{Binding Progress}"
                      Margin="0,5,0,0"
                      ShowProgressText="True"/>
