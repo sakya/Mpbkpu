@@ -22,8 +22,7 @@ public class RestoreJob : BaseJob
         ReadDestination,
         CalculateFilesToRestore,
         DeleteFiles,
-        RestoreFiles,
-        CopyDatabase
+        RestoreFiles
     }
 
     #region classes
@@ -278,6 +277,7 @@ public class RestoreJob : BaseJob
         }
 
         if (cArgs.FilesToDelete > 0) {
+            LogInfo("Deleting files");
             Step?.Invoke(this, Steps.DeleteFiles);
             var filesToDelete = backupFile.Files.AsNoTracking()
                 .Where(f => f.FileAction == File.FileActions.Restore)
@@ -309,6 +309,7 @@ public class RestoreJob : BaseJob
         }
 
         _progressData.Started = DateTime.UtcNow;
+        LogInfo("Restoring files");
         Step?.Invoke(this, Steps.RestoreFiles);
         var filesToRestore = backupFile.Files
             .Include(f => f.BackupItem)

@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
@@ -22,7 +24,6 @@ public class JobRunningPage : BasePage
     private readonly CancellationTokenSource _cts = new();
     private BaseJob? _backupJob;
     private Thread? _worker;
-    private readonly List<string> _log = new List<string>();
 
     public JobRunningPage()
     {
@@ -165,8 +166,10 @@ public class JobRunningPage : BasePage
 
     private void BackupJobOnLogEmitted(object? sender, BaseJobSettings.LogLevels level, string message)
     {
-        while (_log.Count > 200)
-            _log.RemoveAt(0);
+        if (_model.Log == null)
+            _model.Log = new ObservableCollection<JobRunningPageModel.LogMessage>();
+        while (_model.Log.Count > 200)
+            _model.Log.RemoveAt(0);
 
         switch (level) {
             case BaseJobSettings.LogLevels.Debug:
@@ -182,13 +185,18 @@ public class JobRunningPage : BasePage
                 message = $"[ERR]{message}";
                 break;
         }
-        _log.Add(message);
-        _model.Log = $"{string.Join('\n', _log)}\n";
+        _model.Log.Add(new JobRunningPageModel.LogMessage()
+        {
+            Level = level,
+            Message = message
+        });
+
         Dispatcher.UIThread.Post(() =>
         {
-            var log = this.FindControl<TextBox>("Log");
-            log.CaretIndex = log.Text.Length;
+            var log = this.FindControl<ListBox>("Log");
+            log.SelectedItems = new List<JobRunningPageModel.LogMessage>() { _model.Log!.Last() };
         }, DispatcherPriority.Background);
+
     }
 
     private Task<bool> BackupJobOnConfirmBackup(object sender, SyncDirectoryJob.ConfirmArgs e)

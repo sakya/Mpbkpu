@@ -306,6 +306,7 @@ public class BackupJob : BaseJob
         await BackupFm.CreateDirectory(backupDirectory);
 
         // Backup files
+        LogInfo("Backing up files");
         Step?.Invoke(this, Steps.BackupFiles);
         EncryptDecrypt? encryptor = null;
         if (!string.IsNullOrEmpty(Settings.EncryptPassword)) {

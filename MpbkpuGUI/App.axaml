@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="MpbkpuGUI.App">
     <Application.Resources>
+        <Color x:Key="DebugColor">#bfbfbf</Color>
         <Color x:Key="InfoColor">#5bc0de</Color>
         <Color x:Key="WarningColor">#f0ad4e</Color>
         <Color x:Key="DangerColor">#d9534f</Color>

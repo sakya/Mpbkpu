@@ -63,14 +63,14 @@
         </Grid>
 
         <Label Grid.Row="4" Content="{i18n:Localize UserName}" Margin="0,5,0,0"
-               IsVisible="{Binding SupportUserPassword}"/>
+               IsVisible="{Binding SupportUser}"/>
         <TextBox Grid.Row="5" Text="{Binding User, Mode=TwoWay}"
-                 IsVisible="{Binding SupportUserPassword}"/>
+                 IsVisible="{Binding SupportUser}"/>
 
         <Label Grid.Row="6" Content="{i18n:Localize Password}" Margin="0,5,0,0"
-               IsVisible="{Binding SupportUserPassword}"/>
+               IsVisible="{Binding SupportPassword}"/>
         <TextBox Grid.Row="7" PasswordChar="*" Text="{Binding Password, Mode=TwoWay}"
-                 IsVisible="{Binding SupportUserPassword}"/>
+                 IsVisible="{Binding SupportPassword}"/>
 
         <Label Grid.Row="8" Content="{i18n:Localize OauthServerUrl}" Margin="0,5,0,0"
                IsVisible="{Binding SupportOAuthServerUrl}"/>

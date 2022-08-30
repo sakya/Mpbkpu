@@ -1,11 +1,19 @@
 ﻿using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using MpbkpuLib.Abstracts;
 
 namespace MpbkpuGUI.Models;
 
 public class JobRunningPageModel : INotifyPropertyChanged
 {
+    public class LogMessage
+    {
+        public BaseJobSettings.LogLevels Level { get; set; }
+        public string Message { get; set; }
+    }
+
     public event PropertyChangedEventHandler? PropertyChanged;
 
     private string? _step;
@@ -58,8 +66,8 @@ public class JobRunningPageModel : INotifyPropertyChanged
         }
     }
 
-    private string? _log;
-    public string? Log
+    private ObservableCollection<LogMessage>? _log;
+    public ObservableCollection<LogMessage>? Log
     {
         get => _log;
         set

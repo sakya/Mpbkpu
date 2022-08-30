@@ -12,6 +12,8 @@ namespace MpbkpuGUI.Controls
         private bool _okEnabled;
         private string? _cancelText;
         private bool _cancelVisible;
+        private bool _smallButtons;
+
         public static readonly DirectProperty<OkCancelButtons, string?> OkTextProperty =
                 AvaloniaProperty.RegisterDirect<OkCancelButtons, string?>(
                     nameof(OkText),
@@ -35,6 +37,12 @@ namespace MpbkpuGUI.Controls
                     nameof(CancelVisible),
                     o => o.CancelVisible,
                     (o, v) => o.CancelVisible = v);
+
+        public static readonly DirectProperty<OkCancelButtons, bool> SmallButtonsProperty =
+            AvaloniaProperty.RegisterDirect<OkCancelButtons, bool>(
+                nameof(SmallButtons),
+                o => o.SmallButtons,
+                (o, v) => o.SmallButtons = v);
 
         public event EventHandler<RoutedEventArgs>? OkClick;
         public event EventHandler<RoutedEventArgs>? CancelClick;
@@ -85,6 +93,26 @@ namespace MpbkpuGUI.Controls
                         btn.Margin = new Thickness(5,0,0,0);
                     else
                         btn.Margin = new Thickness(0, 0, 0, 0);
+                }
+            }
+        }
+
+        public bool SmallButtons
+        {
+            get { return _smallButtons; }
+            set
+            {
+                if (SetAndRaise(SmallButtonsProperty, ref _smallButtons, value)) {
+                    var btn = this.FindControl<Button>("Ok");
+                    if (value)
+                        btn.Classes.Add("Small");
+                    else
+                        btn.Classes.Remove("Small");
+                    btn = this.FindControl<Button>("Cancel");
+                    if (value)
+                        btn.Classes.Add("Small");
+                    else
+                        btn.Classes.Remove("Small");
                 }
             }
         }

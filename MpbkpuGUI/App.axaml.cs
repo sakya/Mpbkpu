@@ -2,8 +2,10 @@ using System;
 using System.IO;
 using System.Threading;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Media;
 using Avalonia.Threading;
 using MpbkpuGUI.Models;
 
@@ -49,5 +51,15 @@ namespace MpbkpuGUI
                 }
             }
         } // Run
+
+        public static Color? GetStyleColor(string name)
+        {
+            if (Current is App app && app.MainWindow != null) {
+                var resource = app.MainWindow.FindResource(name);
+                if (resource is Color col)
+                    return (Color)resource;
+            }
+            return null;
+        }
     }
 }

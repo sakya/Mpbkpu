@@ -73,15 +73,21 @@ namespace MpbkpuGUI.Views
                     break;
                 case Icons.Error:
                     i.Value = "fas fa-exclamation-triangle";
-                    i.Foreground = new SolidColorBrush((Color)this.FindResource("DangerColor"));
+                    var ec = App.GetStyleColor("DangerColor");
+                    if (ec != null)
+                        i.Foreground = new SolidColorBrush(ec.Value);
                     break;
                 case Icons.Info:
                     i.Value = "fas fa-info-circle";
-                    i.Foreground = new SolidColorBrush((Color)this.FindResource("InfoColor"));
+                    var ic = App.GetStyleColor("InfoColor");
+                    if (ic != null)
+                        i.Foreground = new SolidColorBrush(ic.Value);
                     break;
                 case Icons.Question:
                     i.Value = "fas fa-question-circle";
-                    i.Foreground = new SolidColorBrush((Color)this.FindResource("InfoColor"));
+                    var qc = App.GetStyleColor("InfoColor");
+                    if (qc != null)
+                        i.Foreground = new SolidColorBrush(qc.Value);
                     break;
             }
         }

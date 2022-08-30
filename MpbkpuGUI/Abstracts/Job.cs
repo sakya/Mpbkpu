@@ -1,6 +1,4 @@
 using System;
-using Microsoft.Graph;
-using MpbkpuGUI.Controls.Models;
 using MpbkpuLib.FileManagers;
 using MpbkpuLib.Interfaces;
 using Newtonsoft.Json;
@@ -36,38 +34,51 @@ public abstract class Job
         public string? OauthAppSecret { get; set; }
 
         [JsonIgnore]
-        public string? FullPath => $"{GetScheme(Type)}{Path}";
+        public string FullPath
+        {
+            get
+            {
+                var scheme = GetScheme(Type, out var pathSeparator);
+                var res = scheme;
+                if (Type is FileSystemTypes.OneDrive or FileSystemTypes.DropBox)
+                    res = $"{res}{User}";
+                if (Path?.StartsWith($"{pathSeparator}") == false)
+                    res = $"{res}{pathSeparator}";
+                return $"{res}{Path}";
+            }
+        }
 
-        private static string? GetScheme(Job.Position.FileSystemTypes type)
+        private static string? GetScheme(FileSystemTypes type, out char? pathSeparator)
         {
             IFileManager? fm = null;
             switch (type) {
-                case Job.Position.FileSystemTypes.Ftp:
+                case FileSystemTypes.Ftp:
                     fm = new Ftp();
                     break;
-                case Job.Position.FileSystemTypes.Mega:
+                case FileSystemTypes.Mega:
                     fm = new Mega("account", "account");
                     break;
-                case Job.Position.FileSystemTypes.Nextcloud:
+                case FileSystemTypes.Nextcloud:
                     fm = new Nextcloud("account");
                     break;
-                case Job.Position.FileSystemTypes.Sftp:
+                case FileSystemTypes.Sftp:
                     fm = new Sftp();
                     break;
-                case Job.Position.FileSystemTypes.Smb:
+                case FileSystemTypes.Smb:
                     fm = new Smb(string.Empty, string.Empty, string.Empty, string.Empty);
                     break;
-                case Job.Position.FileSystemTypes.DropBox:
+                case FileSystemTypes.DropBox:
                     fm = new MpbkpuLib.FileManagers.Dropbox("account");
                     break;
-                case Job.Position.FileSystemTypes.MediaFire:
+                case FileSystemTypes.MediaFire:
                     fm = new MediaFire("account", "account");
                     break;
-                case Job.Position.FileSystemTypes.OneDrive:
+                case FileSystemTypes.OneDrive:
                     fm = new OneDrive("account");
                     break;
             }
 
+            pathSeparator = fm?.GetPathSeparator();
             return fm?.GetScheme();
         }
     }

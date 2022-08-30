@@ -16,7 +16,8 @@ public sealed class PositionDetailModel : INotifyPropertyChanged
         {
             if (SetField(ref _type, value)) {
                 OnPropertyChanged(nameof(IsLocalFileSystem));
-                OnPropertyChanged(nameof(SupportUserPassword));
+                OnPropertyChanged(nameof(SupportUser));
+                OnPropertyChanged(nameof(SupportPassword));
                 OnPropertyChanged(nameof(SupportOAuth));
                 OnPropertyChanged(nameof(SupportOAuthServerUrl));
                 OnPropertyChanged(nameof(SupportCompression));
@@ -85,7 +86,12 @@ public sealed class PositionDetailModel : INotifyPropertyChanged
     public bool SupportCompression =>
         Type is Job.Position.FileSystemTypes.FileSystem or Job.Position.FileSystemTypes.Ftp or Job.Position.FileSystemTypes.Sftp or Job.Position.FileSystemTypes.Smb;
 
-    public bool SupportUserPassword =>
+    public bool SupportUser =>
+        Type is Job.Position.FileSystemTypes.Ftp or Job.Position.FileSystemTypes.Mega or Job.Position.FileSystemTypes.Nextcloud or
+            Job.Position.FileSystemTypes.Sftp or Job.Position.FileSystemTypes.Smb or Job.Position.FileSystemTypes.MediaFire
+            or Job.Position.FileSystemTypes.OneDrive or Job.Position.FileSystemTypes.DropBox;
+
+    public bool SupportPassword =>
         Type is Job.Position.FileSystemTypes.Ftp or Job.Position.FileSystemTypes.Mega or Job.Position.FileSystemTypes.Nextcloud or
             Job.Position.FileSystemTypes.Sftp or Job.Position.FileSystemTypes.Smb or Job.Position.FileSystemTypes.MediaFire;
 
