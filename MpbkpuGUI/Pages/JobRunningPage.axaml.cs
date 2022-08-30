@@ -53,6 +53,7 @@ public class JobRunningPage : BasePage
 
     public override void Dispose()
     {
+        _cts.Cancel();
         _worker?.Join();
         base.Dispose();
     }
@@ -60,6 +61,9 @@ public class JobRunningPage : BasePage
     public override void OnNavigatedTo(NavigationDirection direction)
     {
         base.OnNavigatedTo(direction);
+
+        _model.Source = _job.Source?.FullPath;
+        _model.Destination = _job.Destination?.FullPath;
 
         _worker = new Thread(DoWork);
         _worker.Start();

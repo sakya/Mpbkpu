@@ -8,7 +8,7 @@ using Projektanker.Icons.Avalonia;
 
 namespace MpbkpuGUI.Controls;
 
-public partial class JobListItem : UserControl
+public class JobListItem : UserControl
 {
     public static readonly DirectProperty<JobListItem, Job?> ItemProperty =
         AvaloniaProperty.RegisterDirect<JobListItem, Job?>(

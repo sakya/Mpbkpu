@@ -73,7 +73,7 @@ public class BackupOpenPage : BasePage
             progressAction: (bytes, total) =>
             {
                 double percentage = bytes / (double)total * 100.0;
-                _model.SpinnerMessage = $"{Localizer.Localizer.Instance["Step_OpenDatabase"]}: {percentage,5:0.0}";
+                _model.SpinnerMessage = $"{Localizer.Localizer.Instance["Step_OpenDatabase"]}: {percentage,5:0.0}%";
             });
 
         _model.Backups = new ObservableCollection<BackupOpenPageModel.BackupData>();

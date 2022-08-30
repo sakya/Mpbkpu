@@ -23,7 +23,7 @@ namespace MpbkpuGUI.Controls
         public bool CanMaximize { get; set; }
 
         public bool CanGoBack {
-            get { return _canGoBack; }
+            get => _canGoBack;
             set
             {
                 _canGoBack = value;

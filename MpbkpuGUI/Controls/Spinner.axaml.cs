@@ -6,7 +6,7 @@ using MpbkpuGUI.Controls.Models;
 
 namespace MpbkpuGUI.Controls;
 
-public partial class Spinner : UserControl
+public class Spinner : UserControl
 {
     public static readonly DirectProperty<Spinner, string?> MessageProperty =
         AvaloniaProperty.RegisterDirect<Spinner, string?>(

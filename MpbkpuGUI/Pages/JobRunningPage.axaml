@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:i18n="clr-namespace:MpbkpuGUI.Localizer"
              xmlns:controls="clr-namespace:MpbkpuGUI.Controls"
              xmlns:converters="clr-namespace:MpbkpuGUI.Converters"
              xmlns:models="clr-namespace:MpbkpuGUI.Models"
@@ -18,19 +19,41 @@
     <Grid Margin="5,0,5,5">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
 
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <TextBlock Text="{Binding Step}"
-                   Foreground="{DynamicResource InfoColor}"/>
-        <ProgressBar Grid.Row="1" Minimum="0" Maximum="100" Value="{Binding Progress}"
+        <Grid Grid.Row="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="{i18n:Localize Source}"/>
+            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Source}" TextTrimming="CharacterEllipsis"
+                       Margin="15,0,0,0"/>
+
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="{i18n:Localize Destination}"/>
+            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Destination}" TextTrimming="CharacterEllipsis"
+                       Margin="15,0,0,0"/>
+        </Grid>
+
+        <TextBlock Grid.Row="1" Text="{Binding Step}"
+                   Foreground="{DynamicResource InfoColor}"
+                   Margin="0,15,0,0"/>
+        <ProgressBar Grid.Row="2" Minimum="0" Maximum="100" Value="{Binding Progress}"
                      Margin="0,5,0,0"
                      ShowProgressText="True"/>
 
-        <Grid Grid.Row="2" MinHeight="20">
+        <Grid Grid.Row="3" MinHeight="20">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
@@ -45,7 +68,7 @@
                        HorizontalAlignment="Right"/>
         </Grid>
 
-        <ListBox Grid.Row="3" Margin="0,5,0,0"
+        <ListBox Grid.Row="4" Margin="0,5,0,0"
                  Name="Log"
                  FontSize="14"
                  FontFamily="Consolas"

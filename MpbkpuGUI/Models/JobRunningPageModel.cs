@@ -1,5 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using MpbkpuLib.Abstracts;
+using MpbkpuLib.DataModel;
 using BaseModel = MpbkpuGUI.Abstracts.BaseModel;
 
 namespace MpbkpuGUI.Models;
@@ -10,6 +11,20 @@ public class JobRunningPageModel : BaseModel
     {
         public BaseJobSettings.LogLevels Level { get; set; }
         public string? Message { get; set; }
+    }
+
+    private string? _source;
+    public string? Source
+    {
+        get => _source;
+        set => SetField(ref _source, value);
+    }
+
+    private string? _destination;
+    public string? Destination
+    {
+        get => _destination;
+        set => SetField(ref _destination, value);
     }
 
     private string? _step;
