@@ -4,7 +4,6 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
@@ -195,8 +194,7 @@ public class JobRunningPage : BasePage
 
     private void BackupJobOnLogEmitted(object? sender, BaseJobSettings.LogLevels level, string message)
     {
-        if (_model.Log == null)
-            _model.Log = new ObservableCollection<JobRunningPageModel.LogMessage>();
+        _model.Log ??= new ObservableCollection<JobRunningPageModel.LogMessage>();
         while (_model.Log.Count > 200)
             _model.Log.RemoveAt(0);
 
@@ -249,7 +247,7 @@ public class JobRunningPage : BasePage
 
     private void BackupJobOnProgress(object sender, BaseJob.ProgressHandlerArgs args)
     {
-        var percentage = (double)args.Bytes / args.TotalBytes * 100.0;
+        var percentage = Math.Floor(args.Bytes / (double)args.TotalBytes);
         _model.Progress = percentage;
         _model.ProgressMessageEta = MpbkpuLib.Utility.String.TimeSpanToString(args.Eta);
         _model.ProgressMessageFiles = $"{args.File}/{args.TotalFiles}";
