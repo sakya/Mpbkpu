@@ -40,7 +40,7 @@ public abstract class Job
             {
                 var scheme = GetScheme(Type, out var pathSeparator);
                 var res = scheme;
-                if (Type is FileSystemTypes.OneDrive or FileSystemTypes.DropBox)
+                if (Type is FileSystemTypes.OneDrive or FileSystemTypes.DropBox or FileSystemTypes.Nextcloud)
                     res = $"{res}{User}";
                 if (Path?.StartsWith($"{pathSeparator}") == false)
                     res = $"{res}{pathSeparator}";

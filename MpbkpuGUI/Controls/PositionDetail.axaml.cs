@@ -5,8 +5,6 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using MpbkpuGUI.Abstracts;
 using MpbkpuGUI.Controls.Models;
-using MpbkpuLib.FileManagers;
-using MpbkpuLib.Interfaces;
 
 namespace MpbkpuGUI.Controls;
 
@@ -72,38 +70,6 @@ public class PositionDetail : UserControl
             Job.Position.FileSystemTypes.Smb
         };
         cmbType.SelectedItem = Job.Position.FileSystemTypes.FileSystem;
-    }
-
-    private Job.Position.FileSystemTypes GetFileSystemType()
-    {
-        if (string.IsNullOrEmpty(_model.Path))
-            return Job.Position.FileSystemTypes.FileSystem;
-
-        try {
-            using var fm = FileManagerFactory.GetFileManager(_model.Path, out _);
-            switch (fm) {
-                case MpbkpuLib.FileManagers.Dropbox:
-                    return Job.Position.FileSystemTypes.DropBox;
-                case Ftp:
-                    return Job.Position.FileSystemTypes.Ftp;
-                case Mega:
-                    return Job.Position.FileSystemTypes.Mega;
-                case Nextcloud:
-                    return Job.Position.FileSystemTypes.Nextcloud;
-                case Sftp:
-                    return Job.Position.FileSystemTypes.Sftp;
-                case Smb:
-                    return Job.Position.FileSystemTypes.Smb;
-                case MediaFire:
-                    return Job.Position.FileSystemTypes.MediaFire;
-                case OneDrive:
-                    return Job.Position.FileSystemTypes.OneDrive;
-            }
-        } catch {
-            // ignored
-        }
-
-        return Job.Position.FileSystemTypes.FileSystem;
     }
 
     private void OnTypeChanged(object? sender, SelectionChangedEventArgs e)

@@ -83,7 +83,7 @@ public class JobListPage : BasePage
                 return;
 
             bkp.Password = pwd;
-            await MainWindow!.NavigateTo(new BackupOpen(bkp));
+            await MainWindow!.NavigateTo(new BackupOpenPage(bkp));
         }
     }
 }

@@ -6,6 +6,7 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="MpbkpuGUI.Controls.Spinner">
     <Grid Name="Spinner">
+        <Border Background="#000000" Opacity="0.4" />
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
             <StackPanel Name="WaitSpinner" Classes="spinner" VerticalAlignment="Center" HorizontalAlignment="Center" Width="40" Height="40">
                 <i:Icon HorizontalAlignment="Center" VerticalAlignment="Center" Width="40" Height="40" FontSize="32" Value="fas fa-circle-notch" />
