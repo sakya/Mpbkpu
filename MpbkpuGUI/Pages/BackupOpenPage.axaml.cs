@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Microsoft.EntityFrameworkCore;
 using MpbkpuGUI.Abstracts;
@@ -72,7 +73,6 @@ public partial class BackupOpenPage : BasePage
             });
         }
 
-        await Task.Delay(5000);
         var wait = this.FindControl<Controls.Spinner>("Spinner");
         wait.IsVisible = false;
     }
@@ -82,5 +82,20 @@ public partial class BackupOpenPage : BasePage
         AvaloniaXamlLoader.Load(this);
 
         PageTitle = $"{Localizer.Localizer.Instance["Backup"]}: {_backup.Name}";
+    }
+
+    private void OnDeleteClick(object? sender, RoutedEventArgs e)
+    {
+
+    }
+
+    private void OnOpenClick(object? sender, RoutedEventArgs e)
+    {
+
+    }
+
+    private void OnVerifyClick(object? sender, RoutedEventArgs e)
+    {
+
     }
 }
