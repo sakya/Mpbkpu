@@ -82,7 +82,7 @@ public class PositionDetail : UserControl
     private async void OnBrowseClick(object? sender, RoutedEventArgs e)
     {
         var dlg = new OpenFolderDialog();
-        var dir = await dlg.ShowAsync(((App)Application.Current).MainWindow);
+        var dir = await dlg.ShowAsync(((App)Application.Current!).MainWindow!);
         if (!string.IsNullOrEmpty(dir)) {
             _model.Path = dir;
         }

@@ -13,10 +13,10 @@ namespace MpbkpuGUI.Pages;
 
 public class BackupOpenPage : BasePage
 {
-    private BackupJob _backup;
+    private readonly BackupJob _backup;
     private BackupFile.OpenResult? _backupFile;
 
-    private BackupOpenPageModel _model = new();
+    private readonly BackupOpenPageModel _model = new();
 
     public BackupOpenPage()
     {
