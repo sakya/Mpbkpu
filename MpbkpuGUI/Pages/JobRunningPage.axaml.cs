@@ -66,6 +66,7 @@ public class JobRunningPage : BasePage
         _model.Source = _job.Source?.FullPath;
         _model.Destination = _job.Destination?.FullPath;
         _model.Running = true;
+        _model.ButtonText = Localizer.Localizer.Instance["Cancel"];
         App.UpdateLayout();
 
         _worker = new Thread(DoWork);
@@ -180,6 +181,7 @@ public class JobRunningPage : BasePage
 
             _backupJob.LogEmitted += BackupJobOnLogEmitted;
             _model.Running = true;
+            _model.ButtonText = Localizer.Localizer.Instance["Cancel"];
             var backupRes = await _backupJob.Run(_cts.Token);
             _job.LastRun = DateTime.Now;
         } catch (Exception ex) {
@@ -188,6 +190,7 @@ public class JobRunningPage : BasePage
                 $"{Localizer.Localizer.Instance["AnErrorOccurred"]}{ex.Message}", MessageWindow.Icons.Error);
         } finally {
             _model.Running = false;
+            _model.ButtonText = Localizer.Localizer.Instance["Close"];
         }
     }
 
@@ -229,7 +232,7 @@ public class JobRunningPage : BasePage
                 Message = message
             });
             var log = this.FindControl<ListBox>("Log");
-            log.SelectedItem = _model.Log.Last();
+            log.SelectedItem = _model.Log.LastOrDefault();
         }, DispatcherPriority.Background);
     }
 
@@ -262,7 +265,7 @@ public class JobRunningPage : BasePage
         _model.ProgressMessageBytes = $"{MpbkpuLib.Utility.String.BytesToString(args.Bytes)}/{MpbkpuLib.Utility.String.BytesToString(args.TotalBytes)}";
     }
 
-    private async void OnOkCancelClick(object? sender, RoutedEventArgs e)
+    private async void OnOkClick(object? sender, RoutedEventArgs e)
     {
         await NavigateBack();
     }

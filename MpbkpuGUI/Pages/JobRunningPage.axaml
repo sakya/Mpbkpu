@@ -92,10 +92,9 @@
         <controls:OkCancelButtons
             Grid.Row="5"
             Margin="0,5,0,0"
-            OkEnabled="{Binding !$parent.DataContext.Running}"
-            CancelVisible="{Binding $parent.DataContext.Running}"
-            CancelClick="OnOkCancelClick"
-            OkClick="OnOkCancelClick"/>
+            OkText="{Binding $parent.DataContext.ButtonText}"
+            CancelVisible="False"
+            OkClick="OnOkClick"/>
         <controls:Spinner Grid.Row="0" Grid.RowSpan="4" Name="Spinner" />
     </Grid>
 </UserControl>

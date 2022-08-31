@@ -78,4 +78,18 @@
             <Setter Property="Background" Value="{DynamicResource HighlightColor}"/>
         </Style>
     </Application.Styles>
+
+    <!--
+    <TrayIcon.Icons>
+        <TrayIcons>
+            <TrayIcon Icon="/Assets/icon.ico" ToolTipText="Multi Platform Backup Utility">
+                <TrayIcon.Menu>
+                    <NativeMenu>
+                        <NativeMenuItem Header="Exit" Command="{Binding ExitCommand}" />
+                    </NativeMenu>
+                </TrayIcon.Menu>
+            </TrayIcon>
+        </TrayIcons>
+    </TrayIcon.Icons>
+    -->
 </Application>

@@ -75,4 +75,11 @@ public class JobRunningPageModel : BaseModel
         get => _log;
         set => SetField(ref _log, value);
     }
+
+    private string? _buttonText;
+    public string? ButtonText
+    {
+        get => _buttonText;
+        set => SetField(ref _buttonText, value);
+    }
 }

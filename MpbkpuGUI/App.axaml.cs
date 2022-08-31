@@ -58,7 +58,6 @@ namespace MpbkpuGUI
             if (Current is App app && app.MainWindow != null) {
                 return app.MainWindow;
             }
-
             return null;
         }
 
