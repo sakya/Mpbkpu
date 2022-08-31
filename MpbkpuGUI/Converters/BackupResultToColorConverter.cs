@@ -11,7 +11,7 @@ public class BackupResultToColorConverter : IValueConverter
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         Backup.Results? result = (Backup.Results?)value;
-        if (value != null) {
+        if (result != null) {
             Color? color = result switch
             {
                 Backup.Results.Error => App.GetStyleColor("ErrorColor"),

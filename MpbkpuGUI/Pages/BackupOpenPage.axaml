@@ -16,6 +16,7 @@
     <UserControl.Resources>
         <converters:BytesToStringConverter x:Key="BytesToStringConverter"/>
         <converters:DateTimeConverter x:Key="DateTimeConverter"/>
+        <converters:BackupResultToIconConverter x:Key="BackupResultToIconConverter" />
         <converters:BackupResultToColorConverter x:Key="BackupResultToColorConverter" />
     </UserControl.Resources>
 
@@ -34,23 +35,27 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
 
-                            <TextBlock Grid.Row="0" Grid.Column="0" Classes="Main" Text="{Binding Backup.StartedAt, Converter={StaticResource DateTimeConverter}, FallbackValue=null}" />
-                            <TextBlock Grid.Row="1" Grid.Column="0" Classes="Secondary" Text="{Binding Backup.Type, FallbackValue=null}" />
-                            <TextBlock Grid.Row="2" Grid.Column="0" Classes="Secondary" Text="{Binding Backup.Result, FallbackValue=null}"
-                                       Foreground="{Binding Backup.Result, Converter={StaticResource BackupResultToColorConverter}}"/>
+                            <i:Icon Value="{Binding Backup.Result, Converter={StaticResource BackupResultToIconConverter}}"
+                                    Foreground="{Binding Backup.Result, Converter={StaticResource BackupResultToColorConverter}}"
+                                    Grid.RowSpan="2"
+                                    VerticalAlignment="Center"
+                                    FontSize="24"
+                                    Margin="0,0,15,0"/>
+                            <TextBlock Grid.Row="0" Grid.Column="1" Classes="Main" Text="{Binding Backup.StartedAt, Converter={StaticResource DateTimeConverter}, FallbackValue=null}" />
+                            <TextBlock Grid.Row="1" Grid.Column="1" Classes="Secondary" Text="{Binding Backup.Type, FallbackValue=null}" />
 
-                            <TextBlock Grid.Row="0" Grid.RowSpan="3" Grid.Column="1" Classes="Main" Text="{Binding Size, Converter={StaticResource BytesToStringConverter}}"
+                            <TextBlock Grid.Row="0" Grid.RowSpan="2" Grid.Column="2" Classes="Main" Text="{Binding Size, Converter={StaticResource BytesToStringConverter}}"
                                        HorizontalAlignment="Right"
                                        VerticalAlignment="Center"/>
-                            <StackPanel Grid.Row="0" Grid.RowSpan="3" Grid.Column="2" Orientation="Horizontal" Margin="12,0,0,0">
+                            <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="3" Orientation="Horizontal" Margin="12,0,0,0">
                                 <Button Click="OnOpenClick" ToolTip.Tip="{i18n:Localize BrowseBackup}">
                                     <i:Icon Value="fas fa-folder-open"></i:Icon>
                                 </Button>
