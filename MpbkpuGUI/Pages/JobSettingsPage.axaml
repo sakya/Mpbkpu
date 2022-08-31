@@ -99,8 +99,12 @@
                           IsVisible="{Binding ., Mode=TwoWay, Converter={StaticResource IsBackupJobConverter}}"
                           SelectedItem="{Binding CompressionLevel, Mode=TwoWay}"/>
 
-                <Label Grid.Row="7" Content="{i18n:Localize Encrypted}" Margin="0,5,0,0" />
-                <CheckBox Grid.Row="8" IsChecked="{Binding Encrypted, Mode=TwoWay}"></CheckBox>
+                <Label Grid.Row="7" Content="{i18n:Localize Encrypted}"
+                       IsVisible="{Binding ., Mode=TwoWay, Converter={StaticResource IsBackupJobConverter}}"
+                       Margin="0,5,0,0" />
+                <CheckBox Grid.Row="8"
+                          IsVisible="{Binding ., Mode=TwoWay, Converter={StaticResource IsBackupJobConverter}}"
+                          IsChecked="{Binding Encrypted, Mode=TwoWay}"></CheckBox>
 
                 <Label Grid.Row="9" Content="{i18n:Localize HashCheck}" Margin="0,5,0,0" />
                 <CheckBox Grid.Row="10" IsChecked="{Binding !SkipHashCheck, Mode=TwoWay}"></CheckBox>
