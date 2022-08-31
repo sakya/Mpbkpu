@@ -51,13 +51,13 @@
                                        HorizontalAlignment="Right"
                                        VerticalAlignment="Center"/>
                             <StackPanel Grid.Row="0" Grid.RowSpan="3" Grid.Column="2" Orientation="Horizontal" Margin="12,0,0,0">
-                                <Button Click="OnOpenClick">
+                                <Button Click="OnOpenClick" ToolTip.Tip="{i18n:Localize BrowseBackup}">
                                     <i:Icon Value="fas fa-folder-open"></i:Icon>
                                 </Button>
-                                <Button Click="OnVerifyClick">
+                                <Button Click="OnVerifyClick" ToolTip.Tip="{i18n:Localize VerifyBackup}">
                                     <i:Icon Value="fas fa-check-circle"></i:Icon>
                                 </Button>
-                                <Button Click="OnDeleteClick">
+                                <Button Click="OnDeleteClick" ToolTip.Tip="{i18n:Localize DeleteBackup}">
                                     <Button.Styles>
                                         <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
                                             <Setter Property="Background" Value="DarkRed"/>

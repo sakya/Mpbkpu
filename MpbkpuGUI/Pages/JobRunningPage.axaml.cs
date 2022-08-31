@@ -183,8 +183,11 @@ public class JobRunningPage : BasePage
             _model.Running = true;
             _model.ButtonText = Localizer.Localizer.Instance["Cancel"];
             var backupRes = await _backupJob.Run(_cts.Token);
-            _job.LastRun = DateTime.Now;
-            await App.Settings!.Save(App.SettingFile!);
+            if (backupRes.Bytes > 0) {
+                _job.LastRun = DateTime.Now;
+                await App.Settings!.Save(App.SettingFile!);
+            }
+
             if (!backupRes.Success) {
                 await MessageWindow.ShowMessage(App.GetMainWindow(), Localizer.Localizer.Instance["Error"],
                     $"{Localizer.Localizer.Instance["AnErrorOccurred"]}{backupRes.ErrorMessage}", MessageWindow.Icons.Error);

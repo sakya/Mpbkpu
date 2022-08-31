@@ -31,7 +31,12 @@ public class AppSettings
     {
         await using var fs = new FileStream(fileName, FileMode.Create, FileAccess.Write);
         await using var sw = new StreamWriter(fs);
-        var settings = new JsonSerializerSettings() { TypeNameHandling = TypeNameHandling.Objects, Formatting = Formatting.Indented};
+        var settings = new JsonSerializerSettings()
+        {
+            TypeNameHandling = TypeNameHandling.Objects,
+            NullValueHandling = NullValueHandling.Ignore,
+            Formatting = Formatting.Indented
+        };
         await sw.WriteAsync(JsonConvert.SerializeObject(this, settings));
     }
 }

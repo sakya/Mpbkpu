@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:i="clr-namespace:Projektanker.Icons.Avalonia;assembly=Projektanker.Icons.Avalonia"
+             xmlns:i18n="clr-namespace:MpbkpuGUI.Localizer"
              xmlns:models="clr-namespace:MpbkpuGUI.Abstracts"
              xmlns:converters="clr-namespace:MpbkpuGUI.Converters"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
@@ -36,17 +37,17 @@
 
         <TextBlock Grid.Row="0" Grid.RowSpan="3" Grid.Column="2" FontSize="16" VerticalAlignment="Center" Text="{Binding LastRun, Converter={StaticResource DateTimeConverter}}" />
         <StackPanel Grid.Row="0" Grid.RowSpan="3" Grid.Column="3" Orientation="Horizontal" Margin="12,0,0,0">
-            <Button Click="OnOpenClick"
+            <Button Click="OnOpenClick" ToolTip.Tip="{i18n:Localize BrowseBackup}"
                     IsEnabled="{Binding ., Converter={StaticResource IsBackupJobConverter}}">
                 <i:Icon Value="fas fa-folder-open"></i:Icon>
             </Button>
-            <Button Click="OnRunClick">
+            <Button Click="OnRunClick" ToolTip.Tip="{i18n:Localize RunBackup}">
                 <i:Icon Value="fas fa-play"></i:Icon>
             </Button>
-            <Button Click="OnSettingsClick">
+            <Button Click="OnSettingsClick" ToolTip.Tip="{i18n:Localize BackupSettings}">
                 <i:Icon Value="fas fa-cogs"></i:Icon>
             </Button>
-            <Button Click="OnDeleteClick">
+            <Button Click="OnDeleteClick" ToolTip.Tip="{i18n:Localize DeleteBackup}">
                 <Button.Styles>
                     <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
                         <Setter Property="Background" Value="DarkRed"/>

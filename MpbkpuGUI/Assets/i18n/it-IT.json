@@ -8,6 +8,8 @@
 
   "AnErrorOccurred": "Si è verificato un errore:\n",
   "Backup": "Backup",
+  "BackupSettings": "Impostazioni del backup",
+  "BrowseBackup": "Sfoglia i file contenuti nel backup",
   "Cancel": "Anulla",
   "Close": "Chiudi",
   "Confirm": "Conferma",
@@ -16,6 +18,7 @@
   "ConfirmDeleteBackup": "Questa operazione cancellera i file di backup!\n\nCancellare il backup selezionato?",
   "ConfirmDeleteJob": "Questa operazione non cancellerà i file di backup ma solo la configurazione.\n\nCancellare la configurazione del backup selezionato?",
   "ConfirmRunJob": "Eseguire il backup selezionato?",
+  "DeleteBackup": "Elimina il backup",
   "Destination": "Destinazione",
   "Encrypted": "Criptato",
   "Error": "Errore",
@@ -34,6 +37,7 @@
   "Password": "Password",
   "Path": "Percorso",
   "RetryOnError": "Tentativi in caso di errore",
+  "RunBackup": "Esegui il backup",
   "Source": "Sorgente",
   "Step_OpenDatabase": "Apertura database",
   "Step_ReadSource": "Lettura file sorgente",
@@ -44,5 +48,6 @@
   "Step_CopyDatabase": "Copia del database",
   "Type": "Tipo",
   "UserName": "Utente",
+  "VerifyBackup": "Verifica l'integrità del backup",
   "Yes": "Sì"
 }
