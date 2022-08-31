@@ -184,6 +184,11 @@ public class JobRunningPage : BasePage
             _model.ButtonText = Localizer.Localizer.Instance["Cancel"];
             var backupRes = await _backupJob.Run(_cts.Token);
             _job.LastRun = DateTime.Now;
+            await App.Settings!.Save(App.SettingFile!);
+            if (!backupRes.Success) {
+                await MessageWindow.ShowMessage(App.GetMainWindow(), Localizer.Localizer.Instance["Error"],
+                    $"{Localizer.Localizer.Instance["AnErrorOccurred"]}{backupRes.ErrorMessage}", MessageWindow.Icons.Error);
+            }
         } catch (Exception ex) {
             BackupJobOnLogEmitted(null, BaseJobSettings.LogLevels.Error, ex.Message);
             await MessageWindow.ShowMessage(App.GetMainWindow(), Localizer.Localizer.Instance["Error"],
@@ -231,8 +236,8 @@ public class JobRunningPage : BasePage
                 Level = level,
                 Message = message
             });
-            var log = this.FindControl<ListBox>("Log");
-            log.SelectedItem = _model.Log.LastOrDefault();
+            var log = this.FindControl<ScrollViewer>("Log");
+            log.ScrollToEnd();
         }, DispatcherPriority.Background);
     }
 

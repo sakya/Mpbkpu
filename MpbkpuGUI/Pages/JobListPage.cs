@@ -88,4 +88,9 @@ public class JobListPage : BasePage
             await MainWindow!.NavigateTo(new BackupOpenPage(bkp));
         }
     }
+
+    private void OnExitClick(object? sender, RoutedEventArgs e)
+    {
+        App.GetMainWindow()!.Close();;
+    }
 }

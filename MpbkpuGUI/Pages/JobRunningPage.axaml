@@ -69,25 +69,25 @@
                        HorizontalAlignment="Right"/>
         </Grid>
 
-        <ListBox Grid.Row="4" Margin="0,5,0,0"
-                 Name="Log"
-                 FontSize="14"
-                 FontFamily="Consolas"
-                 AutoScrollToSelectedItem="True"
-                 Items="{Binding Log}">
-            <ListBox.Styles>
-                <Style Selector="ListBoxItem">
-                    <Setter Property="Padding" Value="0"/>
-                </Style>
-            </ListBox.Styles>
+        <ScrollViewer Name="Log" Grid.Row="4" Margin="0,5,0,0">
+            <ListBox FontSize="14"
+                     FontFamily="Consolas"
+                     VirtualizationMode="None"
+                     Items="{Binding Log}">
+                <ListBox.Styles>
+                    <Style Selector="ListBoxItem">
+                        <Setter Property="Padding" Value="0"/>
+                    </Style>
+                </ListBox.Styles>
 
-            <ListBox.ItemTemplate>
-                <DataTemplate>
-                    <TextBlock Text="{Binding Message}"
-                               Foreground="{Binding Level, Converter={StaticResource LogLevelToColorConverter}}"/>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Message}"
+                                   Foreground="{Binding Level, Converter={StaticResource LogLevelToColorConverter}}"/>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </ScrollViewer>
 
         <controls:OkCancelButtons
             Grid.Row="5"
