@@ -286,20 +286,58 @@ public class BackupFile : IDisposable
             if (fullBkp == null)
                 throw new Exception($"Full backup not found");
 
+            // Get ids of the subsequents incremental backups
+            var incBackupIds = new List<int>();
+            var sBackups = _context.Backups
+                .AsNoTracking()
+                .Where(b => b.Id > fullBkp.Id && b.Id <= backupId)
+                .OrderBy(b => b.Id);
+            foreach (var sb in sBackups) {
+                if (sb.Type == Backup.BackupTypes.Full)
+                    break;
+                if (sb.Type == Backup.BackupTypes.Incremental)
+                    incBackupIds.Add(sb.Id);
+            }
+
+            // Items from the previous full backup
             var items = _context!.BackupItems
                 .Include(i => i.Backup)
                 .Include(i => i.Volume)
                 .AsNoTracking()
                 .Where(i => i.BackupId == fullBkp.Id);
             foreach (var item in items) {
-                // Read the same items from subsequent backups
+                // Read the same items from subsequents incremental backups
                 var itemLastBackup = await _context!.BackupItems
                     .Include(i => i.Backup)
                     .Include(i => i.Volume)
                     .AsNoTracking()
-                    .Where(i => i.Backup!.Type == Backup.BackupTypes.Incremental &&
-                                i.BackupId <= backupId &&
-                                i.BackupId >= fullBkp.Id && i.OriginalRelativePath == item.OriginalRelativePath)
+                    .Where(i => incBackupIds.Contains(i.BackupId) &&
+                                i.OriginalRelativePath == item.OriginalRelativePath)
+                    .OrderBy(i => i.Id)
+                    .LastOrDefaultAsync();
+                if (itemLastBackup != null) {
+                    if (itemLastBackup.Action != BackupItem.Actions.Deleted)
+                        yield return itemLastBackup;
+                } else {
+                    yield return item;
+                }
+            }
+
+            // Items added in the subsequents incremental backups
+            var addedItems = _context.BackupItems
+                .Include(i => i.Backup)
+                .Include(i => i.Volume)
+                .AsNoTracking()
+                .Where(i => incBackupIds.Contains(i.BackupId) && i.Action == BackupItem.Actions.Added)
+                .OrderBy(i => i.BackupId);
+            foreach (var item in addedItems) {
+                // Read the same items from subsequents incremental backups
+                var itemLastBackup = await _context!.BackupItems
+                    .Include(i => i.Backup)
+                    .Include(i => i.Volume)
+                    .AsNoTracking()
+                    .Where(i => i.BackupId > item.BackupId && incBackupIds.Contains(i.BackupId) &&
+                                i.OriginalRelativePath == item.OriginalRelativePath)
                     .OrderBy(i => i.Id)
                     .LastOrDefaultAsync();
                 if (itemLastBackup != null) {
