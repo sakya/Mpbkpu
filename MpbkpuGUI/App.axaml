@@ -6,6 +6,7 @@
         <Color x:Key="InfoColor">#5bc0de</Color>
         <Color x:Key="WarningColor">#f0ad4e</Color>
         <Color x:Key="DangerColor">#d9534f</Color>
+        <Color x:Key="SuccessColor">#28a745</Color>
 
         <FontWeight x:Key="FontWeight">Light</FontWeight>
         <x:Double x:Key="FontSize">18</x:Double>

@@ -66,8 +66,8 @@ namespace MpbkpuGUI.Controls
             set
             {
                 if (SetAndRaise(ItemsProperty, ref _items, value)) {
-                    _itemsRepeater.Items = _items;
-                    if (Selectable && _items.Count() > 0)
+                    _itemsRepeater!.Items = _items;
+                    if (Selectable && _items?.Count() > 0)
                         _selectedItem = _items.ElementAt(0);
                 }
             }
@@ -102,7 +102,7 @@ namespace MpbkpuGUI.Controls
             {
                 if (SetAndRaise(SelectedItemProperty, ref _selectedItem, value)) {
                     SetSelectedItemStyle();
-                    if (_selectedItem != null)
+                    if (_selectedItem != null && _items != null)
                         BringItemIntoView(_items.ToList().IndexOf(_selectedItem));
                 }
             }
@@ -114,44 +114,44 @@ namespace MpbkpuGUI.Controls
             if (selectedIndex == null)
                 return;
 
-            var count = _items?.Count();
+            var count = _items!.Count();
             switch (e.Key) {
                 case Key.Down:
                 case Key.FnDownArrow:
                     if (selectedIndex + 1 < count)
-                        SelectedItem = _items.ElementAt(selectedIndex.Value + 1);
+                        SelectedItem = _items!.ElementAt(selectedIndex.Value + 1);
                     break;
                 case Key.PageDown:
                     selectedIndex += 10;
                     if (selectedIndex >= count)
                         selectedIndex = count - 1;
-                    SelectedItem = _items.ElementAt(selectedIndex.Value);
+                    SelectedItem = _items!.ElementAt(selectedIndex.Value);
                     break;
                 case Key.Up:
                 case Key.FnUpArrow:
                     if (selectedIndex > 0)
-                        SelectedItem = _items.ElementAt(selectedIndex.Value - 1);
+                        SelectedItem = _items!.ElementAt(selectedIndex.Value - 1);
                     break;
                 case Key.PageUp:
                     selectedIndex -= 10;
                     if (selectedIndex < 0)
                         selectedIndex = 0;
-                    SelectedItem = _items.ElementAt(selectedIndex.Value);
+                    SelectedItem = _items!.ElementAt(selectedIndex.Value);
                     break;
                 case Key.End:
                     selectedIndex = count - 1;
-                    SelectedItem = _items.ElementAt(selectedIndex.Value);
+                    SelectedItem = _items!.ElementAt(selectedIndex.Value);
                     break;
                 case Key.Home:
                     selectedIndex = 0;
-                    SelectedItem = _items.ElementAt(selectedIndex.Value);
+                    SelectedItem = _items!.ElementAt(selectedIndex.Value);
                     break;
             }
         } // OnKeyDown
 
         private IControl GetItemControl(int index)
         {
-            var ctrl = _itemsRepeater.TryGetElement(index);
+            var ctrl = _itemsRepeater!.TryGetElement(index);
             if (ctrl == null)
                 ctrl = _itemsRepeater.GetOrCreateElement(index);
             if (VisualRoot is TopLevel top)
@@ -167,21 +167,19 @@ namespace MpbkpuGUI.Controls
 
         private void OnElementPrepared(object sender, ItemsRepeaterElementPreparedEventArgs args)
         {
-            var ctrl = args.Element as ContentControl;
-            SetItemBackground(ctrl);
+            if (args.Element is ContentControl ctrl)
+                SetItemBackground(ctrl);
         }
 
         private void OnMouseEnter(object sender, PointerEventArgs args)
         {
-            var ctrl = sender as ContentControl;
-            if (ctrl.DataContext != SelectedItem)
-                ctrl.Background = (SolidColorBrush)this.FindResource("SystemControlHighlightListLowBrush");
+            if (sender is ContentControl ctrl && ctrl.DataContext != SelectedItem)
+                ctrl.Background = this.FindResource("SystemControlHighlightListLowBrush") as SolidColorBrush;
         }
 
         private void OnMouseLeave(object sender, PointerEventArgs args)
         {
-            var ctrl = sender as ContentControl;
-            if (ctrl.DataContext != SelectedItem)
+            if (sender is ContentControl ctrl && ctrl.DataContext != SelectedItem)
                 ctrl.Background = new SolidColorBrush(Colors.Transparent);
         }
 
@@ -191,7 +189,7 @@ namespace MpbkpuGUI.Controls
                 return;
 
             var ctrl = sender as ContentControl;
-            SelectedItem = ctrl.DataContext;
+            SelectedItem = ctrl?.DataContext;
         }
 
         private void SetSelectedItemStyle()
@@ -204,13 +202,14 @@ namespace MpbkpuGUI.Controls
             if (_selectedControl != null)
                 SetItemBackground(_selectedControl);
             _selectedControl = ctrl;
-            SetItemBackground(ctrl);
+            if (ctrl != null)
+                SetItemBackground(ctrl);
         }
 
         private void SetItemBackground(ContentControl ctrl)
         {
             if (ctrl.DataContext == SelectedItem) {
-                ctrl.Background = (SolidColorBrush)this.FindResource("SystemControlHighlightListAccentLowBrush");
+                ctrl.Background = this.FindResource("SystemControlHighlightListAccentLowBrush") as SolidColorBrush;
             } else {
                 ctrl.Background = new SolidColorBrush(Colors.Transparent);
             }
