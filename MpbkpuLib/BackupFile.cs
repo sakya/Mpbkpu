@@ -362,16 +362,16 @@ public class BackupFile : IDisposable
                 .Where(i => i.BackupId == fullBkp.Id);
             foreach (var item in items) {
                 // Read the same item from the differential backup
-                var itemIncrementalBackup = await _context!.BackupItems
+                var itemDifferentialBackup = await _context!.BackupItems
                     .Include(i => i.Backup)
                     .Include(i => i.Volume)
                     .AsNoTracking()
                     .Where(i => i.BackupId == backupId &&
                                 i.OriginalRelativePath == item.OriginalRelativePath)
                     .FirstOrDefaultAsync();
-                if (itemIncrementalBackup != null) {
-                    if (itemIncrementalBackup.Action != BackupItem.Actions.Deleted)
-                        yield return itemIncrementalBackup;
+                if (itemDifferentialBackup != null) {
+                    if (itemDifferentialBackup.Action != BackupItem.Actions.Deleted)
+                        yield return itemDifferentialBackup;
                 } else {
                     yield return item;
                 }
