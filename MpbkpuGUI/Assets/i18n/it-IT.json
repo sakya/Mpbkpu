@@ -19,6 +19,7 @@
   "ConfirmDeleteJob": "Questa operazione non cancellerà i file di backup ma solo la configurazione.\n\nCancellare la configurazione del backup selezionato?",
   "ConfirmRunJob": "Eseguire il backup selezionato?",
   "DeleteBackup": "Elimina il backup",
+  "DeletingBackup": "Eliminazione backup",
   "Destination": "Destinazione",
   "Encrypted": "Criptato",
   "Error": "Errore",
@@ -46,8 +47,10 @@
   "Step_DeleteFiles": "Cancellazione file",
   "Step_BackupFiles": "Backup dei file",
   "Step_CopyDatabase": "Copia del database",
+  "Step_Completed": "Completato",
   "Type": "Tipo",
   "UserName": "Utente",
   "VerifyBackup": "Verifica l'integrità del backup",
+  "VerifyingBackup": "Verifica backup",
   "Yes": "Sì"
 }

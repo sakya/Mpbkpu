@@ -184,6 +184,7 @@ public class JobRunningPage : BasePage
             if (backupRes.Bytes > 0) {
                 _job.LastRun = DateTime.Now;
                 await App.Settings!.Save(App.SettingFile!);
+                _model.Step = Localizer.Localizer.Instance["Step_Completed"];
             }
 
             if (!backupRes.Success) {

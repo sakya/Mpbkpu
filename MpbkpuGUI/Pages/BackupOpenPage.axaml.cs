@@ -10,6 +10,7 @@ using MpbkpuGUI.Abstracts;
 using MpbkpuGUI.Models;
 using MpbkpuGUI.Views;
 using MpbkpuLib;
+using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
 
 namespace MpbkpuGUI.Pages;
@@ -106,9 +107,12 @@ public class BackupOpenPage : BasePage
 
     private async void OnDeleteClick(object? sender, RoutedEventArgs e)
     {
-        if (await MessageWindow.ShowConfirmMessage(MainWindow, Localizer.Localizer.Instance["Confirm"],
-                Localizer.Localizer.Instance["ConfirmDeleteBackup"],
-                MessageWindow.Icons.Warning)) {
+        if ((sender as Button)?.DataContext is BackupOpenPageModel.BackupData bkp) {
+            if (await MessageWindow.ShowConfirmMessage(MainWindow, Localizer.Localizer.Instance["Confirm"],
+                    Localizer.Localizer.Instance["ConfirmDeleteBackup"],
+                    MessageWindow.Icons.Warning)) {
+                await NavigateTo(new DeleteBackupPage(bkp.Backup!));
+            }
         }
     }
 
@@ -117,9 +121,10 @@ public class BackupOpenPage : BasePage
 
     }
 
-    private void OnVerifyClick(object? sender, RoutedEventArgs e)
+    private async void OnVerifyClick(object? sender, RoutedEventArgs e)
     {
-
+        if ((sender as Button)?.DataContext is BackupOpenPageModel.BackupData bkp)
+            await NavigateTo(new BackupVerifyPage(bkp.Backup!));
     }
 
     private async void OnOkClick(object? sender, RoutedEventArgs e)
