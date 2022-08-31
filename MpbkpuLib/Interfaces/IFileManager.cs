@@ -96,6 +96,14 @@ namespace MpbkpuLib.Interfaces
         Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null);
 
         /// <summary>
+        /// Rename a file
+        /// </summary>
+        /// <param name="filePath">The path of the file</param>
+        /// <param name="newName">The new name of the file</param>
+        /// <returns></returns>
+        Task RenameFile(string? filePath, string? newName);
+
+        /// <summary>
         /// Close a file
         /// </summary>
         /// <param name="stream">The <see cref="Stream"/></param>

@@ -160,8 +160,26 @@ namespace MpbkpuLib.FileManagers
             else
                 res = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
             return Task.FromResult(new FileSystemStream(this, res));
-        } // OpenFile
+        }
 
+        public Task RenameFile(string? filePath, string? newName)
+        {
+            if (string.IsNullOrEmpty(filePath))
+                throw new ArgumentNullException(filePath);
+            if (string.IsNullOrEmpty(newName))
+                throw new ArgumentNullException(newName);
+            if (newName.Contains(GetPathSeparator()))
+                throw new ArgumentException($"The new name cannot contain '{GetPathSeparator()}'", newName);
+
+            var path = Path.GetDirectoryName(filePath);
+            if (string.IsNullOrEmpty(path))
+                throw new Exception("Invalid path");
+            File.Move(filePath, Utility.Files.CombinePath(GetPathSeparator(), path, newName));
+
+            return Task.CompletedTask;
+        }
+
+        // OpenFile
         public Task<bool> CloseFile(Stream stream)
         {
             stream.Close();

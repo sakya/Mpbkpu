@@ -182,6 +182,18 @@ namespace MpbkpuLib.FileManagers
             return await Task.Run(() => new FileSystemStream(this, client.Open(filePath, FileMode.Open, FileAccess.Read)));
         }
 
+        public Task RenameFile(string? filePath, string? newName)
+        {
+            if (string.IsNullOrEmpty(filePath))
+                throw new ArgumentNullException(filePath);
+            if (string.IsNullOrEmpty(newName))
+                throw new ArgumentNullException(newName);
+            if (newName.Contains(GetPathSeparator()))
+                throw new ArgumentException($"The new name cannot contain '{GetPathSeparator()}'", newName);
+
+            throw new NotImplementedException();
+        }
+
         public Task<bool> CloseFile(Stream stream)
         {
             stream.Close();
