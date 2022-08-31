@@ -33,7 +33,7 @@ namespace MpbkpuGUI.Views
 
         public MessageWindow(string title, string message, Buttons buttons = Buttons.YesNo, Icons icon = Icons.None)
         {
-            this.InitializeComponent();
+            InitializeComponent();
 
             this.Title = title;
             var txt = this.FindControl<TextBlock>("m_Message");
@@ -99,7 +99,7 @@ namespace MpbkpuGUI.Views
             }
         }
 
-        protected override void InitializeComponent()
+        protected sealed override void InitializeComponent()
         {
             AvaloniaXamlLoader.Load(this);
             base.InitializeComponent();

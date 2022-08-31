@@ -55,8 +55,7 @@ public class JobRunningPage : BasePage
 
     public override void Dispose()
     {
-        _cts.Cancel();
-        _worker?.Join();
+        _cts.Dispose();
         base.Dispose();
     }
 
@@ -79,7 +78,7 @@ public class JobRunningPage : BasePage
             if (await MessageWindow.ShowConfirmMessage(App.GetMainWindow(),
                     Localizer.Localizer.Instance["Confirm"],
                     Localizer.Localizer.Instance["ConfirmAbortBackup"], MessageWindow.Icons.Warning)) {
-                return true;
+                await CancelBackup();
             }
 
             return false;
@@ -192,11 +191,17 @@ public class JobRunningPage : BasePage
         }
     }
 
+    private async Task CancelBackup()
+    {
+        _cts.Cancel();
+        while (_model.Running)
+            await Task.Delay(100);
+        _worker?.Join();
+    }
+
     private void BackupJobOnLogEmitted(object? sender, BaseJobSettings.LogLevels level, string message)
     {
         _model.Log ??= new ObservableCollection<JobRunningPageModel.LogMessage>();
-        while (_model.Log.Count > 200)
-            _model.Log.RemoveAt(0);
 
         switch (level) {
             case BaseJobSettings.LogLevels.Debug:
@@ -212,16 +217,19 @@ public class JobRunningPage : BasePage
                 message = $"[ERR]{message}";
                 break;
         }
-        _model.Log.Add(new JobRunningPageModel.LogMessage()
-        {
-            Level = level,
-            Message = message
-        });
 
         Dispatcher.UIThread.Post(() =>
         {
+            while (_model.Log.Count > 200)
+                _model.Log.RemoveAt(0);
+
+            _model.Log.Add(new JobRunningPageModel.LogMessage()
+            {
+                Level = level,
+                Message = message
+            });
             var log = this.FindControl<ListBox>("Log");
-            log.SelectedItems = new List<JobRunningPageModel.LogMessage>() { _model.Log!.Last() };
+            log.SelectedItem = _model.Log.Last();
         }, DispatcherPriority.Background);
     }
 

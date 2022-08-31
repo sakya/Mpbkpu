@@ -1,5 +1,4 @@
 using System;
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
@@ -7,9 +6,9 @@ using MpbkpuGUI.Abstracts;
 
 namespace MpbkpuGUI.Views;
 
-public partial class PasswordWindow : BaseView
+public class PasswordWindow : BaseView
 {
-    public PasswordWindow() : base()
+    public PasswordWindow()
     {
         InitializeComponent();
     }
@@ -30,11 +29,12 @@ public partial class PasswordWindow : BaseView
     private void OnOkClick(object? sender, RoutedEventArgs e)
     {
         var pwd = this.FindControl<TextBox>("Password");
-        this.Close(pwd.Text);
+        if (!string.IsNullOrEmpty(pwd.Text))
+            Close(pwd.Text);
     }
 
     private void OnCancelClick(object? sender, RoutedEventArgs e)
     {
-        this.Close(null);
+        Close(null);
     }
 }

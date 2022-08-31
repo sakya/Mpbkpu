@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 using MpbkpuGUI.Abstracts;
 using MpbkpuGUI.Models;
 using MpbkpuGUI.Views;
@@ -91,11 +92,14 @@ public class BackupOpenPage : BasePage
                 Bytes = b.Items.Sum(i => i.OriginalSize)
             });
         foreach (var bkp in backups) {
-            _model.Backups.Add(new BackupOpenPageModel.BackupData()
+            Dispatcher.UIThread.Post(() =>
             {
-                Backup = bkp.Backup,
-                Items = bkp.Files,
-                Size = bkp.Bytes
+                _model.Backups.Add(new BackupOpenPageModel.BackupData()
+                {
+                    Backup = bkp.Backup,
+                    Items = bkp.Files,
+                    Size = bkp.Bytes
+                });
             });
         }
     }
@@ -116,5 +120,10 @@ public class BackupOpenPage : BasePage
     private void OnVerifyClick(object? sender, RoutedEventArgs e)
     {
 
+    }
+
+    private async void OnOkClick(object? sender, RoutedEventArgs e)
+    {
+        await NavigateBack();
     }
 }

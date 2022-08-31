@@ -6,6 +6,7 @@
              xmlns:controls="clr-namespace:MpbkpuGUI.Controls"
              xmlns:converters="clr-namespace:MpbkpuGUI.Converters"
              xmlns:models="clr-namespace:MpbkpuGUI.Models"
+             xmlns:i18n="clr-namespace:MpbkpuGUI.Localizer"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="MpbkpuGUI.Pages.BackupOpenPage">
 
@@ -15,55 +16,67 @@
     <UserControl.Resources>
         <converters:BytesToStringConverter x:Key="BytesToStringConverter"/>
         <converters:DateTimeConverter x:Key="DateTimeConverter"/>
+        <converters:BackupResultToColorConverter x:Key="BackupResultToColorConverter" />
     </UserControl.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <ListBox Items="{Binding Backups}">
-            <ListBox.ItemTemplate>
+        <controls:ItemsList
+            Items="{Binding Backups}">
+            <controls:ItemsList.ItemTemplate>
                 <DataTemplate>
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
+                    <Border Padding="10,5,10,5">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
 
-                        <TextBlock Grid.Row="0" Grid.Column="0" Classes="Main" Text="{Binding Backup.StartedAt, Converter={StaticResource DateTimeConverter}, FallbackValue=null}" />
-                        <TextBlock Grid.Row="1" Grid.Column="0" Classes="Secondary" Text="{Binding Backup.Type, FallbackValue=null}" />
+                            <TextBlock Grid.Row="0" Grid.Column="0" Classes="Main" Text="{Binding Backup.StartedAt, Converter={StaticResource DateTimeConverter}, FallbackValue=null}" />
+                            <TextBlock Grid.Row="1" Grid.Column="0" Classes="Secondary" Text="{Binding Backup.Type, FallbackValue=null}" />
+                            <TextBlock Grid.Row="2" Grid.Column="0" Classes="Secondary" Text="{Binding Backup.Result, FallbackValue=null}"
+                                       Foreground="{Binding Backup.Result, Converter={StaticResource BackupResultToColorConverter}}"/>
 
-                        <TextBlock Grid.Row="0" Grid.RowSpan="2" Grid.Column="1" Classes="Main" Text="{Binding Size, Converter={StaticResource BytesToStringConverter}}"
-                                   HorizontalAlignment="Right"
-                                   VerticalAlignment="Center"/>
-                        <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="2" Orientation="Horizontal" Margin="12,0,0,0">
-                            <Button Click="OnOpenClick">
-                                <i:Icon Value="fas fa-folder-open"></i:Icon>
-                            </Button>
-                            <Button Click="OnVerifyClick">
-                                <i:Icon Value="fas fa-check-circle"></i:Icon>
-                            </Button>
-                            <Button Click="OnDeleteClick">
-                                <Button.Styles>
-                                    <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-                                        <Setter Property="Background" Value="DarkRed"/>
-                                    </Style>
-                                </Button.Styles>
-                                <i:Icon Value="fas fa-trash"></i:Icon>
-                            </Button>
-                        </StackPanel>
-                    </Grid>
+                            <TextBlock Grid.Row="0" Grid.RowSpan="3" Grid.Column="1" Classes="Main" Text="{Binding Size, Converter={StaticResource BytesToStringConverter}}"
+                                       HorizontalAlignment="Right"
+                                       VerticalAlignment="Center"/>
+                            <StackPanel Grid.Row="0" Grid.RowSpan="3" Grid.Column="2" Orientation="Horizontal" Margin="12,0,0,0">
+                                <Button Click="OnOpenClick">
+                                    <i:Icon Value="fas fa-folder-open"></i:Icon>
+                                </Button>
+                                <Button Click="OnVerifyClick">
+                                    <i:Icon Value="fas fa-check-circle"></i:Icon>
+                                </Button>
+                                <Button Click="OnDeleteClick">
+                                    <Button.Styles>
+                                        <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                            <Setter Property="Background" Value="DarkRed"/>
+                                        </Style>
+                                    </Button.Styles>
+                                    <i:Icon Value="fas fa-trash"></i:Icon>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
                 </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
+            </controls:ItemsList.ItemTemplate>
+        </controls:ItemsList>
 
-        <controls:Spinner Grid.Row="0" Name="Spinner"
+        <controls:OkCancelButtons Grid.Row="1"
+                                  CancelVisible="False"
+                                  OkText="{i18n:Localize Close}"
+                                  OkClick="OnOkClick"/>
+        <controls:Spinner Grid.Row="0" Grid.RowSpan="2" Name="Spinner"
                           Message="{Binding $parent.DataContext.SpinnerMessage}"/>
     </Grid>
 </UserControl>

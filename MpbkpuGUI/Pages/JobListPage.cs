@@ -71,7 +71,7 @@ public class JobListPage : BasePage
 
     private void SetJobList()
     {
-        var list = this.FindControl<ListBox>("JobList");
+        var list = this.FindControl<Controls.ItemsList>("JobList");
         list.Items = null;
         list.Items = App.Settings!.Jobs.OrderBy(i => i.Name);
     }

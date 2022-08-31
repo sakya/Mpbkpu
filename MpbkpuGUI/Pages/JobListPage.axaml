@@ -33,18 +33,20 @@
         </Menu>
 
         <Grid>
-            <ListBox Name="JobList">
-                <ListBox.ItemTemplate>
+            <controls:ItemsList Name="JobList">
+                <controls:ItemsList.ItemTemplate>
                     <DataTemplate>
-                        <controls:JobListItem
-                            Item="{Binding}"
-                            JobOpen="OnJobOpen"
-                            JobRun="OnJobRun"
-                            JobSettings="OnJobSettings"
-                            JobDelete="OnJobDelete"/>
+                        <Border Padding="10,5,10,5">
+                            <controls:JobListItem
+                                Item="{Binding}"
+                                JobOpen="OnJobOpen"
+                                JobRun="OnJobRun"
+                                JobSettings="OnJobSettings"
+                                JobDelete="OnJobDelete"/>
+                        </Border>
                     </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
+                </controls:ItemsList.ItemTemplate>
+            </controls:ItemsList>
         </Grid>
     </DockPanel>
 </UserControl>

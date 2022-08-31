@@ -47,5 +47,8 @@
     <Compile Update="Pages\BackupOpenPage.axaml.cs">
       <DependentUpon>BackupOpenPage.axaml</DependentUpon>
     </Compile>
+    <Compile Update="Controls\ItemsList.axaml.cs">
+      <DependentUpon>ItemsList.axaml</DependentUpon>
+    </Compile>
   </ItemGroup>
 </Project>

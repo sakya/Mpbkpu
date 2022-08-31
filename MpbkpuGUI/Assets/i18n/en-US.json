@@ -8,6 +8,7 @@
   "AnErrorOccurred": "An error occurred:\n",
   "Backup": "Backup",
   "Cancel": "Cancel",
+  "Close": "Close",
   "CompressionLevel": "Compression level",
   "Confirm": "Confirm",
   "ConfirmAbortBackup": "The backup is running, are you sure you want to cancel it?",
