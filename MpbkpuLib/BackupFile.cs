@@ -306,7 +306,7 @@ public class BackupFile : IDisposable
                 .AsNoTracking()
                 .Where(i => i.BackupId == fullBkp.Id);
             foreach (var item in items) {
-                // Read the same items from subsequents incremental backups
+                // Read the same item from subsequents incremental backups
                 var itemLastBackup = await _context!.BackupItems
                     .Include(i => i.Backup)
                     .Include(i => i.Volume)
@@ -331,7 +331,7 @@ public class BackupFile : IDisposable
                 .Where(i => incBackupIds.Contains(i.BackupId) && i.Action == BackupItem.Actions.Added)
                 .OrderBy(i => i.BackupId);
             foreach (var item in addedItems) {
-                // Read the same items from subsequents incremental backups
+                // Read the same item from subsequents incremental backups
                 var itemLastBackup = await _context!.BackupItems
                     .Include(i => i.Backup)
                     .Include(i => i.Volume)
