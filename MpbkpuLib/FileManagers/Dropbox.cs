@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Text;
 using Dropbox.Api;
+using Dropbox.Api.FileProperties;
 using Dropbox.Api.Files;
 using MpbkpuLib.Interfaces;
 using MpbkpuLib.Utility;
@@ -368,7 +369,7 @@ public class Dropbox : IFileManager, IOAuth2
         return new FileSystemStream(this, res);
     }
 
-    public Task RenameFile(string? filePath, string? newName)
+    public async Task RenameFile(string? filePath, string? newName)
     {
         if (string.IsNullOrEmpty(filePath))
             throw new ArgumentNullException(filePath);
@@ -377,7 +378,16 @@ public class Dropbox : IFileManager, IOAuth2
         if (newName.Contains(GetPathSeparator()))
             throw new ArgumentException($"The new name cannot contain '{GetPathSeparator()}'", newName);
 
-        throw new NotImplementedException();
+        var client = await GetClient();
+        filePath = GetPath(filePath);
+        var metadataArgs = new GetMetadataArg(filePath);
+        var item = await client.Files.GetMetadataAsync(metadataArgs);
+        if (!item.IsFile)
+            throw new FileNotFoundException($"File {filePath} not found", filePath);
+
+        var parent = Files.GetParent(GetPathSeparator(), filePath, out _);
+        var args = new RelocationArg(filePath, Utility.Files.CombinePath(GetPathSeparator(), parent, newName));
+        await client.Files.MoveV2Async(args);
     }
 
     public async Task<bool> CloseFile(Stream stream)

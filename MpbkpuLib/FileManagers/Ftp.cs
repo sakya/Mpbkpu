@@ -2,6 +2,7 @@ using MpbkpuLib.Interfaces;
 using FluentFTP;
 using System.Net;
 using System.Security.Authentication;
+using MpbkpuLib.Utility;
 using File = MpbkpuLib.DataModel.File;
 
 namespace MpbkpuLib.FileManagers
@@ -177,7 +178,7 @@ namespace MpbkpuLib.FileManagers
             return new FileSystemStream(this, res);
         }
 
-        public Task RenameFile(string? filePath, string? newName)
+        public async Task RenameFile(string? filePath, string? newName)
         {
             if (string.IsNullOrEmpty(filePath))
                 throw new ArgumentNullException(filePath);
@@ -186,7 +187,17 @@ namespace MpbkpuLib.FileManagers
             if (newName.Contains(GetPathSeparator()))
                 throw new ArgumentException($"The new name cannot contain '{GetPathSeparator()}'", newName);
 
-            throw new NotImplementedException();
+            filePath = GetPath(filePath);
+            var client = GetClient();
+
+            var f = await client.GetObjectInfoAsync(filePath, true);
+            if (f == null || f.Type != FtpObjectType.File)
+                throw new FileNotFoundException($"File {filePath} not found", filePath);
+
+            var parent = Files.GetParent(GetPathSeparator(), filePath, out _);
+            if (!await client.MoveFileAsync(filePath, Utility.Files.CombinePath(GetPathSeparator(), parent, newName),
+                    FtpRemoteExists.Skip))
+                throw new Exception($"Failed to move rename file {filePath}");
         }
 
         public async Task<bool> CloseFile(Stream stream)

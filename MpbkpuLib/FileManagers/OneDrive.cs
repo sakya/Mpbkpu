@@ -328,7 +328,7 @@ namespace MpbkpuLib.FileManagers
             return new FileSystemStream(this, res);
         }
 
-        public Task RenameFile(string? filePath, string? newName)
+        public async Task RenameFile(string? filePath, string? newName)
         {
             if (string.IsNullOrEmpty(filePath))
                 throw new ArgumentNullException(filePath);
@@ -337,7 +337,14 @@ namespace MpbkpuLib.FileManagers
             if (newName.Contains(GetPathSeparator()))
                 throw new ArgumentException($"The new name cannot contain '{GetPathSeparator()}'", newName);
 
-            throw new NotImplementedException();
+            var client = await GetClient();
+            filePath = GetPath(filePath);
+            var item = await client.Drive.Root.ItemWithPath(filePath).Request().GetAsync();
+            if (item.File == null)
+                throw new FileNotFoundException($"File {filePath} not found", filePath);
+
+            item.Name = newName;
+            await client.Drive.Root.ItemWithPath(filePath).Request().PutAsync(item);
         }
 
         public async Task<bool> CloseFile(Stream stream)
