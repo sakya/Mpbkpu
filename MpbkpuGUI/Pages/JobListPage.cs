@@ -80,8 +80,8 @@ public class JobListPage : BasePage
     private async void OnJobOpen(object sender, Job job)
     {
         if (job is BackupJob bkp) {
-            var dlg = new PasswordWindow();
-            var pwd = await dlg.ShowDialog<string>(MainWindow);
+            var pDlg = new PasswordDialog();
+            var pwd = await pDlg.Show<string>(MainWindow);
             if (string.IsNullOrEmpty(pwd))
                 return;
 

@@ -25,6 +25,11 @@ public abstract class BaseDialog : UserControl, IDisposable
         return Show<object?>(owner);
     }
 
+    public virtual void Opened()
+    {
+
+    }
+
     public virtual async Task<T?> Show<T>(Window? owner)
     {
         if (owner == null)
@@ -50,6 +55,8 @@ public abstract class BaseDialog : UserControl, IDisposable
         // Animate entrance
         container.Children.Add(this);
         await Animate(container.Bounds.Height, 0.0);
+        Focus();
+        Opened();
 
         while (!_closed)
             await Task.Delay(100);
