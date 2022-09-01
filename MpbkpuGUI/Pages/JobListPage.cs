@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using MpbkpuGUI.Abstracts;
+using MpbkpuGUI.Dialogs;
 using MpbkpuGUI.Models;
 using MpbkpuGUI.Views;
 
@@ -35,6 +36,9 @@ public class JobListPage : BasePage
 
     private async void OnJobDelete(object sender, Job job)
     {
+        var dlg = new MessageDialog();
+        await dlg.Show(App.GetMainWindow());
+
         if (await MessageWindow.ShowConfirmMessage(MainWindow, Localizer.Localizer.Instance["Confirm"],
                 Localizer.Localizer.Instance["ConfirmDeleteJob"], MessageWindow.Icons.Warning)) {
             App.Settings!.Jobs.Remove(job);

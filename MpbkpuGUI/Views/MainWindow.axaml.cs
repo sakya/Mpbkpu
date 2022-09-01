@@ -72,9 +72,7 @@ namespace MpbkpuGUI.Views
         {
             get
             {
-                if (_container?.Children.Count > 1)
-                    return _container.Children[1] as BasePage;
-                return null;
+                return _container?.Children.FirstOrDefault(c => c is BasePage) as BasePage;
             }
         }
 
