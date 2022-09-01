@@ -390,7 +390,7 @@ public class MediaFire : IFileManager
         return new FileSystemStream(this, res);
     }
 
-    public Task RenameFile(string? filePath, string? newName)
+    public async Task RenameFile(string? filePath, string? newName)
     {
         if (string.IsNullOrEmpty(filePath))
             throw new ArgumentNullException(filePath);
@@ -399,7 +399,15 @@ public class MediaFire : IFileManager
         if (newName.Contains(GetPathSeparator()))
             throw new ArgumentException($"The new name cannot contain '{GetPathSeparator()}'", newName);
 
-        throw new NotImplementedException();
+        filePath = GetPath(filePath);
+        var client = await GetClient();
+
+        await GetFileInfo(filePath);
+        var parentPath = Utility.Files.GetParent(GetPathSeparator(), filePath, out _);
+        var targetPath = Utility.Files.CombinePath(GetPathSeparator(), parentPath, newName);
+        if (await  FileExists(targetPath))
+            throw new Exception($"A file named {newName} already exists");
+        await client.FileMove(filePath: filePath, targetFolderPath: targetPath);
     }
 
     public async Task<bool> CloseFile(Stream stream)

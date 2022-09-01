@@ -53,10 +53,14 @@ public class OAuthTokenCache
 
         var enc = new EncryptDecrypt(_deviceId);
         if (cache.Tokens.TryGetValue(account, out var data)) {
-            data.AccessToken = await enc.Decrypt(data.AccessToken!);
-            data.RefreshToken = await enc.Decrypt(data.RefreshToken!);
+            try {
+                data.AccessToken = await enc.Decrypt(data.AccessToken!);
+                data.RefreshToken = await enc.Decrypt(data.RefreshToken!);
 
-            return data;
+                return data;
+            } catch {
+                // ignored
+            }
         }
 
         return null;
