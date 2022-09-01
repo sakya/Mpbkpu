@@ -36,11 +36,8 @@ public class JobListPage : BasePage
 
     private async void OnJobDelete(object sender, Job job)
     {
-        var dlg = new MessageDialog();
-        await dlg.Show(App.GetMainWindow());
-
-        if (await MessageWindow.ShowConfirmMessage(MainWindow, Localizer.Localizer.Instance["Confirm"],
-                Localizer.Localizer.Instance["ConfirmDeleteJob"], MessageWindow.Icons.Warning)) {
+        var dlg = new MessageDialog(Localizer.Localizer.Instance["ConfirmDeleteJob"], MessageDialog.Buttons.YesNo, MessageDialog.Icons.Warning);
+        if (await dlg.Show<bool?>(App.GetMainWindow()) == true) {
             App.Settings!.Jobs.Remove(job);
             await App.Settings.Save(App.SettingFile!);
             SetJobList();
@@ -59,11 +56,11 @@ public class JobListPage : BasePage
 
     private async void OnJobRun(object sender, Job job)
     {
-        if (await MessageWindow.ShowConfirmMessage(MainWindow, Localizer.Localizer.Instance["Confirm"],
-                Localizer.Localizer.Instance["ConfirmRunJob"])) {
+        var cDlg = new MessageDialog(Localizer.Localizer.Instance["ConfirmRunJob"], MessageDialog.Buttons.YesNo, MessageDialog.Icons.Warning);
+        if (await cDlg.Show<bool?>(App.GetMainWindow()) == true) {
             if (job is BackupJob bkp && bkp.Encrypted) {
-                var dlg = new PasswordWindow();
-                var pwd = await dlg.ShowDialog<string>(MainWindow);
+                var pDlg = new PasswordDialog();
+                var pwd = await pDlg.Show<string>(MainWindow);
                 if (string.IsNullOrEmpty(pwd))
                     return;
 

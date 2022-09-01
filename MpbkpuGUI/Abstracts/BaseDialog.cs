@@ -45,30 +45,51 @@ public abstract class BaseDialog : UserControl, IDisposable
         };
         container.Children.Add(border);
 
-        /*VerticalAlignment = VerticalAlignment.Bottom;
-        container.Children.Add(this);
-        while (!_closed)
-            await Task.Delay(100);
-        */
-
-        // Get dialog size
         VerticalAlignment = VerticalAlignment.Bottom;
-        var size = new Size(container.Bounds.Width, container.Bounds.Height);
-        Arrange(new Rect(size));
 
         // Animate entrance
+        container.Children.Add(this);
+        await Animate(container.Bounds.Height, 0.0);
+
+        while (!_closed)
+            await Task.Delay(100);
+
+        // Animate exit
+        await Animate(0.0, container.Bounds.Height);
+
+        container.Children.Remove(this);
+        container.Children.Remove(border);
+        owner.Closing -= OwnerOnClosing;
+
+        return (T?)_result;
+    }
+
+    private void OwnerOnClosing(object? sender, CancelEventArgs e)
+    {
+        e.Cancel = true;
+        Close(null);
+    }
+
+    public virtual void Close(object? result)
+    {
+        _result = result;
+        _closed = true;
+    }
+
+    #region private operations
+
+    private async Task Animate(double from, double to)
+    {
         IsHitTestVisible = false;
 
         AvaloniaProperty? property = TranslateTransform.YProperty;
-        var from = Bounds.Size.Height;
-        var to = container.Bounds.Height - Bounds.Size.Height;
         RenderTransform = new TranslateTransform() {
             Y = from
         };
 
         var enterAnim = new Animation()
         {
-            Duration = TimeSpan.FromMilliseconds(500),
+            Duration = TimeSpan.FromMilliseconds(250),
             Easing = new LinearEasing()
         };
 
@@ -94,33 +115,11 @@ public abstract class BaseDialog : UserControl, IDisposable
         });
         enterAnim.Children.Add(kf);
 
-        container.Children.Add(this);
         await enterAnim.RunAsync(this, null);
-
-        IsHitTestVisible = true;
         RenderTransform = new TranslateTransform() {
             Y = to
         };
-
-        while (!_closed)
-            await Task.Delay(100);
-
-        container.Children.Remove(this);
-        container.Children.Remove(border);
-        owner.Closing -= OwnerOnClosing;
-
-        return (T?)_result;
+        IsHitTestVisible = true;
     }
-
-    private void OwnerOnClosing(object? sender, CancelEventArgs e)
-    {
-        e.Cancel = true;
-        Close(null);
-    }
-
-    public virtual void Close(object? result)
-    {
-        _result = result;
-        _closed = true;
-    }
+    #endregion
 }

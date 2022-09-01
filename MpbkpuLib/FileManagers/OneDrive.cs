@@ -346,7 +346,7 @@ namespace MpbkpuLib.FileManagers
             var updateItem = new DriveItem
             {
                 Id = item.Id,
-                ParentReference = new()
+                ParentReference = new ItemReference
                 {
                     Id = item.ParentReference.Id
                 },
