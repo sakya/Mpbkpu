@@ -289,7 +289,7 @@ namespace MpbkpuLib.FileManagers
             }
         }
 
-        public Task RenameFile(string? filePath, string? newName)
+        public async Task RenameFile(string? filePath, string? newName)
         {
             if (string.IsNullOrEmpty(filePath))
                 throw new ArgumentNullException(filePath);
@@ -298,7 +298,17 @@ namespace MpbkpuLib.FileManagers
             if (newName.Contains(GetPathSeparator()))
                 throw new ArgumentException($"The new name cannot contain '{GetPathSeparator()}'", newName);
 
-            throw new NotImplementedException();
+            using var node = await Node.GetNode(GetPath(filePath), GetParamSet());
+            if (node == null || node.Type != NodeType.File)
+                throw new FileNotFoundException($"File {filePath} not found", filePath);
+
+            var parentPath = Utility.Files.GetParent( GetPathSeparator(), GetPath(filePath), out _);
+            var targetPath = Utility.Files.CombinePath(GetPathSeparator(), parentPath, newName);
+            using var targetNode = await Node.GetNode(GetPath(targetPath), GetParamSet());
+            if (targetNode != null)
+                throw new Exception($"A file named {newName} already exists");
+
+            await node.Move(targetPath);
         }
 
         public async Task<bool> CloseFile(Stream stream)

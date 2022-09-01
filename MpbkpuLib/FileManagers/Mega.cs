@@ -290,7 +290,7 @@ public class Mega : IFileManager
         return new FileSystemStream(this, res);
     }
 
-    public Task RenameFile(string? filePath, string? newName)
+    public async Task RenameFile(string? filePath, string? newName)
     {
         if (string.IsNullOrEmpty(filePath))
             throw new ArgumentNullException(filePath);
@@ -299,7 +299,18 @@ public class Mega : IFileManager
         if (newName.Contains(GetPathSeparator()))
             throw new ArgumentException($"The new name cannot contain '{GetPathSeparator()}'", newName);
 
-        throw new NotImplementedException();
+        filePath = GetPath(filePath);
+        var client = await GetClient();
+        var sourceNode = await GetNode(filePath);
+        if (sourceNode == null)
+            throw new FileNotFoundException($"File {filePath} not found", filePath);
+        var parentPath = GetParent(filePath, out _);
+        var parent = await GetNode(parentPath);
+        if (parent == null)
+            throw new Exception($"Folder {parentPath} not found");
+        if (await GetNode(Utility.Files.CombinePath(GetPathSeparator(), parentPath, newName)) != null)
+            throw new Exception($"A file named {newName} already exists");
+        await client.MoveAsync(sourceNode, parent);
     }
 
     public async Task<bool> CloseFile(Stream stream)

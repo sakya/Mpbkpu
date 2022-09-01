@@ -88,10 +88,17 @@ public abstract class BaseJob : IDisposable
         var info = await sourceFm.GetFileInfo(openRes.TempFilePath);
         progressAction?.Invoke(0, info.Size);
 
-        await using var sourceStream = await sourceFm.OpenFile(openRes.TempFilePath);
-        if (await BackupFm.FileExists(openRes.BackupFilePath))
-            await BackupFm.DeleteFile(openRes.BackupFilePath);
+        // Backup existing database
+        if (await BackupFm.FileExists(openRes.BackupFilePath)) {
+            var parent = Files.GetParent(BackupFm.GetPathSeparator(), openRes.BackupFilePath!, out _);
+            var backupDbPath = Files.CombinePath(BackupFm.GetPathSeparator(), parent, BackupFile.DatabaseBackupFileName);
+            if (await BackupFm.FileExists(backupDbPath)) {
+                await BackupFm.DeleteFile(backupDbPath);
+            }
+            await BackupFm.RenameFile(openRes.BackupFilePath, BackupFile.DatabaseBackupFileName);
+        }
 
+        await using var sourceStream = await sourceFm.OpenFile(openRes.TempFilePath);
         var destFileSize = Files.GetDestinationFileSize(sourceStream.Length, BackupFm.SupportCompression() ? CompressionLevel.SmallestSize : CompressionLevel.NoCompression,
             !string.IsNullOrEmpty(password));
         await using var destStream = await BackupFm.OpenFile(openRes.BackupFilePath, true, destFileSize);

@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.Net;
 using System.Text;
 using Dropbox.Api;
-using Dropbox.Api.FileProperties;
 using Dropbox.Api.Files;
 using MpbkpuLib.Interfaces;
 using MpbkpuLib.Utility;
@@ -386,7 +385,7 @@ public class Dropbox : IFileManager, IOAuth2
             throw new FileNotFoundException($"File {filePath} not found", filePath);
 
         var parent = Files.GetParent(GetPathSeparator(), filePath, out _);
-        var args = new RelocationArg(filePath, Utility.Files.CombinePath(GetPathSeparator(), parent, newName));
+        var args = new RelocationArg(filePath, Files.CombinePath(GetPathSeparator(), parent, newName));
         await client.Files.MoveV2Async(args);
     }
 

@@ -193,8 +193,11 @@ public class JobRunningPage : BasePage
             }
         } catch (Exception ex) {
             BackupJobOnLogEmitted(null, BaseJobSettings.LogLevels.Error, ex.Message);
-            await MessageWindow.ShowMessage(App.GetMainWindow(), Localizer.Localizer.Instance["Error"],
-                $"{Localizer.Localizer.Instance["AnErrorOccurred"]}{ex.Message}", MessageWindow.Icons.Error);
+            Dispatcher.UIThread.Post(() =>
+            {
+                _ = MessageWindow.ShowMessage(App.GetMainWindow(), Localizer.Localizer.Instance["Error"],
+                    $"{Localizer.Localizer.Instance["AnErrorOccurred"]}{ex.Message}", MessageWindow.Icons.Error);
+            });
         } finally {
             _model.Running = false;
             _model.ButtonText = Localizer.Localizer.Instance["Close"];

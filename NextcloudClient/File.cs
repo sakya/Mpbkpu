@@ -80,6 +80,41 @@ namespace NextcloudClient
             return await client.GetDownloadStream(new Uri(url));
         }
 
+        /// <summary>
+        /// Move a file
+        /// </summary>
+        /// <param name="client">The <see cref="Client"/></param>
+        /// <param name="sourcePath">The source path</param>
+        /// <param name="destinationPath">The destination path</param>
+        /// <param name="overwrite">If true the destination file is overwritten if it exists</param>
+        public static async Task Move(Client client, string sourcePath, string destinationPath, bool overwrite)
+        {
+            if (string.IsNullOrEmpty(sourcePath))
+                throw new ArgumentNullException(nameof(sourcePath));
+            if (string.IsNullOrEmpty(destinationPath))
+                throw new ArgumentNullException(nameof(destinationPath));
+
+            if (!sourcePath.StartsWith("/"))
+                sourcePath = $"/{sourcePath}";
+            if (!destinationPath.StartsWith("/"))
+                destinationPath = $"/{destinationPath}";
+
+            var url = $"{client.ServerUri}remote.php/dav/files/{client.UserId}{sourcePath}";
+            await client.CallApi<string>(new HttpMethod("MOVE"), new Uri(url), null,
+                new Dictionary<string, string>()
+                {
+                    { "Destination", destinationPath },
+                    { "Overwrite", overwrite ? "T" : "F" },
+                });
+        }
+
+        /// <summary>
+        /// Upload a <see cref="Stream"/>
+        /// </summary>
+        /// <param name="client">The <see cref="Client"/></param>
+        /// <param name="path">The path to upload the file</param>
+        /// <param name="stream">The <see cref="Stream"/></param>
+        /// <exception cref="ArgumentNullException"></exception>
         public static async Task Upload(Client client, string path, Stream stream)
         {
             if (string.IsNullOrEmpty(path))

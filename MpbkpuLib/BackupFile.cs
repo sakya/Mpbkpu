@@ -15,6 +15,7 @@ namespace MpbkpuLib;
 public class BackupFile : IDisposable
 {
     public const string DefaultDatabaseFileName = "mpbkpu.db";
+    public const string DatabaseBackupFileName = "mpbkpu.db.bak";
 
     #region classes
     public class OpenResult : IDisposable

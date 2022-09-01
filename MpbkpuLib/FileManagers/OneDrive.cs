@@ -343,8 +343,16 @@ namespace MpbkpuLib.FileManagers
             if (item.File == null)
                 throw new FileNotFoundException($"File {filePath} not found", filePath);
 
-            item.Name = newName;
-            await client.Drive.Root.ItemWithPath(filePath).Request().PutAsync(item);
+            var updateItem = new DriveItem
+            {
+                Id = item.Id,
+                ParentReference = new()
+                {
+                    Id = item.ParentReference.Id
+                },
+                Name = newName
+            };
+            await client.Drive.Root.ItemWithPath(filePath).Request().UpdateAsync(updateItem);
         }
 
         public async Task<bool> CloseFile(Stream stream)
