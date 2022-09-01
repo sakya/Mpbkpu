@@ -241,6 +241,7 @@ public class JobRunningPage : BasePage
                 Level = level,
                 Message = message
             });
+            App.UpdateLayout();
             var log = this.FindControl<ScrollViewer>("Log");
             log.ScrollToEnd();
         }, DispatcherPriority.Background);

@@ -55,13 +55,15 @@ public static class Files
         return path;
     }
 
-    public static string GetParent(char separator, string path, out string? childName)
+    public static string GetParent(char separator, string path, out string? childName, string? scheme = null)
     {
         childName = null;
         if (path.EndsWith(separator))
             path = path.Remove(path.Length - 1, 1);
-        if (!path.StartsWith(separator))
-            path = $"{separator}{path}";
+        if (string.IsNullOrEmpty(scheme) || !path.StartsWith(scheme, StringComparison.InvariantCultureIgnoreCase)) {
+            if (!path.StartsWith(separator))
+                path = $"{separator}{path}";
+        }
 
         int idx = path.LastIndexOf($"{separator}", StringComparison.InvariantCultureIgnoreCase);
         if (idx >= 0) {

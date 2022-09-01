@@ -109,9 +109,16 @@ public class BackupFile : IDisposable
             throw new Exception($"Directory {backupPath} does not exists");
 
         var backupDbPath = backupFm.CombinePath(backupPath, DefaultDatabaseFileName);
+        var backupDbBackupPath = backupFm.CombinePath(backupPath, DatabaseBackupFileName);
+        var exists = await backupFm.FileExists(backupDbPath);
+        if (!exists && await backupFm.FileExists(backupDbBackupPath)) {
+            backupDbPath = backupDbBackupPath;
+            exists = true;
+        }
+
         string? tempDbPath = null;
         bool encrypted = false;
-        if (await backupFm.FileExists(backupDbPath)) {
+        if (exists) {
             var info = await backupFm.GetFileInfo(backupDbPath);
             progressAction?.Invoke(0, info.Size);
             // Check header
