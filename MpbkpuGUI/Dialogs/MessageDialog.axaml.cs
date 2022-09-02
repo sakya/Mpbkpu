@@ -1,4 +1,5 @@
-﻿using Avalonia.Controls;
+﻿using System.Threading.Tasks;
+using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
@@ -26,7 +27,8 @@ public class MessageDialog : BaseDialog
         Info
     }
 
-    private MessageDialogModel _model;
+    private static MessageDialog? _openedMessageDialog;
+    private readonly MessageDialogModel _model;
     public MessageDialog()
     {
         _model = new MessageDialogModel();
@@ -130,4 +132,29 @@ public class MessageDialog : BaseDialog
     {
         Close(false);
     }
+
+    private static void CloseOpenedWindow()
+    {
+        if (_openedMessageDialog != null) {
+            _openedMessageDialog.Close(false);
+            _openedMessageDialog = null;
+        }
+    } // CloseOpenedWindow
+
+    public static async Task<bool> ShowMessage(Window? owner, string message, Icons icon = Icons.None)
+    {
+        CloseOpenedWindow();
+        _openedMessageDialog = new MessageDialog(message, MessageDialog.Buttons.Ok, icon);
+        await _openedMessageDialog.Show<bool>(owner);
+
+        return true;
+    } // ShowMessage
+
+    public static async Task<bool> ShowConfirmMessage(Window? owner, string message, Icons icon = Icons.Question)
+    {
+        CloseOpenedWindow();
+        _openedMessageDialog = new MessageDialog(message, Buttons.YesNo, icon);
+        return await _openedMessageDialog.Show<bool>(owner);
+    } // ShowConfirmMessage
+
 }

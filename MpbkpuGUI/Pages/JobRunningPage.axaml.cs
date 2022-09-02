@@ -7,6 +7,7 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using MpbkpuGUI.Abstracts;
+using MpbkpuGUI.Dialogs;
 using MpbkpuGUI.Models;
 using MpbkpuGUI.Views;
 using MpbkpuLib.Abstracts;
@@ -74,9 +75,8 @@ public class JobRunningPage : BasePage
     public override async Task<bool> OnNavigatingFrom(NavigationDirection direction)
     {
         if (_model.Running) {
-            if (await MessageWindow.ShowConfirmMessage(App.GetMainWindow(),
-                    Localizer.Localizer.Instance["Confirm"],
-                    Localizer.Localizer.Instance["ConfirmAbortBackup"], MessageWindow.Icons.Warning)) {
+            if (await MessageDialog.ShowConfirmMessage(App.GetMainWindow(),
+                    Localizer.Localizer.Instance["ConfirmAbortBackup"], MessageDialog.Icons.Warning)) {
                 await CancelBackup();
             }
 
@@ -188,15 +188,15 @@ public class JobRunningPage : BasePage
             }
 
             if (!backupRes.Success) {
-                await MessageWindow.ShowMessage(App.GetMainWindow(), Localizer.Localizer.Instance["Error"],
-                    $"{Localizer.Localizer.Instance["AnErrorOccurred"]}{backupRes.ErrorMessage}", MessageWindow.Icons.Error);
+                await MessageDialog.ShowMessage(App.GetMainWindow(),
+                    $"{Localizer.Localizer.Instance["AnErrorOccurred"]}{backupRes.ErrorMessage}", MessageDialog.Icons.Error);
             }
         } catch (Exception ex) {
             BackupJobOnLogEmitted(null, BaseJobSettings.LogLevels.Error, ex.Message);
             Dispatcher.UIThread.Post(() =>
             {
-                _ = MessageWindow.ShowMessage(App.GetMainWindow(), Localizer.Localizer.Instance["Error"],
-                    $"{Localizer.Localizer.Instance["AnErrorOccurred"]}{ex.Message}", MessageWindow.Icons.Error);
+                _ = MessageDialog.ShowMessage(App.GetMainWindow(),
+                    $"{Localizer.Localizer.Instance["AnErrorOccurred"]}{ex.Message}", MessageDialog.Icons.Error);
             });
         } finally {
             _model.Running = false;

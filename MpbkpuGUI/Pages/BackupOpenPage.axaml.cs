@@ -7,6 +7,7 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using MpbkpuGUI.Abstracts;
+using MpbkpuGUI.Dialogs;
 using MpbkpuGUI.Models;
 using MpbkpuGUI.Views;
 using MpbkpuLib;
@@ -50,8 +51,8 @@ public class BackupOpenPage : BasePage
         try {
             await Task.Run(OpenDatabase);
         } catch (Exception ex) {
-            await MessageWindow.ShowMessage(App.GetMainWindow(), Localizer.Localizer.Instance["Error"],
-                $"{Localizer.Localizer.Instance["AnErrorOccurred"]}{ex.Message}", MessageWindow.Icons.Error);
+            await MessageDialog.ShowMessage(App.GetMainWindow(),
+                $"{Localizer.Localizer.Instance["AnErrorOccurred"]}{ex.Message}", MessageDialog.Icons.Error);
         }
 
         var spinner = this.FindControl<Controls.Spinner>("Spinner");
@@ -108,9 +109,9 @@ public class BackupOpenPage : BasePage
     private async void OnDeleteClick(object? sender, RoutedEventArgs e)
     {
         if ((sender as Button)?.DataContext is BackupOpenPageModel.BackupData bkp) {
-            if (await MessageWindow.ShowConfirmMessage(MainWindow, Localizer.Localizer.Instance["Confirm"],
+            if (await MessageDialog.ShowConfirmMessage(MainWindow,
                     Localizer.Localizer.Instance["ConfirmDeleteBackup"],
-                    MessageWindow.Icons.Warning)) {
+                    MessageDialog.Icons.Warning)) {
                 await NavigateTo(new DeleteBackupPage(bkp.Backup!));
             }
         }

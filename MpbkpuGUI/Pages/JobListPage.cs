@@ -5,7 +5,6 @@ using Avalonia.Markup.Xaml;
 using MpbkpuGUI.Abstracts;
 using MpbkpuGUI.Dialogs;
 using MpbkpuGUI.Models;
-using MpbkpuGUI.Views;
 
 namespace MpbkpuGUI.Pages;
 
@@ -36,8 +35,7 @@ public class JobListPage : BasePage
 
     private async void OnJobDelete(object sender, Job job)
     {
-        var dlg = new MessageDialog(Localizer.Localizer.Instance["ConfirmDeleteJob"], MessageDialog.Buttons.YesNo, MessageDialog.Icons.Warning);
-        if (await dlg.Show<bool?>(App.GetMainWindow()) == true) {
+        if (await MessageDialog.ShowConfirmMessage(App.GetMainWindow(), Localizer.Localizer.Instance["ConfirmDeleteJob"], MessageDialog.Icons.Warning)) {
             App.Settings!.Jobs.Remove(job);
             await App.Settings.Save(App.SettingFile!);
             SetJobList();
@@ -56,8 +54,7 @@ public class JobListPage : BasePage
 
     private async void OnJobRun(object sender, Job job)
     {
-        var cDlg = new MessageDialog(Localizer.Localizer.Instance["ConfirmRunJob"], MessageDialog.Buttons.YesNo, MessageDialog.Icons.Question);
-        if (await cDlg.Show<bool?>(App.GetMainWindow()) == true) {
+        if (await MessageDialog.ShowConfirmMessage(App.GetMainWindow(), Localizer.Localizer.Instance["ConfirmRunJob"])) {
             if (job is BackupJob bkp && bkp.Encrypted) {
                 var pDlg = new PasswordDialog();
                 var pwd = await pDlg.Show<string>(MainWindow);
