@@ -53,6 +53,8 @@ public class MessageDialog : BaseDialog
         switch (buttons) {
             case Buttons.Ok:
                 _model.Button2Data.IsVisible = false;
+                _model.Button1Data.Column = 0;
+                _model.Button1Data.ColumnSpan = 2;
                 _model.Button1Data.Text = Localizer.Localizer.Instance["Ok"];
                 _model.Button1Data.IsCancel = true;
                 _model.Button1Data.IsDefault = true;

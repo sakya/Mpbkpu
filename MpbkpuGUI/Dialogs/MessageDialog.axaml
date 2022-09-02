@@ -50,7 +50,8 @@
             </Grid>
 
             <Button Grid.Row="1"
-                    Grid.Column="0"
+                    Grid.Column="{Binding Button2Data.Column}"
+                    Grid.ColumnSpan="{Binding Button2Data.ColumnSpan}"
                     Classes="Small"
                     Click="OnButton2Click"
                     Content="{Binding Button2Data.Text}"
@@ -59,7 +60,8 @@
                     IsCancel="{Binding Button2Data.IsCancel}"
                     Margin="0,15,2.5,0" />
             <Button Grid.Row="1"
-                    Grid.Column="1"
+                    Grid.Column="{Binding Button1Data.Column}"
+                    Grid.ColumnSpan="{Binding Button1Data.ColumnSpan}"
                     Classes="Small Accent"
                     Click="OnButton1Click"
                     Content="{Binding Button1Data.Text}"

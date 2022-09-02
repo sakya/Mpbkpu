@@ -39,13 +39,37 @@ public class MessageDialogModel : BaseModel
             get => _isCancel;
             set => SetField(ref _isCancel, value);
         }
+
+        private int _column;
+        public int Column
+        {
+            get => _column;
+            set => SetField(ref _column, value);
+        }
+
+        private int _columnSpan;
+        public int ColumnSpan
+        {
+            get => _columnSpan;
+            set => SetField(ref _columnSpan, value);
+        }
+
     }
 
     public MessageDialogModel()
     {
         IconVisible = true;
-        _button1Data = new ButtonData();
-        _button2Data = new ButtonData();
+        _button1Data = new ButtonData()
+        {
+            Column = 1,
+            ColumnSpan = 1
+        };
+
+        _button2Data = new ButtonData()
+        {
+            Column = 0,
+            ColumnSpan = 1
+        };
     }
 
     private string? _message;
