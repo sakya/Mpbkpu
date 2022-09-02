@@ -1,7 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Threading.Tasks;
-using Avalonia;
 using Avalonia.Animation;
 using Avalonia.Animation.Easings;
 using Avalonia.Controls;
@@ -97,7 +96,6 @@ public abstract class BaseDialog : UserControl, IDisposable
     {
         IsHitTestVisible = false;
 
-        AvaloniaProperty? property = TranslateTransform.YProperty;
         RenderTransform = new TranslateTransform() {
             Y = from
         };
@@ -114,7 +112,7 @@ public abstract class BaseDialog : UserControl, IDisposable
         };
         kf.Setters.Add(new Setter()
         {
-            Property = property,
+            Property = TranslateTransform.YProperty,
             Value = from
         });
         animation.Children.Add(kf);
@@ -125,7 +123,7 @@ public abstract class BaseDialog : UserControl, IDisposable
         };
         kf.Setters.Add(new Setter()
         {
-            Property = property,
+            Property = TranslateTransform.YProperty,
             Value = to
         });
         animation.Children.Add(kf);
@@ -139,8 +137,6 @@ public abstract class BaseDialog : UserControl, IDisposable
 
     private async Task AnimateBackdrop(Border backdrop, double from, double to)
     {
-        AvaloniaProperty? property = Control.OpacityProperty;
-
         backdrop.Opacity = from;
         var animation = new Animation()
         {
@@ -154,7 +150,7 @@ public abstract class BaseDialog : UserControl, IDisposable
         };
         kf.Setters.Add(new Setter()
         {
-            Property = property,
+            Property = OpacityProperty,
             Value = from
         });
         animation.Children.Add(kf);
@@ -165,7 +161,7 @@ public abstract class BaseDialog : UserControl, IDisposable
         };
         kf.Setters.Add(new Setter()
         {
-            Property = property,
+            Property = OpacityProperty,
             Value = to
         });
         animation.Children.Add(kf);
