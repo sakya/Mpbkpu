@@ -298,8 +298,7 @@ public class Nextcloud : IFileManager, IOAuth2
         await GetFileInfo(filePath);
         var parentPath = Utility.Files.GetParent(GetPathSeparator(), filePath, out _);
         var targetPath = Utility.Files.CombinePath(GetPathSeparator(), parentPath, newName);
-        var item = await NextcloudClient.File.GetInfo(client, targetPath);
-        if (item.Response.Count == 1)
+        if (await FileExists(targetPath))
             throw new Exception($"A file named {newName} already exists");
 
         await NextcloudClient.File.Move(client, filePath, targetPath, false);
