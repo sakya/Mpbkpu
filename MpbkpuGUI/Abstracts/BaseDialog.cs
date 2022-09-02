@@ -24,7 +24,7 @@ public abstract class BaseDialog : UserControl, IDisposable
         return Show<object?>(owner);
     }
 
-    public virtual void Opened()
+    protected virtual void Opened()
     {
 
     }
@@ -73,24 +73,23 @@ public abstract class BaseDialog : UserControl, IDisposable
         return (T?)_result;
     }
 
-    private void OwnerOnClosing(object? sender, CancelEventArgs e)
-    {
-        e.Cancel = true;
-        Close(null);
-    }
-
-    public virtual void Close()
+    protected virtual void Close()
     {
         Close(null);
     }
 
-    public virtual void Close(object? result)
+    protected virtual void Close(object? result)
     {
         _result = result;
         _closed = true;
     }
 
     #region private operations
+    private void OwnerOnClosing(object? sender, CancelEventArgs e)
+    {
+        e.Cancel = true;
+        Close(null);
+    }
 
     private async Task Animate(double from, double to)
     {

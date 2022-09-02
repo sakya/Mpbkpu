@@ -19,7 +19,7 @@ public partial class PasswordDialog : BaseDialog
         KeyDown += OnKeyDown;
     }
 
-    public override void Opened()
+    protected override void Opened()
     {
         this.FindControl<TextBox>("Password").Focus();
         base.Opened();

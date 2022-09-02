@@ -9,7 +9,6 @@ using Avalonia.Threading;
 using MpbkpuGUI.Abstracts;
 using MpbkpuGUI.Dialogs;
 using MpbkpuGUI.Models;
-using MpbkpuGUI.Views;
 using MpbkpuLib.Abstracts;
 using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
