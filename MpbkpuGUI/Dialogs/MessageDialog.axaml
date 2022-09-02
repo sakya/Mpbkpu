@@ -3,8 +3,13 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:i="clr-namespace:Projektanker.Icons.Avalonia;assembly=Projektanker.Icons.Avalonia"
+             xmlns:models="clr-namespace:MpbkpuGUI.Dialogs.Models"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="MpbkpuGUI.Dialogs.MessageDialog">
+
+    <Design.DataContext>
+        <models:MessageDialogModel />
+    </Design.DataContext>
 
     <Panel>
         <ExperimentalAcrylicBorder IsHitTestVisible="False">
@@ -32,12 +37,36 @@
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
-                <i:Icon Name="Icon" Margin="0,2,5,0" VerticalAlignment="Top" Foreground="{DynamicResource HighlightColor}" />
-                <TextBlock Grid.Column="1" Name="Message" TextWrapping="Wrap" HorizontalAlignment="Left" />
+                <i:Icon
+                    Margin="0,2,5,0"
+                    VerticalAlignment="Top"
+                    IsVisible="{Binding IconVisible}"
+                    Foreground="{Binding IconBrush}"
+                    Value="{Binding Icon}"/>
+                <TextBlock Grid.Column="1"
+                           Text="{Binding Message}"
+                           TextWrapping="Wrap"
+                           HorizontalAlignment="Left" />
             </Grid>
 
-            <Button Grid.Row="1" Grid.Column="0" Name="Button2" Classes="Small" Click="OnButton2Click" IsCancel="True" Margin="0,15,2.5,0">No</Button>
-            <Button Grid.Row="1" Grid.Column="1" Name="Button1" Classes="Small Accent Ok" Click="OnButton1Click" IsDefault="True" Margin="2.5,15,0,0">Yes</Button>
+            <Button Grid.Row="1"
+                    Grid.Column="0"
+                    Classes="Small"
+                    Click="OnButton2Click"
+                    Content="{Binding Button2Data.Text}"
+                    IsVisible="{Binding Button2Data.IsVisible}"
+                    IsDefault="{Binding Button2Data.IsDefault}"
+                    IsCancel="{Binding Button2Data.IsCancel}"
+                    Margin="0,15,2.5,0" />
+            <Button Grid.Row="1"
+                    Grid.Column="1"
+                    Classes="Small Accent"
+                    Click="OnButton1Click"
+                    Content="{Binding Button1Data.Text}"
+                    IsVisible="{Binding Button1Data.IsVisible}"
+                    IsDefault="{Binding Button1Data.IsDefault}"
+                    IsCancel="{Binding Button2Data.IsCancel}"
+                    Margin="2.5,15,0,0" />
         </Grid>
     </Panel>
 </UserControl>

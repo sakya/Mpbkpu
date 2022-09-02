@@ -56,7 +56,7 @@ public class JobListPage : BasePage
 
     private async void OnJobRun(object sender, Job job)
     {
-        var cDlg = new MessageDialog(Localizer.Localizer.Instance["ConfirmRunJob"], MessageDialog.Buttons.YesNo, MessageDialog.Icons.Warning);
+        var cDlg = new MessageDialog(Localizer.Localizer.Instance["ConfirmRunJob"], MessageDialog.Buttons.YesNo, MessageDialog.Icons.Question);
         if (await cDlg.Show<bool?>(App.GetMainWindow()) == true) {
             if (job is BackupJob bkp && bkp.Encrypted) {
                 var pDlg = new PasswordDialog();

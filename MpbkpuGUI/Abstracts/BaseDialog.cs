@@ -77,6 +77,11 @@ public abstract class BaseDialog : UserControl, IDisposable
         Close(null);
     }
 
+    public virtual void Close()
+    {
+        Close(null);
+    }
+    
     public virtual void Close(object? result)
     {
         _result = result;

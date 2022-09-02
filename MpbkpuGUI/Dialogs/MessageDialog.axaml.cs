@@ -1,14 +1,14 @@
-﻿using Avalonia;
-using Avalonia.Controls;
+﻿using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using MpbkpuGUI.Abstracts;
+using MpbkpuGUI.Dialogs.Models;
 
 namespace MpbkpuGUI.Dialogs;
 
-public partial class MessageDialog : BaseDialog
+public class MessageDialog : BaseDialog
 {
     public enum Buttons
     {
@@ -26,75 +26,76 @@ public partial class MessageDialog : BaseDialog
         Info
     }
 
+    private MessageDialogModel _model;
     public MessageDialog()
     {
+        _model = new MessageDialogModel();
+        DataContext = _model;
     }
 
     public MessageDialog(string message, Buttons buttons = Buttons.YesNo, Icons icon = Icons.None)
     {
+        _model = new MessageDialogModel();
+        DataContext = _model;
         InitializeComponent();
 
         KeyDown += OnKeyDown;
 
-        var txt = this.FindControl<TextBlock>("Message");
-        txt.Text = message;
+        _model.Message = message;
 
-        var btn1 = this.FindControl<Button>("Button1");
-        var btn2 = this.FindControl<Button>("Button2");
-        btn1.IsCancel = false;
-        btn1.IsDefault = false;
-        btn2.IsCancel = false;
-        btn2.IsDefault = false;
+        _model.Button1Data.IsCancel = false;
+        _model.Button1Data.IsDefault = false;
+        _model.Button2Data.IsCancel = false;
+        _model.Button2Data.IsDefault = false;
 
         switch (buttons) {
             case Buttons.Ok:
-                btn2.IsVisible = false;
-                btn1.Content = Localizer.Localizer.Instance["Ok"];
-                btn1.IsCancel = true;
-                btn1.IsDefault = true;
+                _model.Button2Data.IsVisible = false;
+                _model.Button1Data.Text = Localizer.Localizer.Instance["Ok"];
+                _model.Button1Data.IsCancel = true;
+                _model.Button1Data.IsDefault = true;
                 break;
             case Buttons.OkCancel:
-                btn1.Content = Localizer.Localizer.Instance["Ok"];
-                btn1.IsDefault = true;
-                btn2.Content = Localizer.Localizer.Instance["Cancel"];
-                btn2.IsCancel = true;
+                _model.Button1Data.Text = Localizer.Localizer.Instance["Ok"];
+                _model.Button1Data.IsDefault = true;
+                _model.Button2Data.Text = Localizer.Localizer.Instance["Cancel"];
+                _model.Button2Data.IsCancel = true;
                 break;
             case Buttons.YesNo:
-                btn1.Content = Localizer.Localizer.Instance["Yes"];
-                btn1.IsDefault = true;
-                btn2.Content = Localizer.Localizer.Instance["No"];
-                btn2.IsCancel = true;
+                _model.Button1Data.Text = Localizer.Localizer.Instance["Yes"];
+                _model.Button1Data.IsDefault = true;
+                _model.Button2Data.Text = Localizer.Localizer.Instance["No"];
+                _model.Button2Data.IsCancel = true;
                 break;
         }
 
-        var i = this.FindControl<Projektanker.Icons.Avalonia.Icon>("Icon");
         switch (icon) {
             case Icons.None:
-                i.IsVisible = false;
+                _model.IconVisible = false;
                 break;
             case Icons.Warning:
-                i.Value = "fas fa-exclamation-triangle";
+                _model.Icon = "fas fa-exclamation-triangle";
                 var wc = App.GetStyleColor("WarningColor");
                 if (wc != null)
-                    i.Foreground = new SolidColorBrush(wc.Value);
+                    _model.IconBrush = new SolidColorBrush(wc.Value);
                 break;
             case Icons.Error:
-                i.Value = "fas fa-exclamation-triangle";
+                _model.Icon = "fas fa-exclamation-triangle";
                 var ec = App.GetStyleColor("DangerColor");
                 if (ec != null)
-                    i.Foreground = new SolidColorBrush(ec.Value);
+                    _model.IconBrush = new SolidColorBrush(ec.Value);
                 break;
             case Icons.Info:
-                i.Value = "fas fa-info-circle";
+                _model.Icon = "fas fa-info-circle";
                 var ic = App.GetStyleColor("InfoColor");
                 if (ic != null)
-                    i.Foreground = new SolidColorBrush(ic.Value);
+                    _model.IconBrush = new SolidColorBrush(ic.Value);
                 break;
             case Icons.Question:
-                i.Value = "fas fa-question-circle";
+                _model.Icon = "fas fa-question-circle";
                 var qc = App.GetStyleColor("InfoColor");
                 if (qc != null)
-                    i.Foreground = new SolidColorBrush(qc.Value);
+                    _model.IconBrush = new SolidColorBrush(qc.Value);
                 break;
         }
     }
@@ -108,16 +109,13 @@ public partial class MessageDialog : BaseDialog
     {
         base.OnKeyDown(e);
 
-        var btn1 = this.FindControl<Button>("Button1");
-        var btn2 = this.FindControl<Button>("Button2");
+        var cancelBtn = _model.Button1Data.IsCancel  || _model.Button2Data.IsCancel;
+        var defaultBtn = _model.Button1Data.IsDefault  || _model.Button2Data.IsDefault;
 
-        var cancelBtn = btn1.IsCancel ? btn1 : btn2.IsCancel ? btn2 : null;
-        var defaultBtn = btn1.IsDefault ? btn1 : btn2.IsDefault ? btn2 : null;
-
-        if (e.Key == Key.Enter && defaultBtn != null) {
+        if (e.Key == Key.Enter && defaultBtn) {
             e.Handled = true;
             Close(true);
-        } else if (e.Key == Key.Escape && cancelBtn != null) {
+        } else if (e.Key == Key.Escape && cancelBtn) {
             e.Handled = true;
             Close(false);
         }

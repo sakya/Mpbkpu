@@ -92,7 +92,7 @@ public abstract class BaseJob : IDisposable
             var parent = BackupFm is FileSystem ?
                 Path.GetDirectoryName(openRes.BackupFilePath) :
                 Files.GetParent(BackupFm.GetPathSeparator(), openRes.BackupFilePath!, out _, BackupFm.GetScheme());
-            var backupDbPath = Files.CombinePath(BackupFm.GetPathSeparator(), parent, BackupFile.DatabaseBackupFileName);
+            var backupDbPath = Files.CombinePath(BackupFm.GetPathSeparator(), parent!, BackupFile.DatabaseBackupFileName);
             if (await BackupFm.FileExists(backupDbPath)) {
                 await BackupFm.DeleteFile(backupDbPath);
             }
