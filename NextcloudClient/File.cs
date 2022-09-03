@@ -103,7 +103,7 @@ namespace NextcloudClient
             await client.CallApi<string>(new HttpMethod("MOVE"), new Uri(url), null,
                 new Dictionary<string, string>()
                 {
-                    { "Destination", destinationPath },
+                    { "Destination", $"{client.ServerUri}remote.php/dav/files/{client.UserId}{destinationPath}"},
                     { "Overwrite", overwrite ? "T" : "F" },
                 });
         }

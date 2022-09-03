@@ -322,7 +322,8 @@ public class BackupJob : BaseJob
             TotalFiles = cArgs.FilesToBackup
         };
         var filesToBackup = backupFile.Files.AsNoTracking()
-                            .Where(f => f.FileAction == File.FileActions.Backup || f.FileAction == File.FileActions.Delete);
+                            .Where(f => f.FileAction == File.FileActions.Backup || f.FileAction == File.FileActions.Delete)
+                            .OrderBy(f => f.RelativePath);
         foreach (var fileToBackup in filesToBackup) {
             if (_cancellationToken?.IsCancellationRequested == true) {
                 LogInfo("Cancelled by user");
