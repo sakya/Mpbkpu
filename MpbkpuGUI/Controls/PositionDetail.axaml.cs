@@ -5,10 +5,11 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using MpbkpuGUI.Abstracts;
 using MpbkpuGUI.Controls.Models;
+using MpbkpuGUI.Interfaces;
 
 namespace MpbkpuGUI.Controls;
 
-public class PositionDetail : UserControl
+public class PositionDetail : UserControl, IValidate
 {
     private readonly PositionDetailModel _model = new();
 
@@ -86,5 +87,16 @@ public class PositionDetail : UserControl
         if (!string.IsNullOrEmpty(dir)) {
             _model.Path = dir;
         }
+    }
+
+    public bool Validate()
+    {
+        _model.Errors = null;
+        var errors = new List<Controls.ErrorContainer.ErrorData>();
+        if (string.IsNullOrEmpty(_model.Path))
+            errors.Add(new ErrorContainer.ErrorData("Path", Localizer.Localizer.Instance["RequiredError"]));
+
+        _model.Errors = errors;
+        return errors.Count == 0;
     }
 }

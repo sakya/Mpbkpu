@@ -1,9 +1,11 @@
+using System.Collections.Generic;
 using System.Runtime.InteropServices.ComTypes;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using MpbkpuGUI.Abstracts;
+using MpbkpuGUI.Controls;
 using MpbkpuGUI.Dialogs.Models;
 
 namespace MpbkpuGUI.Dialogs;
@@ -44,8 +46,18 @@ public class PasswordDialog : BaseDialog
 
     private void OnOkClick(object? sender, RoutedEventArgs e)
     {
-        if (!string.IsNullOrEmpty(_model.Password))
-            Close(_model.Password);
+        _model.Errors = null;
+        var errors = new List<Controls.ErrorContainer.ErrorData>();
+        if (string.IsNullOrEmpty(_model.Password))
+            errors.Add(new ErrorContainer.ErrorData("Password", Localizer.Localizer.Instance["RequiredError"]));
+        else if (_model.Password.Length < 8)
+            errors.Add(new ErrorContainer.ErrorData("Password", Localizer.Localizer.Instance["PasswordMinLengthError"]));
+        if (errors.Count > 0) {
+            _model.Errors = errors;
+            return;
+        }
+
+        Close(_model.Password);
     }
 
     private void OnCancelClick(object? sender, RoutedEventArgs e)

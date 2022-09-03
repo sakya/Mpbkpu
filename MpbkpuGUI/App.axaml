@@ -43,6 +43,14 @@
             <Setter Property="FontWeight" Value="{StaticResource FontWeight}" />
         </Style>
 
+        <Style Selector="TextBox.Error">
+            <Setter Property="BorderBrush" Value="{StaticResource DangerColor}" />
+        </Style>
+
+        <Style Selector="TextBox.Error:focus /template/ Border#PART_BorderElement">
+            <Setter Property="BorderBrush" Value="{StaticResource DangerColor}"/>
+        </Style>
+
         <Style Selector="TextBlock">
             <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         </Style>

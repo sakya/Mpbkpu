@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using MpbkpuGUI.Abstracts;
+using MpbkpuGUI.Controls;
 using MpbkpuGUI.Models;
 using MpbkpuLib.DataModel;
 
@@ -12,11 +13,14 @@ namespace MpbkpuGUI.Pages;
 
 public class JobSettingsPage : BasePage
 {
+    private readonly JobSettingsPageModel _model;
     private readonly string _jobId;
     private readonly Job _job;
 
     public JobSettingsPage()
     {
+        _model = new JobSettingsPageModel();
+        DataContext = _model;
         _jobId = string.Empty;
         _job = new BackupJob();
         InitializeComponent();
@@ -26,7 +30,12 @@ public class JobSettingsPage : BasePage
     {
         _jobId = job.Id;
         _job = job.Copy();
-        DataContext = _job;
+
+        _model = new JobSettingsPageModel()
+        {
+            Job = _job
+        };
+        DataContext = _model;
         InitializeComponent();
     }
 
@@ -82,6 +91,10 @@ public class JobSettingsPage : BasePage
         _job.Source = ctrl.Value;
         ctrl = this.FindControl<Controls.PositionDetail>("Destination");
         _job.Destination = ctrl.Value;
+
+        if (!Validate())
+            return;
+
         var job = App.Settings!.Jobs
             .FirstOrDefault(j => j.Id == _jobId);
         if (job != null) {
@@ -92,5 +105,21 @@ public class JobSettingsPage : BasePage
         }
         await App.Settings.Save(App.SettingFile!);
         await MainWindow!.NavigateBack();
+    }
+
+    private bool Validate()
+    {
+        _model.Errors = null;
+        var errors = new List<Controls.ErrorContainer.ErrorData>();
+        if (string.IsNullOrEmpty(_model.Job!.Name))
+            errors.Add(new ErrorContainer.ErrorData("Name", Localizer.Localizer.Instance["RequiredError"]));
+
+        var ctrl = this.FindControl<Controls.PositionDetail>("Source");
+        var sValid = ctrl.Validate();
+        ctrl = this.FindControl<Controls.PositionDetail>("Destination");
+        var dValid = ctrl.Validate();
+
+        _model.Errors = errors;
+        return sValid && dValid && errors.Count == 0;
     }
 }

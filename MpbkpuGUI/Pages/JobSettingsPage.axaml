@@ -2,7 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:local="clr-namespace:MpbkpuGUI.Abstracts"
+             xmlns:models="clr-namespace:MpbkpuGUI.Models"
              xmlns:i="clr-namespace:Projektanker.Icons.Avalonia;assembly=Projektanker.Icons.Avalonia"
              xmlns:i18n="clr-namespace:MpbkpuGUI.Localizer"
              xmlns:controls="clr-namespace:MpbkpuGUI.Controls"
@@ -11,7 +11,7 @@
              x:Class="MpbkpuGUI.Pages.JobSettingsPage">
 
     <Design.DataContext>
-        <local:Job />
+        <models:JobSettingsPageModel />
     </Design.DataContext>
     <UserControl.Resources>
         <converters:IsBackupJobConverter x:Key="IsBackupJobConverter"/>
@@ -50,13 +50,18 @@
                 </Grid.RowDefinitions>
 
                 <Label Content="{i18n:Localize Name}" />
-                <TextBox Name="Name" Grid.Row="1" Text="{Binding Name, Mode=TwoWay}" />
+                <controls:ErrorContainer Name="NameError" Grid.Row="1" FieldName="Name"
+                                         Errors="{Binding $parent.DataContext.Errors}">
+                    <controls:ErrorContainer.Control>
+                        <TextBox Name="Name" Text="{Binding $parent[3].DataContext.Job.Name, Mode=TwoWay}" />
+                    </controls:ErrorContainer.Control>
+                </controls:ErrorContainer>
 
                 <Label Grid.Row="2" Content="{i18n:Localize Type}" Margin="0,5,0,0"
-                       IsVisible="{Binding ., Mode=TwoWay, Converter={StaticResource IsBackupJobConverter}}"/>
+                       IsVisible="{Binding Job, Converter={StaticResource IsBackupJobConverter}}"/>
                 <ComboBox Grid.Row="3" Name="CmbType"
-                          IsVisible="{Binding ., Mode=TwoWay, Converter={StaticResource IsBackupJobConverter}}"
-                          SelectedItem="{Binding Type, Mode=TwoWay}"/>
+                          IsVisible="{Binding Job, Converter={StaticResource IsBackupJobConverter}}"
+                          SelectedItem="{Binding Job.Type, Mode=TwoWay}"/>
 
                 <Grid Grid.Row="4">
                     <Grid.RowDefinitions>
@@ -94,23 +99,23 @@
                 </Grid>
 
                 <Label Grid.Row="5" Content="{i18n:Localize CompressionLevel}" Margin="0,5,0,0"
-                       IsVisible="{Binding ., Mode=TwoWay, Converter={StaticResource IsBackupJobConverter}}"/>
+                       IsVisible="{Binding Job, Converter={StaticResource IsBackupJobConverter}}"/>
                 <ComboBox Grid.Row="6" Name="CmbCompressionLevel"
-                          IsVisible="{Binding ., Mode=TwoWay, Converter={StaticResource IsBackupJobConverter}}"
-                          SelectedItem="{Binding CompressionLevel, Mode=TwoWay}"/>
+                          IsVisible="{Binding Job, Converter={StaticResource IsBackupJobConverter}}"
+                          SelectedItem="{Binding Job.CompressionLevel, Mode=TwoWay}"/>
 
                 <Label Grid.Row="7" Content="{i18n:Localize Encrypted}"
-                       IsVisible="{Binding ., Mode=TwoWay, Converter={StaticResource IsBackupJobConverter}}"
+                       IsVisible="{Binding Job, Converter={StaticResource IsBackupJobConverter}}"
                        Margin="0,5,0,0" />
                 <CheckBox Grid.Row="8"
-                          IsVisible="{Binding ., Mode=TwoWay, Converter={StaticResource IsBackupJobConverter}}"
-                          IsChecked="{Binding Encrypted, Mode=TwoWay}"></CheckBox>
+                          IsVisible="{Binding Job, Converter={StaticResource IsBackupJobConverter}}"
+                          IsChecked="{Binding Job.Encrypted, Mode=TwoWay}"></CheckBox>
 
                 <Label Grid.Row="9" Content="{i18n:Localize HashCheck}" Margin="0,5,0,0" />
-                <CheckBox Grid.Row="10" IsChecked="{Binding !SkipHashCheck, Mode=TwoWay}"></CheckBox>
+                <CheckBox Grid.Row="10" IsChecked="{Binding !Job.SkipHashCheck, Mode=TwoWay}"></CheckBox>
 
                 <Label Grid.Row="11" Content="{i18n:Localize RetryOnError}" Margin="0,5,0,0" />
-                <NumericUpDown Grid.Row="12" Value="{Binding RetryOnError, Mode=TwoWay}"
+                <NumericUpDown Grid.Row="12" Value="{Binding Job.RetryOnError, Mode=TwoWay}"
                                Minimum="1"
                                Maximum="255"/>
             </Grid>

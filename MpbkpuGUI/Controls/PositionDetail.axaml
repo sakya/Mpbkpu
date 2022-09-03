@@ -5,6 +5,7 @@
              xmlns:i="clr-namespace:Projektanker.Icons.Avalonia;assembly=Projektanker.Icons.Avalonia"
              xmlns:i18n="clr-namespace:MpbkpuGUI.Localizer"
              xmlns:models="clr-namespace:MpbkpuGUI.Controls.Models"
+             xmlns:controls="clr-namespace:MpbkpuGUI.Controls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="MpbkpuGUI.Controls.PositionDetail">
     <Design.DataContext>
@@ -51,10 +52,16 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <TextBox  Text="{Binding  Path, Mode=TwoWay}"
-                      Height="35"/>
+            <controls:ErrorContainer Name="NameError" Grid.Row="1" FieldName="Path"
+                                     Errors="{Binding $parent.DataContext.Errors}">
+                <controls:ErrorContainer.Control>
+                    <TextBox  Text="{Binding $parent[3].DataContext.Path, Mode=TwoWay}"
+                              Height="35"/>
+                </controls:ErrorContainer.Control>
+            </controls:ErrorContainer>
             <Button Grid.Column="1"
                     IsVisible="{Binding IsLocalFileSystem}"
+                    VerticalAlignment="Top"
                     Click="OnBrowseClick"
                     Padding="15,0,15,0"
                     Height="35">

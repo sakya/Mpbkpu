@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using MpbkpuGUI.Abstracts;
 
 namespace MpbkpuGUI.Controls.Models;
@@ -23,6 +21,13 @@ public sealed class PositionDetailModel : BaseModel
                 OnPropertyChanged(nameof(SupportCompression));
             }
         }
+    }
+
+    private List<ErrorContainer.ErrorData>? _errors;
+    public List<ErrorContainer.ErrorData>? Errors
+    {
+        get => _errors;
+        set => SetField(ref _errors, value);
     }
 
     private string? _path;
