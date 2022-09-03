@@ -282,7 +282,8 @@ public class RestoreJob : BaseJob
             Step?.Invoke(this, Steps.DeleteFiles);
             var filesToDelete = backupFile.Files.AsNoTracking()
                 .Where(f => f.FileAction == File.FileActions.Restore)
-                .OrderByDescending(f => f.Type);
+                .OrderBy(f => f.RelativePath)
+                .ThenBy(f => f.Type);
             foreach (var fileToDelete in filesToDelete) {
                 if (_cancellationToken?.IsCancellationRequested == true) {
                     LogInfo("Cancelled by user");
@@ -319,7 +320,8 @@ public class RestoreJob : BaseJob
             .ThenInclude(i => i!.Backup)
             .AsNoTracking()
             .Where(f => f.FileAction == File.FileActions.Restore)
-            .OrderByDescending(f => f.Type);
+            .OrderBy(f => f.RelativePath)
+            .ThenByDescending(f => f.Type);
         foreach (var fileToRestore in filesToRestore) {
             var tryCount = 0;
             while (++tryCount <= Settings.RetryOnError) {
