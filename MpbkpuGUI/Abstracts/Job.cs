@@ -97,11 +97,14 @@ public abstract class Job
     public bool SkipHashCheck { get; set; } = false;
     public int RetryOnError { get; set; } = 3;
     public DateTime? LastRun { get; set; }
-    public string? LogFile { get; set; }
 
     public Job Copy()
     {
-        var settings = new JsonSerializerSettings() { TypeNameHandling = TypeNameHandling.Objects };
+        var settings = new JsonSerializerSettings()
+        {
+            TypeNameHandling = TypeNameHandling.Objects,
+            NullValueHandling = NullValueHandling.Ignore
+        };
         var objectSerialized = JsonConvert.SerializeObject(this, settings);
         return JsonConvert.DeserializeObject<Job>(objectSerialized, settings)!;
     }

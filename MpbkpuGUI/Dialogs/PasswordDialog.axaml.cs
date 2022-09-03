@@ -1,15 +1,21 @@
+using System.Runtime.InteropServices.ComTypes;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using MpbkpuGUI.Abstracts;
+using MpbkpuGUI.Dialogs.Models;
 
 namespace MpbkpuGUI.Dialogs;
 
-public partial class PasswordDialog : BaseDialog
+public class PasswordDialog : BaseDialog
 {
+    private readonly PasswordDialogModel _model;
     public PasswordDialog()
     {
+        _model = new PasswordDialogModel();
+        DataContext = _model;
+
         InitializeComponent();
     }
 
@@ -38,9 +44,8 @@ public partial class PasswordDialog : BaseDialog
 
     private void OnOkClick(object? sender, RoutedEventArgs e)
     {
-        var pwd = this.FindControl<TextBox>("Password");
-        if (!string.IsNullOrEmpty(pwd.Text))
-            Close(pwd.Text);
+        if (!string.IsNullOrEmpty(_model.Password))
+            Close(_model.Password);
     }
 
     private void OnCancelClick(object? sender, RoutedEventArgs e)

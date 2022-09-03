@@ -5,6 +5,7 @@ using Avalonia.Markup.Xaml;
 using MpbkpuGUI.Abstracts;
 using MpbkpuGUI.Dialogs;
 using MpbkpuGUI.Models;
+using MpbkpuLib.DataModel;
 
 namespace MpbkpuGUI.Pages;
 
@@ -44,7 +45,10 @@ public class JobListPage : BasePage
 
     private async void OnNewBackupClick(object? sender, RoutedEventArgs e)
     {
-        await MainWindow!.NavigateTo(new JobSettingsPage(new BackupJob()));
+        await MainWindow!.NavigateTo(new JobSettingsPage(new BackupJob()
+        {
+            Type = Backup.BackupTypes.Full
+        }));
     }
 
     private async void OnNewSyncClick(object? sender, RoutedEventArgs e)
@@ -89,6 +93,6 @@ public class JobListPage : BasePage
 
     private void OnExitClick(object? sender, RoutedEventArgs e)
     {
-        App.GetMainWindow()!.Close();;
+        App.GetMainWindow()!.Close();
     }
 }
