@@ -98,6 +98,7 @@ public class ErrorContainer : UserControl
         set
         {
             if (SetAndRaise(ErrorsProperty, ref _errors, value)) {
+                Error = null;
                 var err = value?
                     .FirstOrDefault(e => e.FieldName == FieldName);
                 if (err != null)

@@ -13,12 +13,6 @@ public class PositionDetail : UserControl, IValidate
 {
     private readonly PositionDetailModel _model = new();
 
-    public static readonly DirectProperty<PositionDetail, Job.Position?> ValueProperty =
-        AvaloniaProperty.RegisterDirect<PositionDetail, Job.Position?>(
-            nameof(Value),
-            o => o.Value,
-            (o, v) => o.Value = v);
-
     public PositionDetail()
     {
         DataContext = _model;
@@ -77,6 +71,7 @@ public class PositionDetail : UserControl, IValidate
     {
         if (sender is ComboBox { SelectedItem: { } } cmb) {
             _model.Type = (Job.Position.FileSystemTypes)cmb.SelectedItem;
+            _model.Errors = null;
         }
     }
 
@@ -95,6 +90,40 @@ public class PositionDetail : UserControl, IValidate
         var errors = new List<Controls.ErrorContainer.ErrorData>();
         if (string.IsNullOrEmpty(_model.Path))
             errors.Add(new ErrorContainer.ErrorData("Path", Localizer.Localizer.Instance["RequiredError"]));
+
+        switch (_model.Type) {
+            case Job.Position.FileSystemTypes.Ftp:
+            case Job.Position.FileSystemTypes.Sftp:
+                if (string.IsNullOrEmpty(_model.User))
+                    errors.Add(new ErrorContainer.ErrorData("User", Localizer.Localizer.Instance["RequiredError"]));
+                break;
+            case Job.Position.FileSystemTypes.Mega:
+                if (string.IsNullOrEmpty(_model.User))
+                    errors.Add(new ErrorContainer.ErrorData("User", Localizer.Localizer.Instance["RequiredError"]));
+                if (string.IsNullOrEmpty(_model.Password))
+                    errors.Add(new ErrorContainer.ErrorData("Password", Localizer.Localizer.Instance["RequiredError"]));
+                break;
+            case Job.Position.FileSystemTypes.Nextcloud:
+                if (string.IsNullOrEmpty(_model.User))
+                    errors.Add(new ErrorContainer.ErrorData("User", Localizer.Localizer.Instance["RequiredError"]));
+                if (_model.OauthServerUrl == null)
+                    errors.Add(new ErrorContainer.ErrorData("OauthServerUrl", Localizer.Localizer.Instance["RequiredError"]));
+                break;
+            case Job.Position.FileSystemTypes.DropBox:
+                if (string.IsNullOrEmpty(_model.User))
+                    errors.Add(new ErrorContainer.ErrorData("User", Localizer.Localizer.Instance["RequiredError"]));
+                break;
+            case Job.Position.FileSystemTypes.MediaFire:
+                if (string.IsNullOrEmpty(_model.User))
+                    errors.Add(new ErrorContainer.ErrorData("User", Localizer.Localizer.Instance["RequiredError"]));
+                if (string.IsNullOrEmpty(_model.Password))
+                    errors.Add(new ErrorContainer.ErrorData("Password", Localizer.Localizer.Instance["RequiredError"]));
+                break;
+            case Job.Position.FileSystemTypes.OneDrive:
+                if (string.IsNullOrEmpty(_model.User))
+                    errors.Add(new ErrorContainer.ErrorData("User", Localizer.Localizer.Instance["RequiredError"]));
+                break;
+        }
 
         _model.Errors = errors;
         return errors.Count == 0;

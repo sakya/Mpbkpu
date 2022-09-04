@@ -52,7 +52,7 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <controls:ErrorContainer Name="NameError" Grid.Row="1" FieldName="Path"
+            <controls:ErrorContainer FieldName="Path"
                                      Errors="{Binding $parent.DataContext.Errors}">
                 <controls:ErrorContainer.Control>
                     <TextBox  Text="{Binding $parent[3].DataContext.Path, Mode=TwoWay}"
@@ -71,18 +71,34 @@
 
         <Label Grid.Row="4" Content="{i18n:Localize UserName}" Margin="0,5,0,0"
                IsVisible="{Binding SupportUser}"/>
-        <TextBox Grid.Row="5" Text="{Binding User, Mode=TwoWay}"
-                 IsVisible="{Binding SupportUser}"/>
+        <controls:ErrorContainer Grid.Row="5" FieldName="User"
+                                 Errors="{Binding $parent.DataContext.Errors}">
+            <controls:ErrorContainer.Control>
+                <TextBox Text="{Binding $parent[3].DataContext.User, Mode=TwoWay}"
+                         IsVisible="{Binding $parent[3].DataContext.SupportUser}"/>
+            </controls:ErrorContainer.Control>
+        </controls:ErrorContainer>
 
         <Label Grid.Row="6" Content="{i18n:Localize Password}" Margin="0,5,0,0"
                IsVisible="{Binding SupportPassword}"/>
-        <TextBox Grid.Row="7" PasswordChar="*" Text="{Binding Password, Mode=TwoWay}"
-                 IsVisible="{Binding SupportPassword}"/>
+        <controls:ErrorContainer Grid.Row="7" FieldName="Password"
+                                 Errors="{Binding $parent.DataContext.Errors}">
+            <controls:ErrorContainer.Control>
+                <TextBox PasswordChar="*" Text="{Binding $parent[3].DataContext.Password, Mode=TwoWay}"
+                         IsVisible="{Binding $parent[3].DataContext.SupportPassword}"/>
+            </controls:ErrorContainer.Control>
+        </controls:ErrorContainer>
 
         <Label Grid.Row="8" Content="{i18n:Localize OauthServerUrl}" Margin="0,5,0,0"
                IsVisible="{Binding SupportOAuthServerUrl}"/>
-        <TextBox Grid.Row="9" Text="{Binding OauthServerUrl, Mode=TwoWay}"
-                 IsVisible="{Binding SupportOAuthServerUrl}"/>
+        <controls:ErrorContainer Grid.Row="9" FieldName="OauthServerUrl"
+                                 Errors="{Binding $parent.DataContext.Errors}">
+            <controls:ErrorContainer.Control>
+                <TextBox Text="{Binding $parent[3].DataContext.OauthServerUrl, Mode=TwoWay}"
+                         IsVisible="{Binding $parent[3].DataContext.SupportOAuthServerUrl}"/>
+            </controls:ErrorContainer.Control>
+        </controls:ErrorContainer>
+
 
         <Label Grid.Row="10" Content="{i18n:Localize OauthRedirectUrl}" Margin="0,5,0,0"
                IsVisible="{Binding SupportOAuth}"/>
