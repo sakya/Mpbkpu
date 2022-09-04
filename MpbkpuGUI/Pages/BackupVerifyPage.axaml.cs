@@ -18,7 +18,7 @@ namespace MpbkpuGUI.Pages;
 
 public class BackupVerifyPage : BasePage
 {
-    private readonly JobVerifyPageModel _model = new();
+    private readonly BackupVerifyPageModel _model = new();
     private readonly CancellationTokenSource _cts = new();
     private readonly Backup _backup;
     private readonly string? _password;

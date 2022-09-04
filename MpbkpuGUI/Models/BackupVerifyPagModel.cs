@@ -3,7 +3,7 @@ using MpbkpuGUI.Abstracts;
 
 namespace MpbkpuGUI.Models;
 
-public class JobVerifyPageModel : BaseModel
+public class BackupVerifyPageModel : BaseModel
 {
     private bool _running;
     public bool Running
