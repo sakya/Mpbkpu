@@ -423,7 +423,7 @@ public class RestoreJob : BaseJob
                             hash = await RestoreFileFromSourceCopy(backupStream, destStream, progressAction);
 
                         if (hash != fileToRestore.BackupItem!.OriginalSha256)
-                            throw new Exception($"Hash mismatch for file {fileToRestore.BackupItem.OriginalPath}");
+                            throw new Exception($"Hash mismatch for file {fileToRestore.BackupItem.OriginalRelativePath}");
                     }
                 }
 

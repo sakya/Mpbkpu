@@ -211,7 +211,7 @@ public class VerifyJob: BaseJob
         // Check hash
         if (item.Type == File.FileTyes.File) {
             if (string.IsNullOrEmpty(item.Sha256)) {
-                LogWarning($"Missing hash for file {item.OriginalPath}");
+                LogWarning($"Missing hash for file {item.OriginalRelativePath}");
                 return false;
             }
 
@@ -228,8 +228,8 @@ public class VerifyJob: BaseJob
 
             var hash = await Utility.Files.GetSha256(fm, filePath, progressAction, _cancellationToken);
             if (hash != item.Sha256) {
-                _errors!.Add(new VerifyJobResult.Error(VerifyJobResult.Error.ErrorCodes.HashMismatch, $"Hash mismatch for file {item.OriginalPath}"));
-                LogWarning($"Hash mismatch for file {item.OriginalPath}");
+                _errors!.Add(new VerifyJobResult.Error(VerifyJobResult.Error.ErrorCodes.HashMismatch, $"Hash mismatch for file {item.OriginalRelativePath}"));
+                LogWarning($"Hash mismatch for file {item.OriginalRelativePath}");
                 return false;
             }
         }
