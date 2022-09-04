@@ -15,6 +15,7 @@
   "Confirm": "Conferma",
   "CompressionLevel": "Livello di compressione",
   "ConfirmAbortBackup": "Il backup è in esecuzione, sei sicuro di volerlo annullare?",
+  "ConfirmAbortVerify": "Sei sicuro di voler annullare la verifica del backup?",
   "ConfirmDeleteBackup": "Questa operazione cancellera i file di backup!\n\nCancellare il backup selezionato?",
   "ConfirmDeleteJob": "Questa operazione non cancellerà i file di backup ma solo la configurazione.\n\nCancellare la configurazione del backup selezionato?",
   "ConfirmRunJob": "Eseguire il backup selezionato?",
