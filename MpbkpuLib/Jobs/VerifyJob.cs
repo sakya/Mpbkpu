@@ -201,6 +201,7 @@ public class VerifyJob: BaseJob
 
     private async Task<bool> VerifyBackupItem(IFileManager fm, BackupItem item)
     {
+        LogDebug($"Verifying {item.OriginalRelativePath}");
         var filePath = GetBackupItemPath(fm, BackupPath, item);
         if (!await fm.FileExists(filePath)) {
             _errors!.Add(new VerifyJobResult.Error(VerifyJobResult.Error.ErrorCodes.FileNotFound, $"File {filePath} not found"));
