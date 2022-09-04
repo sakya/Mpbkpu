@@ -282,6 +282,8 @@ public class BackupFile : IDisposable
                 .Include(i => i.Backup)
                 .Include(i => i.Volume)
                 .AsNoTracking()
+                .OrderBy(i => i.OriginalRelativePath)
+                .ThenByDescending(i => i.Type)
                 .Where(i => i.BackupId == backupId);
             foreach (var item in items) {
                 yield return item;
@@ -312,6 +314,8 @@ public class BackupFile : IDisposable
                 .Include(i => i.Backup)
                 .Include(i => i.Volume)
                 .AsNoTracking()
+                .OrderBy(i => i.OriginalRelativePath)
+                .ThenByDescending(i => i.Type)
                 .Where(i => i.BackupId == fullBkp.Id);
             foreach (var item in items) {
                 // Read the same item from subsequents incremental backups
@@ -337,7 +341,9 @@ public class BackupFile : IDisposable
                 .Include(i => i.Volume)
                 .AsNoTracking()
                 .Where(i => incBackupIds.Contains(i.BackupId) && i.Action == BackupItem.Actions.Added)
-                .OrderBy(i => i.BackupId);
+                .OrderBy(i => i.BackupId)
+                .ThenBy(i => i.OriginalRelativePath)
+                .ThenByDescending(i => i.Type);
             foreach (var item in addedItems) {
                 // Read the same item from subsequents incremental backups
                 var itemLastBackup = await _context!.BackupItems
@@ -367,7 +373,9 @@ public class BackupFile : IDisposable
                 .Include(i => i.Backup)
                 .Include(i => i.Volume)
                 .AsNoTracking()
-                .Where(i => i.BackupId == fullBkp.Id);
+                .Where(i => i.BackupId == fullBkp.Id)
+                .OrderBy(i => i.OriginalRelativePath)
+                .ThenByDescending(i => i.Type);
             foreach (var item in items) {
                 // Read the same item from the differential backup
                 var itemDifferentialBackup = await _context!.BackupItems

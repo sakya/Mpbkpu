@@ -209,6 +209,7 @@ public class BackupJob : BaseJob
         // Read source
         Step?.Invoke(this, Steps.ReadSource);
         LogInfo($"Reading source {Settings.Source}");
+        await backupFile.EmptyFiles();
         if (!await ReadPathContent(backupFile, _sourceFm, _sourcePath, Settings.IncludeHiddenFiles, File.FileActions.Backup, _cancellationToken)) {
             LogError("Failed to read source");
             if (!await SetBackupResult(backupFile, Backup.Results.Error))
@@ -233,7 +234,7 @@ public class BackupJob : BaseJob
                     continue;
 
                 // Check if the source file has changed
-                var sourceFile = await backupFile.Files.Where(f => f.FullPath == item.OriginalPath)
+                var sourceFile = await backupFile.Files.Where(f => f.RelativePath == item.OriginalRelativePath)
                     .FirstOrDefaultAsync();
                 if (sourceFile != null) {
                     if (item.Type == File.FileTyes.File) {

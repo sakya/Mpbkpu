@@ -31,9 +31,13 @@ public class JobSettingsPage : BasePage
         _jobId = job.Id;
         _job = job.Copy();
 
+        var exJob = App.Settings!.Jobs
+            .FirstOrDefault(j => j.Id == _jobId);
+
         _model = new JobSettingsPageModel()
         {
-            Job = _job
+            Job = _job,
+            IsNew = exJob == null
         };
         DataContext = _model;
         InitializeComponent();

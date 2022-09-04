@@ -12,6 +12,13 @@ public class JobSettingsPageModel : BaseModel
         set => SetField(ref _job, value);
     }
 
+    private bool _isNew;
+    public bool IsNew
+    {
+        get => _isNew;
+        set => SetField(ref _isNew, value);
+    }
+
     private List<Controls.ErrorContainer.ErrorData>? _errors;
     public List<Controls.ErrorContainer.ErrorData>? Errors
     {

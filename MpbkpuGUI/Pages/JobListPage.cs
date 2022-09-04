@@ -47,7 +47,8 @@ public class JobListPage : BasePage
     {
         await MainWindow!.NavigateTo(new JobSettingsPage(new BackupJob()
         {
-            Type = Backup.BackupTypes.Full
+            Type = Backup.BackupTypes.Full,
+            Encrypted = true
         }));
     }
 

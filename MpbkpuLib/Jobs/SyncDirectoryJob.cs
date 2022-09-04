@@ -164,6 +164,7 @@ public class SyncDirectoryJob : BaseJob
         // Read source
         Step?.Invoke(this, Steps.ReadSource);
         LogInfo($"Reading source {Settings.Source}");
+        await backupFile.EmptyFiles();
         if (!await ReadPathContent(backupFile, _sourceFm, _sourcePath, Settings.IncludeHiddenFiles, File.FileActions.Backup, _cancellationToken)) {
             LogError("Failed to read source");
             return;
