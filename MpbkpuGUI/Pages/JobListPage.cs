@@ -96,4 +96,9 @@ public class JobListPage : BasePage
     {
         App.GetMainWindow()!.Close();
     }
+
+    private async void OnAboutClick(object? sender, RoutedEventArgs e)
+    {
+        await NavigateTo(new AboutPage());
+    }
 }

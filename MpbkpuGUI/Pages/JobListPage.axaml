@@ -31,7 +31,8 @@
                 </MenuItem>
             </MenuItem>
             <MenuItem Header="{i18n:Localize _Help}">
-                <MenuItem Header="{i18n:Localize _About}" InputGesture="F1">
+                <MenuItem Header="{i18n:Localize _About}" InputGesture="F1"
+                          Click="OnAboutClick">
                     <MenuItem.Icon>
                         <i:Icon FontSize="14" Value="far fa-question-circle" />
                     </MenuItem.Icon>

@@ -1,0 +1,33 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:models="clr-namespace:MpbkpuGUI.Models"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="MpbkpuGUI.Pages.AboutPage"
+             VerticalAlignment="Center">
+    <Design.DataContext>
+        <models:AboutPageModel />
+    </Design.DataContext>
+
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Image Grid.Row="0" Source="/Assets/icon.ico" Width="50"
+               Margin="0,0,0,15"/>
+        <TextBlock Grid.Row="1" TextWrapping="Wrap"
+                   HorizontalAlignment="Center"
+                   Text="{Binding Title}" />
+        <TextBlock Grid.Row="2" TextWrapping="Wrap"
+                   HorizontalAlignment="Center"
+                   Text="{Binding Copyright}" />
+        <TextBlock Grid.Row="3" TextWrapping="Wrap"
+                   HorizontalAlignment="Center"
+                   Text="{Binding Description}" />
+    </Grid>
+</UserControl>
