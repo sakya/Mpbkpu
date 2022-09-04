@@ -3,31 +3,42 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:models="clr-namespace:MpbkpuGUI.Models"
+             xmlns:controls="clr-namespace:MpbkpuGUI.Controls"
+             xmlns:i18n="clr-namespace:MpbkpuGUI.Localizer"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="MpbkpuGUI.Pages.AboutPage"
-             VerticalAlignment="Center">
+             x:Class="MpbkpuGUI.Pages.AboutPage">
     <Design.DataContext>
         <models:AboutPageModel />
     </Design.DataContext>
 
-    <Grid Margin="15">
+    <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <Image Grid.Row="0" Source="/Assets/icon.ico" Width="50"
-               Margin="0,0,0,15"/>
-        <TextBlock Grid.Row="1" TextWrapping="Wrap"
-                   HorizontalAlignment="Center"
-                   Text="{Binding Title}" />
-        <TextBlock Grid.Row="2" TextWrapping="Wrap"
-                   HorizontalAlignment="Center"
-                   Text="{Binding Copyright}" />
-        <TextBlock Grid.Row="3" TextWrapping="Wrap"
-                   HorizontalAlignment="Center"
-                   Text="{Binding Description}" />
+        <StackPanel Orientation="Vertical"
+                    VerticalAlignment="Center">
+            <Image Source="/Assets/icon.ico" Width="50"
+                   Margin="0,0,0,15"/>
+            <TextBlock TextWrapping="Wrap"
+                       HorizontalAlignment="Center"
+                       Foreground="{DynamicResource SystemAccentColor}"
+                       Text="{Binding Title}" />
+            <TextBlock TextWrapping="Wrap"
+                       HorizontalAlignment="Center"
+                       Text="{Binding Copyright}" />
+            <TextBlock TextWrapping="Wrap"
+                       TextAlignment="Center"
+                       HorizontalAlignment="Center"
+                       FontWeight="ExtraLight"
+                       Margin="0,15,0,0"
+                       Text="{Binding Description}" />
+        </StackPanel>
+
+        <controls:OkCancelButtons Grid.Row="1"
+                                  CancelVisible="False"
+                                  OkText="{i18n:Localize Close}"
+                                  OkClick="OnOkClick"/>
     </Grid>
 </UserControl>

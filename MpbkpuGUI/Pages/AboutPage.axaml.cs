@@ -1,4 +1,5 @@
 using System.Reflection;
+using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using MpbkpuGUI.Abstracts;
 using MpbkpuGUI.Models;
@@ -13,7 +14,8 @@ public class AboutPage : BasePage
         _model = new AboutPageModel()
         {
             Title = $"Mpbkpu v.{Assembly.GetEntryAssembly()!.GetName().Version}",
-            Copyright = ((AssemblyCopyrightAttribute)System.Attribute.GetCustomAttribute(Assembly.GetExecutingAssembly(), typeof(AssemblyCopyrightAttribute), false)).Copyright
+            Copyright = ((AssemblyCopyrightAttribute)System.Attribute.GetCustomAttribute(Assembly.GetExecutingAssembly(), typeof(AssemblyCopyrightAttribute), false)).Copyright,
+            Description = "A multi platform backup utility with encryption and compression feature.\nSupports local and remote file system."
         };
         DataContext = _model;
         InitializeComponent();
@@ -22,5 +24,10 @@ public class AboutPage : BasePage
     private void InitializeComponent()
     {
         AvaloniaXamlLoader.Load(this);
+    }
+
+    private async void OnOkClick(object? sender, RoutedEventArgs e)
+    {
+        await NavigateBack();
     }
 }
