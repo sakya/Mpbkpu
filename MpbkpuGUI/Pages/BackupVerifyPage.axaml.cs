@@ -123,6 +123,8 @@ public class BackupVerifyPage : BasePage
                     $"{Localizer.Localizer.Instance["AnErrorOccurred"]}{verifyRes.ErrorMessage}", MessageDialog.Icons.Error);
             }
         } catch (Exception ex) {
+            if (ex is OperationCanceledException)
+                return;
             VerifJobOnLogEmitted(null, BaseJobSettings.LogLevels.Error, ex.Message);
             Dispatcher.UIThread.Post(() =>
             {
