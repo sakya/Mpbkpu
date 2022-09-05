@@ -50,24 +50,23 @@ namespace NextcloudClient
 
                 var state = Guid.NewGuid().ToString();
                 var url = $"{_settings.ServerUri}index.php/apps/oauth2/authorize?response_type=code&client_id={_settings.ClientId}&redirect_uri={HttpUtility.UrlEncode(_settings.RedirectUri.ToString())}&state={state}";
-                using (OpenBrowser(url)) {
-                    await HandleOAuth2Redirect(http);
-                    var redirectUri = await HandleJsRedirect(http);
-                    http.Stop();
-                    var queryDictionary = HttpUtility.ParseQueryString(redirectUri.Query);
-                    if (queryDictionary["state"] != state)
-                        throw new Exception("Invalid state");
-                    var code = queryDictionary["code"];
+                OpenBrowser(url);
+                await HandleOAuth2Redirect(http);
+                var redirectUri = await HandleJsRedirect(http);
+                http.Stop();
+                var queryDictionary = HttpUtility.ParseQueryString(redirectUri.Query);
+                if (queryDictionary["state"] != state)
+                    throw new Exception("Invalid state");
+                var code = queryDictionary["code"];
 
-                    var token = await GetPostResponse<AuthTokenModel>(
-                        $"{_settings.ServerUri}index.php/apps/oauth2/api/v1/token?&grant_type=authorization_code&client_id={_settings.ClientId}&redirect_uri={_settings.RedirectUri}&client_secret={_settings.ClientSecret}&code={code}",
-                        null);
+                var token = await GetPostResponse<AuthTokenModel>(
+                    $"{_settings.ServerUri}index.php/apps/oauth2/api/v1/token?&grant_type=authorization_code&client_id={_settings.ClientId}&redirect_uri={_settings.RedirectUri}&client_secret={_settings.ClientSecret}&code={code}",
+                    null);
 
-                    AccessToken = token.AccessToken;
-                    RefreshToken = token.RefreshToken;
-                    UserId = token.UserId;
-                    TokenExpiration = DateTime.UtcNow.AddSeconds(token.ExpiresIn);
-                }
+                AccessToken = token.AccessToken;
+                RefreshToken = token.RefreshToken;
+                UserId = token.UserId;
+                TokenExpiration = DateTime.UtcNow.AddSeconds(token.ExpiresIn);
             }
         }
 
@@ -103,29 +102,30 @@ namespace NextcloudClient
             return redirectUri;
         }
 
-        private static Process OpenBrowser(string url)
+        private static void OpenBrowser(string url)
         {
-            var process = new Process();
-            var startInfo = new ProcessStartInfo()
-            {
-                CreateNoWindow = true
-            };
-            process.StartInfo = startInfo;
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
-                startInfo.FileName = "xdg-open";
-                startInfo.Arguments = url;
-            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-                startInfo.FileName = "open";
-                startInfo.Arguments = url;
-            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-                startInfo.FileName = "cmd";
-                startInfo.Arguments = $"/c start {url.Replace("&", "^&")}";
-            } else {
-                throw new Exception("Unsupported OS");
-            }
-            process.Start();
+            using (var process = new Process()) {
+                var startInfo = new ProcessStartInfo()
+                {
+                    CreateNoWindow = true
+                };
+                process.StartInfo = startInfo;
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+                    startInfo.FileName = "xdg-open";
+                    startInfo.Arguments = url;
+                } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+                    startInfo.FileName = "open";
+                    startInfo.Arguments = url;
+                } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                    startInfo.FileName = "cmd";
+                    startInfo.Arguments = $"/c start {url.Replace("&", "^&")}";
+                } else {
+                    throw new Exception("Unsupported OS");
+                }
 
-            return process;
+                process.Start();
+                process.WaitForExit();
+            }
         }
         #endregion
     }

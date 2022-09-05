@@ -9,9 +9,9 @@ public static class Browser
     /// </summary>
     /// <param name="url">The url</param>
     /// <returns>The <see cref="Process"/></returns>
-    public static Process Open(string url)
+    public static void Open(string url)
     {
-        var process = new Process();
+        using var process = new Process();
         var startInfo = new ProcessStartInfo()
         {
             CreateNoWindow = true
@@ -32,7 +32,6 @@ public static class Browser
             throw new Exception("Unsupported OS");
         }
         process.Start();
-
-        return process;
+        process.WaitForExit();
     }
 }

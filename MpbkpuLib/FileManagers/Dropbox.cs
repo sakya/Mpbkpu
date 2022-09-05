@@ -421,7 +421,7 @@ public class Dropbox : IFileManager, IOAuth2
                 http.Prefixes.Add($"{RedirectUrl.Scheme}://{RedirectUrl.Host}:{RedirectUrl.Port}/");
                 http.Start();
 
-                using var browser = Browser.Open(authorizeUri.ToString());
+                Browser.Open(authorizeUri.ToString());
                 await HandleOAuth2Redirect(http);
                 var redirectUri = await HandleJsRedirect(http);
                 var tokenResult = await DropboxOAuth2Helper.ProcessCodeFlowAsync(redirectUri, AppId, AppSecret,
