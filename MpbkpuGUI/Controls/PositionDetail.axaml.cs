@@ -108,10 +108,24 @@ public class PositionDetail : UserControl, IValidate
                     errors.Add(new ErrorContainer.ErrorData("User", Localizer.Localizer.Instance["RequiredError"]));
                 if (_model.OauthServerUrl == null)
                     errors.Add(new ErrorContainer.ErrorData("OauthServerUrl", Localizer.Localizer.Instance["RequiredError"]));
+                if (string.IsNullOrEmpty(_model.Password)) {
+                    if (_model.OauthRedirectUrl == null)
+                        errors.Add(new ErrorContainer.ErrorData("OauthRedirectUrl", Localizer.Localizer.Instance["RequiredError"]));
+                    if (string.IsNullOrEmpty(_model.OauthAppId))
+                        errors.Add(new ErrorContainer.ErrorData("OauthAppId", Localizer.Localizer.Instance["RequiredError"]));
+                    if (string.IsNullOrEmpty(_model.OauthAppSecret))
+                        errors.Add(new ErrorContainer.ErrorData("OauthAppSecret", Localizer.Localizer.Instance["RequiredError"]));
+                }
                 break;
             case Job.Position.FileSystemTypes.DropBox:
                 if (string.IsNullOrEmpty(_model.User))
                     errors.Add(new ErrorContainer.ErrorData("User", Localizer.Localizer.Instance["RequiredError"]));
+                if (_model.OauthRedirectUrl == null)
+                    errors.Add(new ErrorContainer.ErrorData("OauthRedirectUrl", Localizer.Localizer.Instance["RequiredError"]));
+                if (string.IsNullOrEmpty(_model.OauthAppId))
+                    errors.Add(new ErrorContainer.ErrorData("OauthAppId", Localizer.Localizer.Instance["RequiredError"]));
+                if (string.IsNullOrEmpty(_model.OauthAppSecret))
+                    errors.Add(new ErrorContainer.ErrorData("OauthAppSecret", Localizer.Localizer.Instance["RequiredError"]));
                 break;
             case Job.Position.FileSystemTypes.MediaFire:
                 if (string.IsNullOrEmpty(_model.User))

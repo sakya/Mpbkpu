@@ -84,7 +84,7 @@
         <controls:ErrorContainer Grid.Row="7" FieldName="Password"
                                  Errors="{Binding $parent.DataContext.Errors}">
             <controls:ErrorContainer.Control>
-                <TextBox PasswordChar="*" Text="{Binding $parent[3].DataContext.Password, Mode=TwoWay}"
+                <TextBox PasswordChar="●" Text="{Binding $parent[3].DataContext.Password, Mode=TwoWay}"
                          IsVisible="{Binding $parent[3].DataContext.SupportPassword}"/>
             </controls:ErrorContainer.Control>
         </controls:ErrorContainer>
@@ -102,22 +102,42 @@
 
         <Label Grid.Row="10" Content="{i18n:Localize OauthRedirectUrl}" Margin="0,5,0,0"
                IsVisible="{Binding SupportOAuth}"/>
-        <TextBox Grid.Row="11" Text="{Binding OauthRedirectUrl, Mode=TwoWay}"
-                 IsVisible="{Binding SupportOAuth}"/>
+        <controls:ErrorContainer Grid.Row="11" FieldName="OauthRedirectUrl"
+                                 Errors="{Binding $parent.DataContext.Errors}">
+            <controls:ErrorContainer.Control>
+                <TextBox Text="{Binding $parent[3].DataContext.OauthRedirectUrl, Mode=TwoWay}"
+                         IsVisible="{Binding $parent[3].DataContext.SupportOAuth}"/>
+            </controls:ErrorContainer.Control>
+        </controls:ErrorContainer>
 
         <Label Grid.Row="12" Content="{i18n:Localize OauthAppName}" Margin="0,5,0,0"
                IsVisible="{Binding SupportOAuth}"/>
-        <TextBox Grid.Row="13" Text="{Binding OauthAppName, Mode=TwoWay}"
-                 IsVisible="{Binding SupportOAuth}"/>
+        <controls:ErrorContainer Grid.Row="13" FieldName="OauthAppId"
+                                 Errors="{Binding $parent.DataContext.Errors}">
+            <controls:ErrorContainer.Control>
+                <TextBox Text="{Binding $parent[3].DataContext.OauthAppName, Mode=TwoWay}"
+                         IsVisible="{Binding $parent[3].DataContext.SupportOAuth}"/>
+            </controls:ErrorContainer.Control>
+        </controls:ErrorContainer>
 
         <Label Grid.Row="14" Content="{i18n:Localize OauthAppId}" Margin="0,5,0,0"
                IsVisible="{Binding SupportOAuth}"/>
-        <TextBox Grid.Row="15" Text="{Binding OauthAppId, Mode=TwoWay}"
-                 IsVisible="{Binding SupportOAuth}"/>
+        <controls:ErrorContainer Grid.Row="15" FieldName="OauthAppId"
+                                 Errors="{Binding $parent.DataContext.Errors}">
+            <controls:ErrorContainer.Control>
+                <TextBox Text="{Binding $parent[3].DataContext.OauthAppId, Mode=TwoWay}"
+                         IsVisible="{Binding $parent[3].DataContext.SupportOAuth}"/>
+            </controls:ErrorContainer.Control>
+        </controls:ErrorContainer>
 
         <Label Grid.Row="16" Content="{i18n:Localize OauthAppSecret}" Margin="0,5,0,0"
                IsVisible="{Binding SupportOAuth}"/>
-        <TextBox Grid.Row="17" Text="{Binding OauthAppSecret, Mode=TwoWay}"
-                 IsVisible="{Binding SupportOAuth}"/>
+        <controls:ErrorContainer Grid.Row="17" FieldName="OauthAppSecret"
+                                 Errors="{Binding $parent.DataContext.Errors}">
+            <controls:ErrorContainer.Control>
+                <TextBox Text="{Binding $parent[3].DataContext.OauthAppSecret, Mode=TwoWay}"
+                         IsVisible="{Binding $parent[3].DataContext.SupportOAuth}"/>
+            </controls:ErrorContainer.Control>
+        </controls:ErrorContainer>
     </Grid>
 </UserControl>
