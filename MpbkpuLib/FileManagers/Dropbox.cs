@@ -421,26 +421,12 @@ public class Dropbox : IFileManager, IOAuth2
                 http.Prefixes.Add($"{RedirectUrl.Scheme}://{RedirectUrl.Host}:{RedirectUrl.Port}/");
                 http.Start();
 
-                Process process = new Process();
-                var startInfo = new ProcessStartInfo();
-                process.StartInfo = startInfo;
-                if (OperatingSystem.IsLinux()) {
-                    startInfo.FileName = "xdg-open";
-                    startInfo.ArgumentList.Add(authorizeUri.ToString());
-                } else if (OperatingSystem.IsMacOS()) {
-                    startInfo.FileName = "open";
-                    startInfo.ArgumentList.Add(authorizeUri.ToString());
-                } else {
-                    startInfo.FileName = authorizeUri.ToString();
-                }
-                process.Start();
-
+                using var browser = Browser.Open(authorizeUri.ToString());
                 await HandleOAuth2Redirect(http);
                 var redirectUri = await HandleJsRedirect(http);
                 var tokenResult = await DropboxOAuth2Helper.ProcessCodeFlowAsync(redirectUri, AppId, AppSecret,
                     RedirectUrl.ToString(), state, codeVerifier: codeVerifier);
                 http.Stop();
-                process.Dispose();
 
                 var accessToken = tokenResult.AccessToken;
                 var refreshToken = tokenResult.RefreshToken;
@@ -485,6 +471,8 @@ public class Dropbox : IFileManager, IOAuth2
         using (var file = new MemoryStream(Encoding.UTF8.GetBytes(TokenResponsePage))) {
             await file.CopyToAsync(context.Response.OutputStream);
         }
+        context.Response.OutputStream.Close();
+
         return redirectUri;
     }
 

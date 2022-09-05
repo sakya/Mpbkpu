@@ -50,5 +50,8 @@
     <Compile Update="Controls\ItemsList.axaml.cs">
       <DependentUpon>ItemsList.axaml</DependentUpon>
     </Compile>
+    <Compile Update="Pages\BackupBrowsePage.axaml.cs">
+      <DependentUpon>BackupBrowsePage.axaml</DependentUpon>
+    </Compile>
   </ItemGroup>
 </Project>
