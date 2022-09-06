@@ -11,22 +11,67 @@
         <models:BackupBrowseModel />
     </Design.DataContext>
 
+    <UserControl.Resources>
+        <converters:BytesToStringConverter x:Key="BytesToStringConverter"/>
+        <converters:DateTimeConverter x:Key="DateTimeConverter"/>
+    </UserControl.Resources>
+
     <Grid Margin="5,0,5,5">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" MinWidth="100" />
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="2*" MinWidth="100" />
+        </Grid.ColumnDefinitions>
+
+        <TreeView Name="TreeView" Items="{Binding Directories}"
+                  SelectionChanged="OnTreeSelectionChanged">
+            <TreeView.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel MaxWidth="{Binding #TreeView.Bounds.Width}" />
+                </ItemsPanelTemplate>
+            </TreeView.ItemsPanel>
+            <TreeView.DataTemplates>
+                <TreeDataTemplate ItemsSource="{Binding Children}">
+                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                </TreeDataTemplate>
+            </TreeView.DataTemplates>
+        </TreeView>
+
+        <GridSplitter Grid.Row="0" Grid.Column="1" KeyboardNavigation.IsTabStop="False"/>
+
+        <controls:ItemsList Grid.Row="0" Grid.Column="2"
+                            Items="{Binding Files}">
+            <controls:ItemsList.ItemTemplate>
+                <DataTemplate>
+                    <Border Padding="10,5,10,5">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0" Text="{Binding OriginalName}"
+                                       TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Grid.Column="1" Text="{Binding Size, Converter={StaticResource BytesToStringConverter}}"
+                                       TextTrimming="CharacterEllipsis"/>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </controls:ItemsList.ItemTemplate>
+        </controls:ItemsList>
 
         <controls:OkCancelButtons
-            Grid.Row="4"
+            Grid.Row="1"
+            Grid.Column="0"
+            Grid.ColumnSpan="3"
             Margin="0,5,0,0"
             OkText="{Binding $parent.DataContext.ButtonText}"
             CancelVisible="False"
             OkClick="OnOkClick"/>
-        <controls:Spinner Grid.Row="0" Grid.RowSpan="4" Name="Spinner" />
+        <controls:Spinner Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Grid.RowSpan="2" Name="Spinner" />
     </Grid>
 </UserControl>

@@ -6,6 +6,7 @@ using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
 using MpbkpuLib.Interfaces;
 using MpbkpuLib.Utility;
+using File = MpbkpuLib.DataModel.File;
 
 namespace MpbkpuLib;
 
@@ -267,8 +268,9 @@ public class BackupFile : IDisposable
     /// Get the backup items for a backup.
     /// </summary>
     /// <param name="backupId">The backup id</param>
+    /// <param name="fileType">Optional filter on type</param>
     /// <returns>A <see cref="IAsyncEnumerable"/> of <see cref="BackupItem"/></returns>
-    public async IAsyncEnumerable<BackupItem> GetBackupItems(int backupId)
+    public async IAsyncEnumerable<BackupItem> GetBackupItems(int backupId, File.FileTyes? fileType = null)
     {
         EnsureDbOpen();
         var bkp = await _context!.Backups.AsNoTracking()
@@ -285,6 +287,8 @@ public class BackupFile : IDisposable
                 .OrderBy(i => i.OriginalRelativePath)
                 .ThenByDescending(i => i.Type)
                 .Where(i => i.BackupId == backupId);
+            if (fileType.HasValue)
+                items = items.Where(i => i.Type == fileType);
             foreach (var item in items) {
                 yield return item;
             }
@@ -317,6 +321,8 @@ public class BackupFile : IDisposable
                 .OrderBy(i => i.OriginalRelativePath)
                 .ThenByDescending(i => i.Type)
                 .Where(i => i.BackupId == fullBkp.Id);
+            if (fileType.HasValue)
+                items = items.Where(i => i.Type == fileType);
             foreach (var item in items) {
                 // Read the same item from subsequents incremental backups
                 var itemLastBackup = await _context!.BackupItems
@@ -340,10 +346,12 @@ public class BackupFile : IDisposable
                 .Include(i => i.Backup)
                 .Include(i => i.Volume)
                 .AsNoTracking()
-                .Where(i => incBackupIds.Contains(i.BackupId) && i.Action == BackupItem.Actions.Added)
                 .OrderBy(i => i.BackupId)
                 .ThenBy(i => i.OriginalRelativePath)
-                .ThenByDescending(i => i.Type);
+                .ThenByDescending(i => i.Type)
+                .Where(i => incBackupIds.Contains(i.BackupId) && i.Action == BackupItem.Actions.Added);
+            if (fileType.HasValue)
+                addedItems = addedItems.Where(i => i.Type == fileType);
             foreach (var item in addedItems) {
                 // Read the same item from subsequents incremental backups
                 var itemLastBackup = await _context!.BackupItems
@@ -373,9 +381,11 @@ public class BackupFile : IDisposable
                 .Include(i => i.Backup)
                 .Include(i => i.Volume)
                 .AsNoTracking()
-                .Where(i => i.BackupId == fullBkp.Id)
                 .OrderBy(i => i.OriginalRelativePath)
-                .ThenByDescending(i => i.Type);
+                .ThenByDescending(i => i.Type)
+                .Where(i => i.BackupId == fullBkp.Id);
+            if (fileType.HasValue)
+                items = items.Where(i => i.Type == fileType);
             foreach (var item in items) {
                 // Read the same item from the differential backup
                 var itemDifferentialBackup = await _context!.BackupItems

@@ -86,6 +86,23 @@
         <Style Selector="Button.Accent:pointerover /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource HighlightColor}"/>
         </Style>
+
+        <Style Selector="GridSplitter">
+            <Setter Property="Background" Value="{DynamicResource SystemBaseMediumColor}" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Width" Value="6" />
+            <Setter Property="MinWidth" Value="6" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}" CornerRadius="3">
+
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="GridSplitter:pointerover">
+            <Setter Property="Background" Value="{DynamicResource SystemAccentColor}" />
+        </Style>
     </Application.Styles>
 
     <!--

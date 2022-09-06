@@ -52,6 +52,7 @@
   "Step_CopyDatabase": "Copia del database",
   "Step_Completed": "Completato",
   "Step_VerifyFiles": "Verifica file",
+  "Step_OpenBackup": "Apertura backup",
   "Type": "Tipo",
   "UserName": "Utente",
   "VerifyBackup": "Verifica l'integrità del backup",

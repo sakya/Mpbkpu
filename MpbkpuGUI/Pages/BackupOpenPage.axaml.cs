@@ -120,7 +120,7 @@ public class BackupOpenPage : BasePage
     private async void OnOpenClick(object? sender, RoutedEventArgs e)
     {
         if ((sender as Button)?.DataContext is BackupOpenPageModel.BackupData bkp)
-            await NavigateTo(new BackupBrowsePage(bkp.Backup!, _backup.Password));
+            await NavigateTo(new BackupBrowsePage(_backupFile!.BackupFile, bkp.Backup!.Id));
     }
 
     private async void OnVerifyClick(object? sender, RoutedEventArgs e)
