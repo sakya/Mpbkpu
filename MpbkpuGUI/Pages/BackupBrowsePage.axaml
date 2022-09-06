@@ -45,6 +45,7 @@
 
         <controls:ItemsList Grid.Row="0" Grid.Column="2"
                             Grid.IsSharedSizeScope="True"
+                            Selectable="True"
                             Items="{Binding Files}">
             <controls:ItemsList.ItemTemplate>
                 <DataTemplate>
@@ -79,6 +80,7 @@
             OkText="{Binding $parent.DataContext.ButtonText}"
             CancelVisible="False"
             OkClick="OnOkClick"/>
-        <controls:Spinner Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Grid.RowSpan="2" Name="Spinner" />
+        <controls:Spinner Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Grid.RowSpan="2" Name="Spinner"
+                          Message="{Binding $parent.DataContext.SpinnerMessage}"/>
     </Grid>
 </UserControl>
