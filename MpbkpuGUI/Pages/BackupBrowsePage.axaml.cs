@@ -83,7 +83,7 @@ public class BackupBrowsePage : BasePage
             {
                 Name = item.OriginalName,
                 Path = item.OriginalRelativePath,
-                Children = new List<BackupBrowseModel.Directory>()
+                Children = new ObservableCollection<BackupBrowseModel.Directory>()
             };
 
             var parentPath = MpbkpuLib.Utility.Files.GetParent('\\', item.OriginalRelativePath!, out _, addStartingSeparator: false);

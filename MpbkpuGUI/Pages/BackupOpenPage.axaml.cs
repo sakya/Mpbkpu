@@ -47,6 +47,9 @@ public class BackupOpenPage : BasePage
     {
         base.OnNavigatedTo(direction);
 
+        if (direction == NavigationDirection.Backward)
+            return;
+
         _model.SpinnerMessage = Localizer.Localizer.Instance["Step_OpenDatabase"];
         try {
             await Task.Run(OpenDatabase);

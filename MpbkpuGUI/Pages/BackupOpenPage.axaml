@@ -20,7 +20,7 @@
         <converters:BackupResultToColorConverter x:Key="BackupResultToColorConverter" />
     </UserControl.Resources>
 
-    <Grid>
+    <Grid Margin="5,0,5,5">
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
@@ -30,7 +30,7 @@
             Items="{Binding Backups}">
             <controls:ItemsList.ItemTemplate>
                 <DataTemplate>
-                    <Border Padding="10,5,10,5">
+                    <Border Padding="5">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />

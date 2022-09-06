@@ -11,7 +11,7 @@ public class BackupBrowseModel : BaseModel
     {
         public string? Name { get; set; }
         public string? Path { get; set; }
-        public List<Directory>? Children { get; set; }
+        public ObservableCollection<Directory>? Children { get; set; }
     }
 
     private string? _buttonText;
