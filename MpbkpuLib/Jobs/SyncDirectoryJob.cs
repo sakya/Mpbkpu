@@ -262,7 +262,9 @@ public class SyncDirectoryJob : BaseJob
         if (cArgs.FilesToDelete > 0) {
             Step?.Invoke(this, Steps.DeleteFiles);
             var itemsToDelete = backupFile.Files.AsNoTracking()
-                .Where(f => f.FileAction == File.FileActions.Delete);
+                .Where(f => f.FileAction == File.FileActions.Delete)
+                .OrderBy(f => f.RelativePath)
+                .ThenBy(f => f.Type);
             foreach (var item in itemsToDelete) {
                 if (_cancellationToken?.IsCancellationRequested == true) {
                     LogInfo("Cancelled by user");
@@ -292,7 +294,9 @@ public class SyncDirectoryJob : BaseJob
         // Backup files
         Step?.Invoke(this, Steps.BackupFiles);
         var itemsToBackup = backupFile.Files.AsNoTracking()
-            .Where(f => f.FileAction == File.FileActions.Backup);
+            .Where(f => f.FileAction == File.FileActions.Backup)
+            .OrderBy(f => f.RelativePath)
+            .ThenByDescending(f => f.Type);
         foreach (var item in itemsToBackup) {
             var tryCount = 0;
             while (++tryCount <= Settings.RetryOnError) {
