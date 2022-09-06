@@ -86,13 +86,13 @@ public class BackupBrowsePage : BasePage
                 Children = new List<BackupBrowseModel.Directory>()
             };
 
-            var parentPath = MpbkpuLib.Utility.Files.GetParent('\\', item.OriginalRelativePath!, out _);
+            var parentPath = MpbkpuLib.Utility.Files.GetParent('\\', item.OriginalRelativePath!, out _, addStartingSeparator: false);
             if (directories.TryGetValue(parentPath, out var parent)) {
                 parent!.Children!.Add(dir);
             } else {
                 _model.Directories.Add(dir);
             }
-            directories[$"\\{dir.Path}"] = dir;
+            directories[dir.Path!] = dir;
         }
     }
 
@@ -101,11 +101,10 @@ public class BackupBrowsePage : BasePage
         _model.Files = new ObservableCollection<BackupItem>();
         var dir = e.AddedItems.Count == 1 ? e.AddedItems[0] as BackupBrowseModel.Directory : null;
         if (dir != null) {
-            var dirPath = $"\\{dir.Path}";
             var items = _backupFile.GetBackupItems(_backupId, File.FileTyes.File);
             await foreach (var item in items) {
-                var parentPath = MpbkpuLib.Utility.Files.GetParent('\\', item.OriginalRelativePath!, out _);
-                if (parentPath == dirPath)
+                var parentPath = MpbkpuLib.Utility.Files.GetParent('\\', item.OriginalRelativePath!, out _, addStartingSeparator: false);
+                if (parentPath == dir.Path)
                     _model.Files.Add(item);
             }
         }

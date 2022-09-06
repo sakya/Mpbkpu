@@ -55,13 +55,13 @@ public static class Files
         return path;
     }
 
-    public static string GetParent(char separator, string path, out string? childName, string? scheme = null)
+    public static string GetParent(char separator, string path, out string? childName, string? scheme = null, bool addStartingSeparator = true)
     {
         childName = null;
         if (path.EndsWith(separator))
             path = path.Remove(path.Length - 1, 1);
         if (string.IsNullOrEmpty(scheme) || !path.StartsWith(scheme, StringComparison.InvariantCultureIgnoreCase)) {
-            if (!path.StartsWith(separator))
+            if (addStartingSeparator && !path.StartsWith(separator))
                 path = $"{separator}{path}";
         }
 
@@ -70,6 +70,9 @@ public static class Files
             childName = path.Substring(idx + 1);
             return path.Substring(0, idx);
         }
+
+        if (!addStartingSeparator)
+            return string.Empty;
 
         throw new Exception($"Cannot get parent of {path}");
     }

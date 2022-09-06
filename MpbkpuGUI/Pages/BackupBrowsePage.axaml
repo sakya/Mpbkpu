@@ -44,20 +44,27 @@
         <GridSplitter Grid.Row="0" Grid.Column="1" KeyboardNavigation.IsTabStop="False"/>
 
         <controls:ItemsList Grid.Row="0" Grid.Column="2"
+                            Grid.IsSharedSizeScope="True"
                             Items="{Binding Files}">
             <controls:ItemsList.ItemTemplate>
                 <DataTemplate>
                     <Border Padding="10,5,10,5">
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" MinWidth="30" />
+                                <ColumnDefinition SharedSizeGroup="ColModified" Width="Auto" />
+                                <ColumnDefinition SharedSizeGroup="ColSize" Width="Auto" />
                             </Grid.ColumnDefinitions>
 
                             <TextBlock Grid.Column="0" Text="{Binding OriginalName}"
                                        TextTrimming="CharacterEllipsis"/>
-                            <TextBlock Grid.Column="1" Text="{Binding Size, Converter={StaticResource BytesToStringConverter}}"
-                                       TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Grid.Column="1" Text="{Binding OriginalLastModified, Converter={StaticResource DateTimeConverter}}"
+                                       TextTrimming="CharacterEllipsis"
+                                       Margin="5,0,0,0"/>
+                            <TextBlock Grid.Column="2" Text="{Binding Size, Converter={StaticResource BytesToStringConverter}}"
+                                       TextAlignment="Right"
+                                       TextTrimming="CharacterEllipsis"
+                                       Margin="5,0,0,0"/>
                         </Grid>
                     </Border>
                 </DataTemplate>
