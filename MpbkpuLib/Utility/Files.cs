@@ -16,7 +16,7 @@ public static class Files
     /// <returns>True on success</returns>
     public static async Task Copy(Stream source, Stream destination, Action<long>? progressAction = null, CancellationToken? token = null)
     {
-        byte[] buffer = new byte[32768];
+        var buffer = new byte[32768];
         int read;
         long copied = 0;
         while ((read = await source.ReadAsync(buffer, 0, buffer.Length)) > 0) {
@@ -30,7 +30,7 @@ public static class Files
 
     public static string CombinePath(char separator, params string[] paths)
     {
-        string res = string.Empty;
+        var res = string.Empty;
         foreach (var p in paths) {
             if (string.IsNullOrEmpty(p))
                 throw new Exception("Path cannot be empty");
@@ -65,7 +65,7 @@ public static class Files
                 path = $"{separator}{path}";
         }
 
-        int idx = path.LastIndexOf($"{separator}", StringComparison.InvariantCultureIgnoreCase);
+        var idx = path.LastIndexOf($"{separator}", StringComparison.InvariantCultureIgnoreCase);
         if (idx >= 0) {
             childName = path.Substring(idx + 1);
             return path.Substring(0, idx);
