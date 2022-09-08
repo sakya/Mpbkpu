@@ -57,7 +57,7 @@ public class BaseTest
             Directory.Delete(RestoreDestination, true);
     }
 
-    private void CreateFile(string path, long size)
+    protected void CreateFile(string path, long size)
     {
         long write = 0;
         using (var fs = new FileStream(path, FileMode.Create, FileAccess.Write)) {

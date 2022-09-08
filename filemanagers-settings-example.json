@@ -1,0 +1,16 @@
+{
+  "FileManagers": {
+    "FileSystem": {
+      "Path": "./Mpbkpu_Test"
+    },
+    "Dropbox": {
+      "Path": "/Mpbkpu_Test",
+      "Username": "account_email",
+      "OAuth2Settings": {
+        "AppId": "...",
+        "AppSecret": "...",
+        "RedirectUrl": "..."
+      }
+    }
+  }
+}
