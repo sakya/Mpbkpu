@@ -147,29 +147,22 @@ namespace MpbkpuLib.FileManagers
         {
         }
 
+        public bool IsCaseSensitive => true;
+
         public string GetScheme()
         {
             return Scheme;
         }
 
-        public char GetPathSeparator()
-        {
-            return '/';
-        }
+        public char PathSeparator => '/';
 
-        public bool CanOpenDatabase()
-        {
-            return false;
-        }
+        public bool CanOpenDatabase => false;
 
-        public bool SupportCompression()
-        {
-            return false;
-        }
+        public bool SupportCompression => false;
 
         public string CombinePath(params string[] paths)
         {
-            return Utility.Files.CombinePath(GetPathSeparator(), paths);
+            return Utility.Files.CombinePath(PathSeparator, paths);
         }
 
         public async Task<File> GetFileInfo(string? path)
@@ -334,8 +327,8 @@ namespace MpbkpuLib.FileManagers
                 throw new ArgumentNullException(filePath);
             if (string.IsNullOrEmpty(newName))
                 throw new ArgumentNullException(newName);
-            if (newName.Contains(GetPathSeparator()))
-                throw new ArgumentException($"The new name cannot contain '{GetPathSeparator()}'", newName);
+            if (newName.Contains(PathSeparator))
+                throw new ArgumentException($"The new name cannot contain '{PathSeparator}'", newName);
 
             var client = await GetClient();
             filePath = GetPath(filePath);
@@ -424,12 +417,12 @@ namespace MpbkpuLib.FileManagers
 
         private string GetPath(string path)
         {
-            return Utility.Files.GetPath(GetPathSeparator(), Scheme, path);
+            return Utility.Files.GetPath(PathSeparator, Scheme, path);
         }
 
         private string GetParent(string position, out string? childName)
         {
-            return Utility.Files.GetParent(GetPathSeparator(), GetPath(position), out childName);
+            return Utility.Files.GetParent(PathSeparator, GetPath(position), out childName);
         }
         #endregion
     }

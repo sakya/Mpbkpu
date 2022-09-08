@@ -62,7 +62,7 @@ public class BackupFile : IDisposable
         }
     }
 
-    public DbSet<DataModel.File> Files
+    public DbSet<File> Files
     {
         get
         {
@@ -135,7 +135,7 @@ public class BackupFile : IDisposable
                 }
             }
 
-            if (!string.IsNullOrEmpty(password) || !backupFm.CanOpenDatabase()) {
+            if (!string.IsNullOrEmpty(password) || !backupFm.CanOpenDatabase) {
                 var action = new Action<long>((copied) =>
                 {
                     progressAction?.Invoke(copied, info.Size);
@@ -149,14 +149,14 @@ public class BackupFile : IDisposable
                     await Utility.Files.Copy(sourceStream, tempStream, action, token);
                 else {
                     var decrypt = new EncryptDecrypt(password);
-                    await decrypt.Decrypt(sourceStream, tempStream, backupFm.SupportCompression(), action, token);
+                    await decrypt.Decrypt(sourceStream, tempStream, backupFm.SupportCompression, action, token);
                 }
             }
         } else {
             if (!create)
                 throw new Exception($"Database file not found in {backupPath}");
 
-            if (!string.IsNullOrEmpty(password) || !backupFm.CanOpenDatabase())
+            if (!string.IsNullOrEmpty(password) || !backupFm.CanOpenDatabase)
                 tempDbPath = TempFile.GetTempFileName();
         }
 

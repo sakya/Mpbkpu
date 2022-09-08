@@ -78,7 +78,7 @@ public abstract class Job
                     break;
             }
 
-            pathSeparator = fm?.GetPathSeparator();
+            pathSeparator = fm?.PathSeparator;
             return fm?.GetScheme();
         }
     }

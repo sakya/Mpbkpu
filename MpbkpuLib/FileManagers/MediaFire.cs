@@ -172,29 +172,22 @@ public class MediaFire : IFileManager
         _client?.Dispose();
     }
 
+    public bool IsCaseSensitive => true;
+
     public string GetScheme()
     {
         return Scheme;
     }
 
-    public char GetPathSeparator()
-    {
-        return '/';
-    }
+    public char PathSeparator => '/';
 
-    public bool CanOpenDatabase()
-    {
-        return false;
-    }
+    public bool CanOpenDatabase => false;
 
-    public bool SupportCompression()
-    {
-        return false;
-    }
+    public bool SupportCompression => false;
 
     public string CombinePath(params string[] paths)
     {
-        return Utility.Files.CombinePath(GetPathSeparator(), paths);
+        return Utility.Files.CombinePath(PathSeparator, paths);
     }
 
     public async Task<bool> CreateDirectory(string? path)
@@ -396,15 +389,15 @@ public class MediaFire : IFileManager
             throw new ArgumentNullException(filePath);
         if (string.IsNullOrEmpty(newName))
             throw new ArgumentNullException(newName);
-        if (newName.Contains(GetPathSeparator()))
-            throw new ArgumentException($"The new name cannot contain '{GetPathSeparator()}'", newName);
+        if (newName.Contains(PathSeparator))
+            throw new ArgumentException($"The new name cannot contain '{PathSeparator}'", newName);
 
         filePath = GetPath(filePath);
         var client = await GetClient();
 
         await GetFileInfo(filePath);
-        var parentPath = Utility.Files.GetParent(GetPathSeparator(), filePath, out _);
-        var targetPath = Utility.Files.CombinePath(GetPathSeparator(), parentPath, newName);
+        var parentPath = Utility.Files.GetParent(PathSeparator, filePath, out _);
+        var targetPath = Utility.Files.CombinePath(PathSeparator, parentPath, newName);
         if (await  FileExists(targetPath))
             throw new Exception($"A file named {newName} already exists");
         await client.FileMove(filePath: filePath, targetFolderPath: targetPath);
@@ -433,12 +426,12 @@ public class MediaFire : IFileManager
 
     private string GetPath(string path)
     {
-        return Utility.Files.GetPath(GetPathSeparator(), Scheme, path);
+        return Utility.Files.GetPath(PathSeparator, Scheme, path);
     }
 
     private string GetParent(string position, out string? childName)
     {
-        return Utility.Files.GetParent(GetPathSeparator(), GetPath(position), out childName);
+        return Utility.Files.GetParent(PathSeparator, GetPath(position), out childName);
     }
     #endregion
 }

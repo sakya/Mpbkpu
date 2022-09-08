@@ -5,6 +5,11 @@ namespace MpbkpuLib.Interfaces
     public interface IFileManager : IDisposable
     {
         /// <summary>
+        /// Get if the file system is case sensitive
+        /// </summary>
+        bool IsCaseSensitive { get; }
+
+        /// <summary>
         /// Get the scheme of the file system
         /// </summary>
         /// <returns></returns>
@@ -14,19 +19,19 @@ namespace MpbkpuLib.Interfaces
         /// Get the char used to separate directories in path
         /// </summary>
         /// <returns></returns>
-        char GetPathSeparator();
+        char PathSeparator { get; }
 
         /// <summary>
         /// Return if the database can b directly opend in this file system
         /// </summary>
         /// <returns>True/False</returns>
-        bool CanOpenDatabase();
+        bool CanOpenDatabase { get; }
 
         /// <summary>
         /// Return if this <see cref="IFileManager"/> supports compression
         /// </summary>
         /// <returns>True/False</returns>
-        bool SupportCompression();
+        bool SupportCompression { get; }
 
         /// <summary>
         /// Combine <see cref="paths"/>

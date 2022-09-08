@@ -11,29 +11,30 @@ namespace MpbkpuLib.FileManagers
 
         }
 
+        public bool IsCaseSensitive
+        {
+            get
+            {
+                if (OperatingSystem.IsWindows())
+                    return false;
+                return true;
+            }
+        }
+
         public string? GetScheme()
         {
             return null;
         }
 
-        public char GetPathSeparator()
-        {
-            return Path.DirectorySeparatorChar;
-        }
+        public char PathSeparator => Path.DirectorySeparatorChar;
 
-        public bool CanOpenDatabase()
-        {
-            return true;
-        }
+        public bool CanOpenDatabase => true;
 
-        public bool SupportCompression()
-        {
-            return true;
-        }
+        public bool SupportCompression => true;
 
         public string CombinePath(params string[] paths)
         {
-            return Utility.Files.CombinePath(GetPathSeparator(), paths);
+            return Utility.Files.CombinePath(PathSeparator, paths);
         }
 
         public Task<bool> CreateDirectory(string? path)
@@ -168,13 +169,13 @@ namespace MpbkpuLib.FileManagers
                 throw new ArgumentNullException(filePath);
             if (string.IsNullOrEmpty(newName))
                 throw new ArgumentNullException(newName);
-            if (newName.Contains(GetPathSeparator()))
-                throw new ArgumentException($"The new name cannot contain '{GetPathSeparator()}'", newName);
+            if (newName.Contains(PathSeparator))
+                throw new ArgumentException($"The new name cannot contain '{PathSeparator}'", newName);
 
             var path = Path.GetDirectoryName(filePath);
             if (string.IsNullOrEmpty(path))
                 throw new Exception("Invalid path");
-            File.Move(filePath, Utility.Files.CombinePath(GetPathSeparator(), path, newName));
+            File.Move(filePath, Utility.Files.CombinePath(PathSeparator, path, newName));
 
             return Task.CompletedTask;
         }

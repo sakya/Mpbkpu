@@ -91,8 +91,8 @@ public abstract class BaseJob : IDisposable
         if (await BackupFm.FileExists(openRes.BackupFilePath)) {
             var parent = BackupFm is FileSystem ?
                 Path.GetDirectoryName(openRes.BackupFilePath) :
-                Files.GetParent(BackupFm.GetPathSeparator(), openRes.BackupFilePath!, out _, BackupFm.GetScheme());
-            var backupDbPath = Files.CombinePath(BackupFm.GetPathSeparator(), parent!, BackupFile.DatabaseBackupFileName);
+                Files.GetParent(BackupFm.PathSeparator, openRes.BackupFilePath!, out _, BackupFm.GetScheme());
+            var backupDbPath = Files.CombinePath(BackupFm.PathSeparator, parent!, BackupFile.DatabaseBackupFileName);
             if (await BackupFm.FileExists(backupDbPath)) {
                 await BackupFm.DeleteFile(backupDbPath);
             }
@@ -100,7 +100,7 @@ public abstract class BaseJob : IDisposable
         }
 
         await using var sourceStream = await sourceFm.OpenFile(openRes.TempFilePath);
-        var destFileSize = Files.GetDestinationFileSize(sourceStream.Length, BackupFm.SupportCompression() ? CompressionLevel.SmallestSize : CompressionLevel.NoCompression,
+        var destFileSize = Files.GetDestinationFileSize(sourceStream.Length, BackupFm.SupportCompression ? CompressionLevel.SmallestSize : CompressionLevel.NoCompression,
             !string.IsNullOrEmpty(password));
         await using var destStream = await BackupFm.OpenFile(openRes.BackupFilePath, true, destFileSize);
 
@@ -112,7 +112,7 @@ public abstract class BaseJob : IDisposable
             await Files.Copy(sourceStream, destStream, action);
         else {
             var encrypt = new EncryptDecrypt(password);
-            await encrypt.Encrypt(sourceStream, destStream, BackupFm.SupportCompression() ? CompressionLevel.SmallestSize : CompressionLevel.NoCompression, action);
+            await encrypt.Encrypt(sourceStream, destStream, BackupFm.SupportCompression ? CompressionLevel.SmallestSize : CompressionLevel.NoCompression, action);
         }
     }
 
@@ -264,8 +264,8 @@ public abstract class BaseJob : IDisposable
         if (token?.IsCancellationRequested == true)
             return true;
 
-        if (!rootPath.EndsWith(fileManager.GetPathSeparator()))
-            rootPath = $"{rootPath}{fileManager.GetPathSeparator()}";
+        if (!rootPath.EndsWith(fileManager.PathSeparator))
+            rootPath = $"{rootPath}{fileManager.PathSeparator}";
         LogDebug($"  {path}");
         await foreach (var file in fileManager.GetDirectoryContent(path, includeHiddenFiles)) {
             if (token?.IsCancellationRequested == true)

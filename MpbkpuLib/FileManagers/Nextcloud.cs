@@ -128,29 +128,22 @@ public class Nextcloud : IFileManager, IOAuth2
     {
     }
 
+    public bool IsCaseSensitive => true;
+
     public string GetScheme()
     {
         return Scheme;
     }
 
-    public char GetPathSeparator()
-    {
-        return '/';
-    }
+    public char PathSeparator => '/';
 
-    public bool CanOpenDatabase()
-    {
-        return false;
-    }
+    public bool CanOpenDatabase => false;
 
-    public bool SupportCompression()
-    {
-        return false;
-    }
+    public bool SupportCompression => false;
 
     public string CombinePath(params string[] paths)
     {
-        return Files.CombinePath(GetPathSeparator(), paths);
+        return Files.CombinePath(PathSeparator, paths);
     }
 
     public async Task<bool> CreateDirectory(string? path)
@@ -289,15 +282,15 @@ public class Nextcloud : IFileManager, IOAuth2
             throw new ArgumentNullException(filePath);
         if (string.IsNullOrEmpty(newName))
             throw new ArgumentNullException(newName);
-        if (newName.Contains(GetPathSeparator()))
-            throw new ArgumentException($"The new name cannot contain '{GetPathSeparator()}'", newName);
+        if (newName.Contains(PathSeparator))
+            throw new ArgumentException($"The new name cannot contain '{PathSeparator}'", newName);
 
         var client = await GetClient();
         filePath = GetPath(filePath);
 
         await GetFileInfo(filePath);
-        var parentPath = Utility.Files.GetParent(GetPathSeparator(), filePath, out _);
-        var targetPath = Utility.Files.CombinePath(GetPathSeparator(), parentPath, newName);
+        var parentPath = Utility.Files.GetParent(PathSeparator, filePath, out _);
+        var targetPath = Utility.Files.CombinePath(PathSeparator, parentPath, newName);
         if (await FileExists(targetPath))
             throw new Exception($"A file named {newName} already exists");
 
@@ -358,12 +351,12 @@ public class Nextcloud : IFileManager, IOAuth2
 
     private string GetPath(string path)
     {
-        return Files.GetPath(GetPathSeparator(), Scheme, path);
+        return Files.GetPath(PathSeparator, Scheme, path);
     }
 
     private string GetName(string path)
     {
-        var idx = path.LastIndexOf($"{GetPathSeparator()}", StringComparison.InvariantCultureIgnoreCase);
+        var idx = path.LastIndexOf($"{PathSeparator}", StringComparison.InvariantCultureIgnoreCase);
         return idx >= 0 ? path.Substring(idx) : path;
     }
 

@@ -4,7 +4,7 @@
       "Path": "./Mpbkpu_Test"
     },
     "Dropbox": {
-      "Path": "/Mpbkpu_Test",
+      "Path": "dropbox:///Mpbkpu_Test",
       "Username": "account_email",
       "OAuth2Settings": {
         "AppId": "...",

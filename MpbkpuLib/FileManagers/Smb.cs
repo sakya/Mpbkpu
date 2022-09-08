@@ -123,11 +123,6 @@ namespace MpbkpuLib.FileManagers
         }
         #endregion
 
-        public void Dispose()
-        {
-
-        }
-
         public Smb(string domainName, string username, string password, string host)
         {
             _domainName = domainName;
@@ -136,29 +131,27 @@ namespace MpbkpuLib.FileManagers
             Host = host;
         }
 
+        public void Dispose()
+        {
+
+        }
+
+        public bool IsCaseSensitive => true;
+
         public string GetScheme()
         {
             return Scheme;
         }
 
-        public char GetPathSeparator()
-        {
-            return '/';
-        }
+        public char PathSeparator => '/';
 
-        public bool CanOpenDatabase()
-        {
-            return false;
-        }
+        public bool CanOpenDatabase => false;
 
-        public bool SupportCompression()
-        {
-            return true;
-        }
+        public bool SupportCompression => true;
 
         public string CombinePath(params string[] paths)
         {
-            return Utility.Files.CombinePath(GetPathSeparator(), paths);
+            return Utility.Files.CombinePath(PathSeparator, paths);
         }
 
         public string? Host { get; }
@@ -295,15 +288,15 @@ namespace MpbkpuLib.FileManagers
                 throw new ArgumentNullException(filePath);
             if (string.IsNullOrEmpty(newName))
                 throw new ArgumentNullException(newName);
-            if (newName.Contains(GetPathSeparator()))
-                throw new ArgumentException($"The new name cannot contain '{GetPathSeparator()}'", newName);
+            if (newName.Contains(PathSeparator))
+                throw new ArgumentException($"The new name cannot contain '{PathSeparator}'", newName);
 
             using var node = await Node.GetNode(GetPath(filePath), GetParamSet());
             if (node == null || node.Type != NodeType.File)
                 throw new FileNotFoundException($"File {filePath} not found", filePath);
 
-            var parentPath = Utility.Files.GetParent( GetPathSeparator(), GetPath(filePath), out _);
-            var targetPath = Utility.Files.CombinePath(GetPathSeparator(), parentPath, newName);
+            var parentPath = Utility.Files.GetParent( PathSeparator, GetPath(filePath), out _);
+            var targetPath = Utility.Files.CombinePath(PathSeparator, parentPath, newName);
             using var targetNode = await Node.GetNode(GetPath(targetPath), GetParamSet());
             if (targetNode != null)
                 throw new Exception($"A file named {newName} already exists");
@@ -335,12 +328,12 @@ namespace MpbkpuLib.FileManagers
 
         private string GetPath(string path)
         {
-            return Utility.Files.GetPath(GetPathSeparator(), Scheme, path);
+            return Utility.Files.GetPath(PathSeparator, Scheme, path);
         }
 
         private string GetParent(string position, out string? childName)
         {
-            return Utility.Files.GetParent(GetPathSeparator(), GetPath(position), out childName);
+            return Utility.Files.GetParent(PathSeparator, GetPath(position), out childName);
         }
         #endregion
     }

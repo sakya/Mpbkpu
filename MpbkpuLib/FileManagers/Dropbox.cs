@@ -189,29 +189,22 @@ public class Dropbox : IFileManager, IOAuth2
         _client?.Dispose();
     }
 
+    public bool IsCaseSensitive => true;
+
     public string GetScheme()
     {
         return Scheme;
     }
 
-    public char GetPathSeparator()
-    {
-        return '/';
-    }
+    public char PathSeparator => '/';
 
-    public bool CanOpenDatabase()
-    {
-        return false;
-    }
+    public bool CanOpenDatabase => false;
 
-    public bool SupportCompression()
-    {
-        return false;
-    }
+    public bool SupportCompression => false;
 
     public string CombinePath(params string[] paths)
     {
-        return Files.CombinePath(GetPathSeparator(), paths);
+        return Files.CombinePath(PathSeparator, paths);
     }
 
     public async Task<bool> CreateDirectory(string? path)
@@ -373,8 +366,8 @@ public class Dropbox : IFileManager, IOAuth2
             throw new ArgumentNullException(filePath);
         if (string.IsNullOrEmpty(newName))
             throw new ArgumentNullException(newName);
-        if (newName.Contains(GetPathSeparator()))
-            throw new ArgumentException($"The new name cannot contain '{GetPathSeparator()}'", newName);
+        if (newName.Contains(PathSeparator))
+            throw new ArgumentException($"The new name cannot contain '{PathSeparator}'", newName);
 
         var client = await GetClient();
         filePath = GetPath(filePath);
@@ -383,8 +376,8 @@ public class Dropbox : IFileManager, IOAuth2
         if (!item.IsFile)
             throw new FileNotFoundException($"File {filePath} not found", filePath);
 
-        var parent = Files.GetParent(GetPathSeparator(), filePath, out _);
-        var args = new RelocationArg(filePath, Files.CombinePath(GetPathSeparator(), parent, newName));
+        var parent = Files.GetParent(PathSeparator, filePath, out _);
+        var args = new RelocationArg(filePath, Files.CombinePath(PathSeparator, parent, newName));
         await client.Files.MoveV2Async(args);
     }
 
@@ -489,7 +482,7 @@ public class Dropbox : IFileManager, IOAuth2
 
     private string GetPath(string path)
     {
-        return Files.GetPath(GetPathSeparator(), Scheme, path);
+        return Files.GetPath(PathSeparator, Scheme, path);
     }
 
     #endregion

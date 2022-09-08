@@ -422,7 +422,7 @@ public class BackupJob : BaseJob
         if (BackupFm == null)
             throw new Exception("Backup file manager not initialized");
 
-        if (Settings.CompressionLevel != CompressionLevel.NoCompression && !BackupFm.SupportCompression())
+        if (Settings.CompressionLevel != CompressionLevel.NoCompression && !BackupFm.SupportCompression)
             throw new Exception("Destination doesn't support compression");
 
         if (!await BackupFm.DirectoryExists(BackupPath))

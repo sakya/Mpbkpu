@@ -127,29 +127,22 @@ public class Mega : IFileManager
         }
     }
 
+    public bool IsCaseSensitive => true;
+
     public string GetScheme()
     {
         return Scheme;
     }
 
-    public char GetPathSeparator()
-    {
-        return '/';
-    }
+    public char PathSeparator => '/';
 
-    public bool CanOpenDatabase()
-    {
-        return false;
-    }
+    public bool CanOpenDatabase => false;
 
-    public bool SupportCompression()
-    {
-        return false;
-    }
+    public bool SupportCompression => false;
 
     public string CombinePath(params string[] paths)
     {
-        return Utility.Files.CombinePath(GetPathSeparator(), paths);
+        return Utility.Files.CombinePath(PathSeparator, paths);
     }
 
     public async Task<bool> CreateDirectory(string? path)
@@ -296,8 +289,8 @@ public class Mega : IFileManager
             throw new ArgumentNullException(filePath);
         if (string.IsNullOrEmpty(newName))
             throw new ArgumentNullException(newName);
-        if (newName.Contains(GetPathSeparator()))
-            throw new ArgumentException($"The new name cannot contain '{GetPathSeparator()}'", newName);
+        if (newName.Contains(PathSeparator))
+            throw new ArgumentException($"The new name cannot contain '{PathSeparator}'", newName);
 
         filePath = GetPath(filePath);
         var client = await GetClient();
@@ -308,7 +301,7 @@ public class Mega : IFileManager
         var parent = await GetNode(parentPath);
         if (parent == null)
             throw new Exception($"Folder {parentPath} not found");
-        if (await GetNode(Utility.Files.CombinePath(GetPathSeparator(), parentPath, newName)) != null)
+        if (await GetNode(Utility.Files.CombinePath(PathSeparator, parentPath, newName)) != null)
             throw new Exception($"A file named {newName} already exists");
         await client.MoveAsync(sourceNode, parent);
     }
@@ -336,12 +329,12 @@ public class Mega : IFileManager
 
     private string GetPath(string path)
     {
-        return Utility.Files.GetPath(GetPathSeparator(), Scheme, path);
+        return Utility.Files.GetPath(PathSeparator, Scheme, path);
     }
 
     private string[] SplitPath(string position)
     {
-        return position.Split(GetPathSeparator());
+        return position.Split(PathSeparator);
     }
 
     private async Task<INode?> GetNode(string path)
@@ -370,7 +363,7 @@ public class Mega : IFileManager
 
     private string GetParent(string position, out string? childName)
     {
-        return Utility.Files.GetParent(GetPathSeparator(), GetPath(position), out childName);
+        return Utility.Files.GetParent(PathSeparator, GetPath(position), out childName);
     }
     #endregion
 }
