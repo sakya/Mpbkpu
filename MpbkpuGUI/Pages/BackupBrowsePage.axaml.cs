@@ -92,7 +92,7 @@ public class BackupBrowsePage : BasePage
             fm ??= FileManagerFactory.GetFileManager(item.OriginalPath, out _);
             var parentPath = MpbkpuLib.Utility.Files.GetParent(fm.PathSeparator, item.OriginalRelativePath!, out _, addStartingSeparator: false);
             if (directories.TryGetValue(parentPath, out var parent)) {
-                parent!.Children!.Add(dir);
+                parent.Children!.Add(dir);
             } else {
                 _model.Directories.Add(dir);
             }
