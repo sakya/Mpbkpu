@@ -12,6 +12,8 @@ using MpbkpuGUI.Dialogs;
 using MpbkpuGUI.Models;
 using MpbkpuLib;
 using MpbkpuLib.DataModel;
+using MpbkpuLib.FileManagers;
+using MpbkpuLib.Interfaces;
 
 namespace MpbkpuGUI.Pages;
 
@@ -78,6 +80,7 @@ public class BackupBrowsePage : BasePage
         var items = _backupFile.GetBackupItems(_backupId, File.FileTyes.Directory);
         _model.Directories = new ObservableCollection<BackupBrowseModel.Directory>();
         Dictionary<string, BackupBrowseModel.Directory> directories = new();
+        IFileManager? fm = null;
         await foreach (var item in items) {
             var dir = new BackupBrowseModel.Directory()
             {
@@ -86,7 +89,8 @@ public class BackupBrowsePage : BasePage
                 Children = new ObservableCollection<BackupBrowseModel.Directory>()
             };
 
-            var parentPath = MpbkpuLib.Utility.Files.GetParent('\\', item.OriginalRelativePath!, out _, addStartingSeparator: false);
+            fm ??= FileManagerFactory.GetFileManager(item.OriginalPath, out _);
+            var parentPath = MpbkpuLib.Utility.Files.GetParent(fm.PathSeparator, item.OriginalRelativePath!, out _, addStartingSeparator: false);
             if (directories.TryGetValue(parentPath, out var parent)) {
                 parent!.Children!.Add(dir);
             } else {
@@ -101,9 +105,11 @@ public class BackupBrowsePage : BasePage
         _model.Files = new ObservableCollection<BackupItem>();
         var dir = e.AddedItems.Count == 1 ? e.AddedItems[0] as BackupBrowseModel.Directory : null;
         if (dir != null) {
+            IFileManager? fm = null;
             var items = _backupFile.GetBackupItems(_backupId, File.FileTyes.File);
             await foreach (var item in items) {
-                var parentPath = MpbkpuLib.Utility.Files.GetParent('\\', item.OriginalRelativePath!, out _, addStartingSeparator: false);
+                fm ??= FileManagerFactory.GetFileManager(item.OriginalPath, out _);
+                var parentPath = MpbkpuLib.Utility.Files.GetParent(fm.PathSeparator, item.OriginalRelativePath!, out _, addStartingSeparator: false);
                 if (parentPath == dir.Path)
                     _model.Files.Add(item);
             }
