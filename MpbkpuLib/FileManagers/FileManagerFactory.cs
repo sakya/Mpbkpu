@@ -6,7 +6,9 @@ namespace MpbkpuLib.FileManagers
     public static class FileManagerFactory
     {
         /// <summary>
-        /// Create a <see cref="IFileManager"/> based on the <see cref="path"/>
+        /// Create a <see cref="IFileManager"/> based on a absolute <see cref="path"/>
+        /// C:\path
+        /// /path
         /// ftp://user:password@host/position
         /// sftp://user:password@host/position
         /// sftp://user:keyfile=pathToFile@host/position
