@@ -394,7 +394,7 @@ public class RestoreJob : BaseJob
                     await _destinationFm.CreateDirectory(destFilePath);
 
                 // Restore last modified date (only on local file system)
-                if (_destinationFm is FileSystem && fileToRestore.BackupItem!.OriginalLastModified.HasValue) {
+                if (_destinationFm is BaseLocalFileSystem && fileToRestore.BackupItem!.OriginalLastModified.HasValue) {
                     Directory.SetLastWriteTime(destFilePath, fileToRestore.BackupItem.OriginalLastModified.Value);
                 }
                 FileProgress?.Invoke(this, fileToRestore.RelativePath!, 9, 9);
@@ -428,7 +428,7 @@ public class RestoreJob : BaseJob
                 }
 
                 // Restore last modified date (only on local file system)
-                if (_destinationFm is FileSystem && fileToRestore.BackupItem.OriginalLastModified.HasValue) {
+                if (_destinationFm is BaseLocalFileSystem && fileToRestore.BackupItem.OriginalLastModified.HasValue) {
                     System.IO.File.SetLastWriteTime(destFilePath, fileToRestore.BackupItem.OriginalLastModified.Value);
                 }
                 break;

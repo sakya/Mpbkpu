@@ -44,7 +44,7 @@ public class BackupFile : IDisposable
         {
             BackupFile.Dispose();
             if (!string.IsNullOrEmpty(TempFilePath)) {
-                var fm = new FileSystem();
+                using var fm = FileManagerFactory.GetFileManager(TempFilePath, out _);
                 fm.DeleteFile(TempFilePath).Wait();
             }
         }

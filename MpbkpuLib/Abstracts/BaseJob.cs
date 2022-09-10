@@ -89,7 +89,7 @@ public abstract class BaseJob : IDisposable
 
         // Backup existing database
         if (await BackupFm.FileExists(openRes.BackupFilePath)) {
-            var parent = BackupFm is FileSystem ?
+            var parent = BackupFm is BaseLocalFileSystem ?
                 Path.GetDirectoryName(openRes.BackupFilePath) :
                 Files.GetParent(BackupFm.PathSeparator, openRes.BackupFilePath!, out _, BackupFm.GetScheme());
             var backupDbPath = Files.CombinePath(BackupFm.PathSeparator, parent!, BackupFile.DatabaseBackupFileName);

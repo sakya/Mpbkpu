@@ -392,7 +392,7 @@ public class SyncDirectoryJob : BaseJob
                     }
                 }
                 // Restore last modified date (only on local file system)
-                if (BackupFm is FileSystem && fileToBackup.LastModified.HasValue) {
+                if (BackupFm is BaseLocalFileSystem && fileToBackup.LastModified.HasValue) {
                     System.IO.File.SetLastWriteTime(destFilePath, fileToBackup.LastModified.Value);
                 }
                 break;
@@ -400,7 +400,7 @@ public class SyncDirectoryJob : BaseJob
                 FileProgress?.Invoke(this, fileToBackup.RelativePath!, 0, 1);
                 await BackupFm.CreateDirectory(destFilePath);
                 // Restore last modified date (only on local file system)
-                if (BackupFm is FileSystem && fileToBackup.LastModified.HasValue) {
+                if (BackupFm is BaseLocalFileSystem && fileToBackup.LastModified.HasValue) {
                     Directory.SetLastWriteTime(destFilePath, fileToBackup.LastModified.Value);
                 }
                 FileProgress?.Invoke(this, fileToBackup.RelativePath!, 0, 1);

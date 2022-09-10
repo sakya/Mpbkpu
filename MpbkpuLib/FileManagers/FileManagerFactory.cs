@@ -244,8 +244,10 @@ namespace MpbkpuLib.FileManagers
             }
 
             // Default to FileSystem
-            if (res == null)
-                res = new FileSystem();
+            if (res == null) {
+                var m = Regex.Match(path, "[a-zA-Z]:[\\\\/].*");
+                res = m.Success ? new LocalFileSystemWindows() : new LocalFileSystemLinux();
+            }
 
             if (oauth2Settings is { IsEmpty: false } && res is not IOAuth2)
                 throw new Exception($"{res.GetType().Name} does not support OAuth2");

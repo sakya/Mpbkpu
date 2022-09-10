@@ -1,32 +1,25 @@
-﻿using MpbkpuLib.Interfaces;
+﻿using MpbkpuLib.FileManagers;
+using MpbkpuLib.Interfaces;
 using Directory = System.IO.Directory;
 using File = System.IO.File;
 
-namespace MpbkpuLib.FileManagers
+namespace MpbkpuLib.Abstracts
 {
-    public class FileSystem : IFileManager
+    public abstract class BaseLocalFileSystem : IFileManager
     {
         public void Dispose()
         {
 
         }
 
-        public bool IsCaseSensitive
-        {
-            get
-            {
-                if (OperatingSystem.IsWindows())
-                    return false;
-                return true;
-            }
-        }
+        public virtual bool IsCaseSensitive => true;
 
         public string? GetScheme()
         {
             return null;
         }
 
-        public char PathSeparator => Path.DirectorySeparatorChar;
+        public virtual char PathSeparator => Path.DirectorySeparatorChar;
 
         public bool CanOpenDatabase => true;
 
@@ -109,12 +102,8 @@ namespace MpbkpuLib.FileManagers
 
                     Created = di.CreationTime,
                     LastModified = di.LastWriteTime,
+                    Hidden = IsFileHidden(sdi)
                 };
-
-                if (Environment.OSVersion.Platform == PlatformID.Unix && fInfo.Name.StartsWith("."))
-                    fInfo.Hidden = true;
-                else
-                    fInfo.Hidden = sdi.Attributes.HasFlag(FileAttributes.Hidden);
 
                 if (includeHidden || !fInfo.Hidden)
                     yield return fInfo;
@@ -132,12 +121,8 @@ namespace MpbkpuLib.FileManagers
 
                     Created = fi.CreationTime,
                     LastModified = fi.LastWriteTime,
+                    Hidden = IsFileHidden(fi)
                 };
-
-                if (Environment.OSVersion.Platform == PlatformID.Unix && fInfo.Name.StartsWith("."))
-                    fInfo.Hidden = true;
-                else
-                    fInfo.Hidden = fi.Attributes.HasFlag(FileAttributes.Hidden);
 
                 if (includeHidden || !fInfo.Hidden)
                     yield return fInfo;
@@ -186,5 +171,7 @@ namespace MpbkpuLib.FileManagers
             stream.Close();
             return Task.FromResult(true);
         }
+
+        protected abstract bool IsFileHidden(FileSystemInfo fileInfo);
     }
 }
