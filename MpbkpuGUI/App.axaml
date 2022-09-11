@@ -60,7 +60,7 @@
         </Style>
         <Style Selector="TextBlock.Secondary">
             <Setter Property="FontSize" Value="12" />
-            <Setter Property="FontWeight" Value="{StaticResource FontWeight}" />
+            <Setter Property="FontWeight" Value="ExtraLight" />
         </Style>
 
         <Style Selector="ComboBox">
