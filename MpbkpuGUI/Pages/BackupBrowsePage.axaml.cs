@@ -70,40 +70,13 @@ public class BackupBrowsePage : BasePage
 
     private async Task OpenBackup()
     {
-        var bkp = await _backupFile.Backups.AsNoTracking()
-            .Where(b => b.Id == _backupId)
-            .FirstOrDefaultAsync();
-        if (bkp == null)
-            throw new Exception($"Backup with id {_backupId} not found");
-
-        // Build directory tree
-        var items = _backupFile.GetBackupItems(_backupId, File.FileTyes.Directory);
-        _model.Directories = new ObservableCollection<BackupBrowseModel.Directory>();
-        Dictionary<string, BackupBrowseModel.Directory> directories = new();
-        IFileManager? fm = null;
-        await foreach (var item in items) {
-            var dir = new BackupBrowseModel.Directory()
-            {
-                Name = item.OriginalName,
-                Path = item.OriginalRelativePath,
-                Children = new ObservableCollection<BackupBrowseModel.Directory>()
-            };
-
-            fm ??= FileManagerFactory.GetFileManager(item.OriginalPath, out _);
-            var parentPath = MpbkpuLib.Utility.Files.GetParent(fm.PathSeparator, item.OriginalRelativePath!, out _, addStartingSeparator: false);
-            if (directories.TryGetValue(parentPath, out var parent)) {
-                parent.Children!.Add(dir);
-            } else {
-                _model.Directories.Add(dir);
-            }
-            directories[dir.Path!] = dir;
-        }
+        _model.Directories = await _backupFile.GetDirectoryTree(_backupId);
     }
 
     private async void OnTreeSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         _model.Files = new ObservableCollection<BackupItem>();
-        var dir = e.AddedItems.Count == 1 ? e.AddedItems[0] as BackupBrowseModel.Directory : null;
+        var dir = e.AddedItems.Count == 1 ? e.AddedItems[0] as MpbkpuLib.BackupFile.Directory : null;
         if (dir != null) {
             IFileManager? fm = null;
             var items = _backupFile.GetBackupItems(_backupId, File.FileTyes.File);

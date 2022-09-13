@@ -49,6 +49,13 @@ public class BackupFile : IDisposable
             }
         }
     }
+
+    public class Directory
+    {
+        public string? Name { get; set; }
+        public string? Path { get; set; }
+        public List<Directory>? Children { get; set; }
+    }
     #endregion
 
     private Context.BackupContext? _context;
@@ -403,6 +410,37 @@ public class BackupFile : IDisposable
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Get the directory tree of a backup
+    /// </summary>
+    /// <param name="backupId">The backup id</param>
+    /// <returns></returns>
+    public async Task<List<Directory>> GetDirectoryTree(int backupId)
+    {
+        IFileManager? fm = null;
+        Dictionary<string, Directory> directories = new();
+        List<Directory> res = new();
+        await foreach (var item in GetBackupItems(backupId, File.FileTyes.Directory)) {
+            var dir = new Directory()
+            {
+                Name = item.OriginalName,
+                Path = item.OriginalRelativePath,
+                Children = new List<Directory>()
+            };
+
+            fm ??= FileManagerFactory.GetFileManager(item.OriginalPath, out _);
+            var parentPath = MpbkpuLib.Utility.Files.GetParent(fm.PathSeparator, item.OriginalRelativePath!, out _, addStartingSeparator: false);
+            if (directories.TryGetValue(parentPath, out var parent)) {
+                parent.Children!.Add(dir);
+            } else {
+                res.Add(dir);
+            }
+            directories[dir.Path!] = dir;
+        }
+
+        return res;
     }
 
     #region private operations

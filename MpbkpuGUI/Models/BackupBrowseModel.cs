@@ -7,13 +7,6 @@ namespace MpbkpuGUI.Models;
 
 public class BackupBrowseModel : BaseModel
 {
-    public class Directory
-    {
-        public string? Name { get; set; }
-        public string? Path { get; set; }
-        public ObservableCollection<Directory>? Children { get; set; }
-    }
-
     private string? _buttonText;
     public string? ButtonText
     {
@@ -28,8 +21,8 @@ public class BackupBrowseModel : BaseModel
         set => SetField(ref _spinnerMessage, value);
     }
 
-    private ObservableCollection<Directory>? _directories;
-    public ObservableCollection<Directory>? Directories
+    private List<MpbkpuLib.BackupFile.Directory>? _directories;
+    public List<MpbkpuLib.BackupFile.Directory>? Directories
     {
         get => _directories;
         set => SetField(ref _directories, value);
