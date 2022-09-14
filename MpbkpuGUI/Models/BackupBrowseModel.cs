@@ -28,8 +28,8 @@ public class BackupBrowseModel : BaseModel
         set => SetField(ref _directories, value);
     }
 
-    private ObservableCollection<BackupItem>? _files;
-    public ObservableCollection<BackupItem>? Files
+    private List<BackupItem>? _files;
+    public List<BackupItem>? Files
     {
         get => _files;
         set => SetField(ref _files, value);

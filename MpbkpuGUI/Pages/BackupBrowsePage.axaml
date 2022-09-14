@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:i="clr-namespace:Projektanker.Icons.Avalonia;assembly=Projektanker.Icons.Avalonia"
              xmlns:controls="clr-namespace:MpbkpuGUI.Controls"
              xmlns:converters="clr-namespace:MpbkpuGUI.Converters"
              xmlns:models="clr-namespace:MpbkpuGUI.Models"
@@ -12,6 +13,7 @@
     </Design.DataContext>
 
     <UserControl.Resources>
+        <converters:ItemTypeToIconConverter x:Key="ItemTypeToIconConverter" />
         <converters:BytesToStringConverter x:Key="BytesToStringConverter"/>
         <converters:DateTimeConverter x:Key="DateTimeConverter"/>
     </UserControl.Resources>
@@ -52,17 +54,19 @@
                     <Border Padding="10,5,10,5">
                         <Grid>
                             <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="30" />
                                 <ColumnDefinition Width="*" MinWidth="30" />
                                 <ColumnDefinition SharedSizeGroup="ColModified" Width="Auto" />
                                 <ColumnDefinition SharedSizeGroup="ColSize" Width="Auto" />
                             </Grid.ColumnDefinitions>
 
-                            <TextBlock Grid.Column="0" Text="{Binding OriginalName}"
+                            <i:Icon Grid.Column="0" Value="{Binding Type, Converter={StaticResource ItemTypeToIconConverter}}" />
+                            <TextBlock Grid.Column="1" Text="{Binding OriginalName}"
                                        TextTrimming="CharacterEllipsis"/>
-                            <TextBlock Grid.Column="1" Text="{Binding OriginalLastModified, Converter={StaticResource DateTimeConverter}}"
+                            <TextBlock Grid.Column="2" Text="{Binding OriginalLastModified, Converter={StaticResource DateTimeConverter}}"
                                        TextTrimming="CharacterEllipsis"
                                        Margin="5,0,0,0"/>
-                            <TextBlock Grid.Column="2" Text="{Binding Size, Converter={StaticResource BytesToStringConverter}}"
+                            <TextBlock Grid.Column="3" Text="{Binding Size, Converter={StaticResource BytesToStringConverter}}"
                                        TextAlignment="Right"
                                        TextTrimming="CharacterEllipsis"
                                        Margin="5,0,0,0"/>

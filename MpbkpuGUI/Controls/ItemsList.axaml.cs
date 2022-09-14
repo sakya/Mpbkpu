@@ -68,7 +68,7 @@ namespace MpbkpuGUI.Controls
                 if (SetAndRaise(ItemsProperty, ref _items, value)) {
                     _itemsRepeater!.Items = _items;
                     if (Selectable && _items?.Count() > 0)
-                        _selectedItem = _items.ElementAt(0);
+                        SelectedItem = _items.ElementAt(0);
                 }
             }
         }

@@ -75,17 +75,22 @@ public class BackupBrowsePage : BasePage
 
     private async void OnTreeSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        _model.Files = new ObservableCollection<BackupItem>();
+        _model.Files = new List<BackupItem>();
         var dir = e.AddedItems.Count == 1 ? e.AddedItems[0] as MpbkpuLib.BackupFile.Directory : null;
         if (dir != null) {
             IFileManager? fm = null;
-            var items = _backupFile.GetBackupItems(_backupId, File.FileTyes.File);
+            var files = new List<BackupItem>();
+            var items = _backupFile.GetBackupItems(_backupId);
             await foreach (var item in items) {
                 fm ??= FileManagerFactory.GetFileManager(item.OriginalPath, out _);
                 var parentPath = MpbkpuLib.Utility.Files.GetParent(fm.PathSeparator, item.OriginalRelativePath!, out _, addStartingSeparator: false);
                 if (parentPath == dir.Path)
-                    _model.Files.Add(item);
+                    files.Add(item);
             }
+
+            _model.Files = files.OrderByDescending(f => f.Type)
+                .ThenBy(f => f.OriginalName)
+                .ToList();
         }
     }
 }
