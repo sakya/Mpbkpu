@@ -8,13 +8,12 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Threading;
 using MpbkpuGUI.Models;
-using MpbkpuGUI.Views;
 
 namespace MpbkpuGUI
 {
-    public partial class App : Application
+    public class App : Application
     {
-        public Avalonia.Controls.Window? MainWindow { get; set; }
+        public Window? MainWindow { get; set; }
         public static string? LocalPath;
         public static string? SettingFile;
         public static AppSettings? Settings;
@@ -73,7 +72,7 @@ namespace MpbkpuGUI
             if (Current is App app && app.MainWindow != null) {
                 var resource = app.MainWindow.FindResource(name);
                 if (resource is Color col)
-                    return (Color)resource;
+                    return col;
             }
             return null;
         }
