@@ -210,6 +210,7 @@ namespace MpbkpuGUI.Controls
         {
             if (ctrl.DataContext == SelectedItem) {
                 ctrl.Background = this.FindResource("SystemControlHighlightListAccentLowBrush") as SolidColorBrush;
+                _selectedControl = ctrl;
             } else {
                 ctrl.Background = new SolidColorBrush(Colors.Transparent);
             }
