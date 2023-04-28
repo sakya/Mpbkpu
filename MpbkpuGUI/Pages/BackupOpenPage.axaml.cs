@@ -5,13 +5,11 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using Avalonia.SingleWindow.Abstracts;
 using Avalonia.Threading;
-using MpbkpuGUI.Abstracts;
 using MpbkpuGUI.Dialogs;
 using MpbkpuGUI.Models;
-using MpbkpuGUI.Views;
 using MpbkpuLib;
-using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
 
 namespace MpbkpuGUI.Pages;

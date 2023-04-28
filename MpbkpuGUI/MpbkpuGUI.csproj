@@ -21,22 +21,23 @@
     <TrimmableAssembly Include="Avalonia.Themes.Default" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Avalonia" Version="0.10.18" />
-    <PackageReference Include="Avalonia.Desktop" Version="0.10.18" />
+    <PackageReference Include="Avalonia" Version="0.10.19" />
+    <PackageReference Include="Avalonia.Desktop" Version="0.10.19" />
     <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
-    <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="0.10.18" />
+    <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="0.10.19" />
+    <PackageReference Include="AvaloniaSingleWindow" Version="1.1.5" />
     <PackageReference Include="Projektanker.Icons.Avalonia" Version="5.4.0" />
     <PackageReference Include="Projektanker.Icons.Avalonia.FontAwesome" Version="5.4.0" />
   </ItemGroup>
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
-  </ItemGroup>  
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\MpbkpuLib\MpbkpuLib.csproj" />
-  </ItemGroup>  
+  </ItemGroup>
   <ItemGroup>
     <UpToDateCheckInput Remove="Assets\Styles\Style.axaml" />
-  </ItemGroup>  
+  </ItemGroup>
   <ItemGroup>
     <Compile Update="Pages\JobListPage.cs">
       <DependentUpon>JobListPage.axaml</DependentUpon>

@@ -1,13 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
-using Microsoft.EntityFrameworkCore;
-using MpbkpuGUI.Abstracts;
+using Avalonia.SingleWindow.Abstracts;
 using MpbkpuGUI.Dialogs;
 using MpbkpuGUI.Models;
 using MpbkpuLib;

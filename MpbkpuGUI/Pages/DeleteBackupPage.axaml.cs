@@ -1,5 +1,5 @@
 using Avalonia.Markup.Xaml;
-using MpbkpuGUI.Abstracts;
+using Avalonia.SingleWindow.Abstracts;
 using MpbkpuLib.DataModel;
 
 namespace MpbkpuGUI.Pages;

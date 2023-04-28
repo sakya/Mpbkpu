@@ -3,7 +3,9 @@ using System.Runtime.InteropServices.ComTypes;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Layout;
 using Avalonia.Markup.Xaml;
+using Avalonia.SingleWindow.Abstracts;
 using MpbkpuGUI.Abstracts;
 using MpbkpuGUI.Controls;
 using MpbkpuGUI.Dialogs.Models;
@@ -18,6 +20,7 @@ public class PasswordDialog : BaseDialog
         _model = new PasswordDialogModel();
         DataContext = _model;
 
+        VerticalAlignment = VerticalAlignment.Bottom;
         InitializeComponent();
     }
 
@@ -33,7 +36,7 @@ public class PasswordDialog : BaseDialog
         base.Opened();
     }
 
-    private void OnKeyDown(object? sender, KeyEventArgs e)
+    public override void OnKeyDown(object? sender, KeyEventArgs e)
     {
         base.OnKeyDown(e);
 

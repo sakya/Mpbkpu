@@ -4,6 +4,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
+using Avalonia.SingleWindow.Abstracts;
 using MpbkpuGUI.Abstracts;
 using MpbkpuGUI.Dialogs.Models;
 
@@ -109,7 +110,7 @@ public class MessageDialog : BaseDialog
         AvaloniaXamlLoader.Load(this);
     }
 
-    private void OnKeyDown(object? sender, KeyEventArgs e)
+    public override void OnKeyDown(object? sender, KeyEventArgs e)
     {
         base.OnKeyDown(e);
 

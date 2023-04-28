@@ -2,6 +2,7 @@ using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using Avalonia.SingleWindow.Abstracts;
 using MpbkpuGUI.Abstracts;
 using MpbkpuGUI.Dialogs;
 using MpbkpuGUI.Models;
