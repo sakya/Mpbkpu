@@ -1,19 +1,9 @@
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
 using System.Threading.Tasks;
-using Avalonia;
-using Avalonia.Animation;
 using Avalonia.Controls;
-using Avalonia.Input;
 using Avalonia.Markup.Xaml;
-using Avalonia.Media;
 using Avalonia.Platform;
 using Avalonia.SingleWindow;
-using Avalonia.SingleWindow.Abstracts;
-using Avalonia.Styling;
-using MpbkpuGUI.Abstracts;
 using MpbkpuGUI.Pages;
 
 namespace MpbkpuGUI.Views

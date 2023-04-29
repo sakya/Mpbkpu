@@ -3,8 +3,6 @@ using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
-using MpbkpuGUI.Abstracts;
-using MpbkpuGUI.Controls.Models;
 
 namespace MpbkpuGUI.Controls;
 

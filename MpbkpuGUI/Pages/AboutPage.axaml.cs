@@ -2,7 +2,6 @@ using System.Reflection;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.SingleWindow.Abstracts;
-using MpbkpuGUI.Abstracts;
 using MpbkpuGUI.Models;
 
 namespace MpbkpuGUI.Pages;
