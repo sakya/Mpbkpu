@@ -2,6 +2,7 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Layout;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.SingleWindow.Abstracts;
@@ -40,6 +41,7 @@ public class MessageDialog : BaseDialog
     {
         _model = new MessageDialogModel();
         DataContext = _model;
+        VerticalAlignment = VerticalAlignment.Bottom;
         InitializeComponent();
 
         KeyDown += OnKeyDown;
@@ -148,7 +150,7 @@ public class MessageDialog : BaseDialog
     {
         CloseOpenedWindow();
         _openedMessageDialog = new MessageDialog(message, MessageDialog.Buttons.Ok, icon);
-        await _openedMessageDialog.Show<bool>(owner);
+        await _openedMessageDialog.Show<bool>();
 
         return true;
     } // ShowMessage
@@ -157,7 +159,7 @@ public class MessageDialog : BaseDialog
     {
         CloseOpenedWindow();
         _openedMessageDialog = new MessageDialog(message, Buttons.YesNo, icon);
-        return await _openedMessageDialog.Show<bool>(owner);
+        return await _openedMessageDialog.Show<bool>();
     } // ShowConfirmMessage
 
 }

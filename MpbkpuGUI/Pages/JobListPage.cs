@@ -63,7 +63,7 @@ public class JobListPage : BasePage
         if (await MessageDialog.ShowConfirmMessage(App.GetMainWindow(), Localizer.Localizer.Instance["ConfirmRunJob"])) {
             if (job is BackupJob bkp && bkp.Encrypted) {
                 var pDlg = new PasswordDialog();
-                var pwd = await pDlg.Show<string>(MainWindow);
+                var pwd = await pDlg.Show<string>();
                 if (string.IsNullOrEmpty(pwd))
                     return;
 
@@ -84,7 +84,7 @@ public class JobListPage : BasePage
     {
         if (job is BackupJob bkp) {
             var pDlg = new PasswordDialog();
-            var pwd = await pDlg.Show<string>(MainWindow);
+            var pwd = await pDlg.Show<string>();
             if (string.IsNullOrEmpty(pwd))
                 return;
 
