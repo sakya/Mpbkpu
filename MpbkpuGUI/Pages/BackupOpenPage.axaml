@@ -7,7 +7,7 @@
              xmlns:converters="clr-namespace:MpbkpuGUI.Converters"
              xmlns:models="clr-namespace:MpbkpuGUI.Models"
              xmlns:i18n="clr-namespace:MpbkpuGUI.Localizer"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             mc:Ignorable="d" d:DesignWidth="1180" d:DesignHeight="740"
              x:Class="MpbkpuGUI.Pages.BackupOpenPage">
 
     <Design.DataContext>
@@ -18,70 +18,96 @@
         <converters:DateTimeConverter x:Key="DateTimeConverter"/>
         <converters:BackupResultToIconConverter x:Key="BackupResultToIconConverter" />
         <converters:BackupResultToColorConverter x:Key="BackupResultToColorConverter" />
+        <converters:EnumToLocalizedStringConverter x:Key="EnumToLocalizedStringConverter"/>
     </UserControl.Resources>
 
-    <Grid Margin="5,0,5,5">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+    <Grid>
+        <ScrollViewer>
+            <StackPanel Margin="40,28,40,40" MaxWidth="1120" Spacing="20">
+                <StackPanel Spacing="6">
+                    <TextBlock Name="Title" Classes="h1" />
+                    <TextBlock Name="Paths" Classes="mono" />
+                </StackPanel>
 
-        <controls:ItemsList
-            Items="{Binding Backups}">
-            <controls:ItemsList.ItemTemplate>
-                <DataTemplate>
-                    <Border Padding="5">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
+                <Border Classes="card" Padding="32"
+                        IsVisible="{Binding !Backups.Count, FallbackValue=False}">
+                    <TextBlock Classes="subtitle" HorizontalAlignment="Center" Text="{i18n:Localize NoBackups}" />
+                </Border>
 
-                            <mi:MaterialIcon Kind="{Binding Backup.Result, Converter={StaticResource BackupResultToIconConverter}}"
-                                    Foreground="{Binding Backup.Result, Converter={StaticResource BackupResultToColorConverter}}"
-                                    Grid.RowSpan="2"
-                                    VerticalAlignment="Center"
-                                    Width="24" Height="24"
-                                    Margin="0,0,15,0"/>
-                            <TextBlock Grid.Row="0" Grid.Column="1" Classes="Main" Text="{Binding Backup.StartedAt, Converter={StaticResource DateTimeConverter}, FallbackValue=null}" />
-                            <TextBlock Grid.Row="1" Grid.Column="1" Classes="Secondary" Text="{Binding Backup.Type, FallbackValue=null}" />
+                <ItemsControl ItemsSource="{Binding Backups}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Spacing="8" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Spacing="8">
+                                <StackPanel Spacing="2" Margin="4,16,0,4"
+                                            IsVisible="{Binding ChainTitle, Converter={x:Static ObjectConverters.IsNotNull}}">
+                                    <TextBlock Classes="h2" Text="{Binding ChainTitle}" />
+                                    <TextBlock Classes="muted" Text="{Binding ChainSummary}" />
+                                </StackPanel>
 
-                            <TextBlock Grid.Row="0" Grid.RowSpan="2" Grid.Column="2" Classes="Main" Text="{Binding Size, Converter={StaticResource BytesToStringConverter}}"
-                                       HorizontalAlignment="Right"
-                                       VerticalAlignment="Center"/>
-                            <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="3" Orientation="Horizontal" Margin="12,0,0,0">
-                                <Button Click="OnOpenClick" ToolTip.Tip="{i18n:Localize BrowseBackup}">
-                                    <mi:MaterialIcon Kind="FolderOpen"></mi:MaterialIcon>
-                                </Button>
-                                <Button Click="OnVerifyClick" ToolTip.Tip="{i18n:Localize VerifyBackup}">
-                                    <mi:MaterialIcon Kind="CheckCircle"></mi:MaterialIcon>
-                                </Button>
-                                <Button Click="OnDeleteClick" ToolTip.Tip="{i18n:Localize DeleteBackup}">
-                                    <Button.Styles>
-                                        <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-                                            <Setter Property="Background" Value="DarkRed"/>
-                                        </Style>
-                                    </Button.Styles>
-                                    <mi:MaterialIcon Kind="Delete"></mi:MaterialIcon>
-                                </Button>
+                                <Border Classes="card hoverable" Padding="16,12">
+                                    <StackPanel Spacing="12">
+                                        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
+                                            <mi:MaterialIcon Width="22" Height="22" Margin="4,0,16,0" VerticalAlignment="Center"
+                                                             Kind="{Binding Backup.Result, Converter={StaticResource BackupResultToIconConverter}}"
+                                                             Foreground="{Binding Backup.Result, Converter={StaticResource BackupResultToColorConverter}}" />
+                                            <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+                                                <TextBlock Classes="Main" Text="{Binding Backup.StartedAt, Converter={StaticResource DateTimeConverter}, FallbackValue=''}" />
+                                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                                    <Border Classes="chip">
+                                                        <TextBlock Text="{Binding Backup.Type, Converter={StaticResource EnumToLocalizedStringConverter}, ConverterParameter=BackupType_}" />
+                                                    </Border>
+                                                    <TextBlock Classes="muted" VerticalAlignment="Center"
+                                                               Foreground="{Binding Backup.Result, Converter={StaticResource BackupResultToColorConverter}}"
+                                                               Text="{Binding Backup.Result, Converter={StaticResource EnumToLocalizedStringConverter}, ConverterParameter=Result_}" />
+                                                </StackPanel>
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="2" Classes="muted" VerticalAlignment="Center" Margin="16,0" TextAlignment="Right"
+                                                       Text="{Binding ItemsText}" />
+                                            <TextBlock Grid.Column="3" Classes="Main" VerticalAlignment="Center" MinWidth="80" TextAlignment="Right"
+                                                       Text="{Binding Size, Converter={StaticResource BytesToStringConverter}}" />
+                                            <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="6" Margin="20,0,0,0">
+                                                <Button Classes="icon" Click="OnOpenClick" ToolTip.Tip="{i18n:Localize BrowseBackup}" AutomationProperties.Name="{i18n:Localize BrowseBackup}">
+                                                    <mi:MaterialIcon Kind="FolderOpenOutline" />
+                                                </Button>
+                                                <Button Classes="icon" Click="OnVerifyClick" ToolTip.Tip="{i18n:Localize VerifyBackup}" AutomationProperties.Name="{i18n:Localize VerifyBackup}">
+                                                    <mi:MaterialIcon Kind="ShieldCheckOutline" />
+                                                </Button>
+                                                <Button Classes="icon dangerHover" Click="OnDeleteClick" ToolTip.Tip="{i18n:Localize DeleteBackup}" AutomationProperties.Name="{i18n:Localize DeleteBackup}">
+                                                    <mi:MaterialIcon Kind="DeleteOutline" />
+                                                </Button>
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <Border Classes="warningBox" IsVisible="{Binding HasWarnings}">
+                                            <StackPanel Spacing="8">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <mi:MaterialIcon Kind="AlertOutline" Width="16" Height="16" Foreground="{StaticResource WarningBrush}" />
+                                                    <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#F5D48A" Text="{i18n:Localize WarningsTitle}" />
+                                                </StackPanel>
+                                                <ItemsControl ItemsSource="{Binding Warnings}" Margin="24,0,0,0">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <TextBlock FontSize="13" Foreground="#E8DCC0" TextWrapping="Wrap" Margin="0,2" Text="{Binding}" />
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
-                        </Grid>
-                    </Border>
-                </DataTemplate>
-            </controls:ItemsList.ItemTemplate>
-        </controls:ItemsList>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </ScrollViewer>
 
-        <controls:OkCancelButtons Grid.Row="1"
-                                  CancelVisible="False"
-                                  OkText="{i18n:Localize Close}"
-                                  OkClick="OnOkClick"/>
-        <controls:Spinner Grid.Row="0" Grid.RowSpan="2" Name="Spinner"
+        <controls:Spinner Name="Spinner"
                           Message="{Binding $parent.DataContext.SpinnerMessage}"/>
     </Grid>
 </UserControl>

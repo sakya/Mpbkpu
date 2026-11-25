@@ -75,20 +75,25 @@ public partial class JobListPage : BasePage
 
     private void SetJobList()
     {
-        var list = this.FindControl<Controls.ItemsList>("JobList");
-        list.Items = null;
-        list.Items = App.Settings!.Jobs.OrderBy(i => i.Name);
+        var jobs = App.Settings!.Jobs.OrderBy(i => i.Name).ToList();
+        var list = this.FindControl<ItemsControl>("JobList")!;
+        list.ItemsSource = null;
+        list.ItemsSource = jobs;
+        this.FindControl<Control>("EmptyState")!.IsVisible = jobs.Count == 0;
+        this.FindControl<TextBlock>("JobCount")!.Text = jobs.Count.ToString();
     }
 
     private async void OnJobOpen(object sender, Job job)
     {
         if (job is BackupJob bkp) {
-            var pDlg = new PasswordDialog();
-            var pwd = await pDlg.Show<string>();
-            if (string.IsNullOrEmpty(pwd))
-                return;
+            if (bkp.Encrypted) {
+                var pDlg = new PasswordDialog();
+                var pwd = await pDlg.Show<string>();
+                if (string.IsNullOrEmpty(pwd))
+                    return;
 
-            bkp.Password = pwd;
+                bkp.Password = pwd;
+            }
             await MainWindow!.NavigateTo(new BackupOpenPage(bkp));
         }
     }

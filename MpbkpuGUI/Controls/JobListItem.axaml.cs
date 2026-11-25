@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using Avalonia.Media;
 using MpbkpuGUI.Abstracts;
 using MpbkpuGUI.Models;
 using Material.Icons;
@@ -40,11 +41,18 @@ public partial class JobListItem : UserControl
             if (SetAndRaise(ItemProperty, ref _item, value)) {
                 DataContext = _item;
 
-                var icon = this.FindControl<MaterialIcon>("Icon");
-                if (_item is BackupJob) {
-                    icon.Kind = MaterialIconKind.Archive;
+                var icon = this.FindControl<MaterialIcon>("Icon")!;
+                var typeText = this.FindControl<TextBlock>("TypeText")!;
+                if (_item is BackupJob bkp) {
+                    icon.Kind = MaterialIconKind.ArchiveOutline;
+                    typeText.Text = Localizer.Localizer.Instance[$"BackupType_{bkp.Type ?? MpbkpuLib.DataModel.Backup.BackupTypes.Full}"];
                 } else {
+                    // Synchronizations use a green tile to tell them apart from backups
                     icon.Kind = MaterialIconKind.Sync;
+                    icon.Foreground = new SolidColorBrush(Color.Parse("#6EE7B7"));
+                    this.FindControl<Border>("IconTile")!.Background = new SolidColorBrush(Color.Parse("#1C2A26"));
+                    typeText.Text = Localizer.Localizer.Instance["Sync"];
+                    this.FindControl<TextBlock>("RunText")!.Text = Localizer.Localizer.Instance["Synchronize"];
                 }
             }
         }

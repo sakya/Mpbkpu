@@ -53,6 +53,7 @@ public class BackupJob : BaseJob
     private bool _skipDatabaseCopy;
     private ProgressData? _progressData;
     private bool _hasWarnings;
+    private Backup.Results? _result;
     private List<string> _chainsToDelete = new();
     #endregion
 
@@ -166,7 +167,8 @@ public class BackupJob : BaseJob
             Started = started,
             Bytes = _progressData?.Bytes,
             Completed = DateTime.UtcNow,
-            Guid = _backup!.Guid
+            Guid = _backup!.Guid,
+            Result = _result
         };
     }
 
@@ -820,6 +822,7 @@ public class BackupJob : BaseJob
 
     private async Task<bool> SetBackupResult(BackupFile bkpFile, Backup.Results result)
     {
+        _result = result;
         var bkp = await bkpFile.Backups.Where(b => b.Id == _backup!.Id).FirstOrDefaultAsync();
         if (bkp != null) {
             bkp.Result = result;

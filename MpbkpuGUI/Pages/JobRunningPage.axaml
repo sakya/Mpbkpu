@@ -6,7 +6,7 @@
              xmlns:controls="clr-namespace:MpbkpuGUI.Controls"
              xmlns:converters="clr-namespace:MpbkpuGUI.Converters"
              xmlns:models="clr-namespace:MpbkpuGUI.Models"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             mc:Ignorable="d" d:DesignWidth="1180" d:DesignHeight="740"
              x:Class="MpbkpuGUI.Pages.JobRunningPage">
 
     <Design.DataContext>
@@ -16,86 +16,69 @@
         <converters:LogLevelToColorConverter x:Key="LogLevelToColorConverter"/>
     </UserControl.Resources>
 
-    <Grid Margin="5,0,5,5">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
+    <Grid>
+        <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="40,28,40,24" MaxWidth="1120">
+            <StackPanel Spacing="6">
+                <TextBlock Name="JobName" Classes="h1" />
+                <TextBlock Classes="mono">
+                    <Run Text="{Binding Source}" /><Run Text="  →  " /><Run Text="{Binding Destination}" />
+                </TextBlock>
+            </StackPanel>
 
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
+            <Border Grid.Row="1" Classes="card" Margin="0,24,0,0">
+                <StackPanel Spacing="16">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Orientation="Horizontal" Spacing="14">
+                            <TextBlock FontSize="44" FontWeight="Bold" LetterSpacing="-1"
+                                       Text="{Binding Progress, StringFormat='{}{0:0}%'}" />
+                            <TextBlock FontSize="15" Foreground="{StaticResource SubtleTextBrush}" VerticalAlignment="Bottom"
+                                       Margin="0,0,0,10" Text="{Binding Step}" />
+                        </StackPanel>
+                    </Grid>
+                    <ProgressBar Minimum="0" Maximum="100" Value="{Binding Progress}" />
+                    <Grid ColumnDefinitions="*,12,*,12,*">
+                        <Border Classes="tile">
+                            <StackPanel Spacing="4">
+                                <TextBlock Classes="muted" FontSize="12" Text="{i18n:Localize Files}" />
+                                <TextBlock FontSize="18" FontWeight="SemiBold" Text="{Binding ProgressMessageFiles, FallbackValue='–', TargetNullValue='–'}" />
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="2" Classes="tile">
+                            <StackPanel Spacing="4">
+                                <TextBlock Classes="muted" FontSize="12" Text="{i18n:Localize Data}" />
+                                <TextBlock FontSize="18" FontWeight="SemiBold" Text="{Binding ProgressMessageBytes, FallbackValue='–', TargetNullValue='–'}" />
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="4" Classes="tile">
+                            <StackPanel Spacing="4">
+                                <TextBlock Classes="muted" FontSize="12" Text="{i18n:Localize TimeLeft}" />
+                                <TextBlock FontSize="18" FontWeight="SemiBold" Text="{Binding ProgressMessageEta, FallbackValue='–', TargetNullValue='–'}" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </StackPanel>
+            </Border>
 
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+            <Border Grid.Row="2" Classes="card" Margin="0,20,0,0" Padding="20">
+                <Grid RowDefinitions="Auto,*">
+                    <TextBlock Classes="h2" Text="{i18n:Localize Log}" />
+                    <ScrollViewer Name="Log" Grid.Row="1" Margin="0,12,0,0">
+                        <ListBox Classes="log" ItemsSource="{Binding Log}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Message}"
+                                               Foreground="{Binding Level, Converter={StaticResource LogLevelToColorConverter}}"/>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
 
-        <Grid Grid.Row="0">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-
-            <TextBlock Grid.Row="0" Grid.Column="0" Text="{i18n:Localize Source}"/>
-            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Source}" TextTrimming="CharacterEllipsis"
-                       FontWeight="ExtraLight"
-                       Margin="15,0,0,0"/>
-
-            <TextBlock Grid.Row="1" Grid.Column="0" Text="{i18n:Localize Destination}"/>
-            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Destination}" TextTrimming="CharacterEllipsis"
-                       FontWeight="ExtraLight"
-                       Margin="15,0,0,0"/>
+            <Button Grid.Row="3" Margin="0,20,0,0" HorizontalAlignment="Right" MinWidth="160"
+                    Classes.danger="{Binding Running}" Classes.accent="{Binding !Running}"
+                    Content="{Binding ButtonText}" Click="OnOkClick" />
         </Grid>
-
-        <TextBlock Grid.Row="1" Text="{Binding Step}"
-                   Foreground="{DynamicResource InfoColor}"
-                   Margin="0,15,0,0"/>
-        <ProgressBar Grid.Row="2" Minimum="0" Maximum="100" Value="{Binding Progress}"
-                     Margin="0,5,0,0"
-                     ShowProgressText="True"/>
-
-        <Grid Grid.Row="3" MinHeight="20">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-
-            <TextBlock Grid.Column="0" Text="{Binding ProgressMessageFiles}"
-                       HorizontalAlignment="Left"/>
-            <TextBlock Grid.Column="1" Text="{Binding ProgressMessageEta}"
-                       HorizontalAlignment="Center"/>
-            <TextBlock Grid.Column="2" Text="{Binding ProgressMessageBytes}"
-                       HorizontalAlignment="Right"/>
-        </Grid>
-
-        <ScrollViewer Name="Log" Grid.Row="4" Margin="0,5,0,0">
-            <ListBox FontSize="14"
-                     FontFamily="Consolas"
-                     ItemsSource="{Binding Log}">
-                <ListBox.Styles>
-                    <Style Selector="ListBoxItem">
-                        <Setter Property="Padding" Value="0"/>
-                    </Style>
-                </ListBox.Styles>
-
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding Message}"
-                                   Foreground="{Binding Level, Converter={StaticResource LogLevelToColorConverter}}"/>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
-        </ScrollViewer>
-
-        <controls:OkCancelButtons
-            Grid.Row="5"
-            Margin="0,5,0,0"
-            OkText="{Binding $parent.DataContext.ButtonText}"
-            CancelVisible="False"
-            OkClick="OnOkClick"/>
-        <controls:Spinner Grid.Row="0" Grid.RowSpan="4" Name="Spinner" />
+        <controls:Spinner Name="Spinner" />
     </Grid>
 </UserControl>

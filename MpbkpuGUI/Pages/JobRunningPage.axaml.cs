@@ -62,6 +62,7 @@ public partial class JobRunningPage : BasePage
     {
         base.OnNavigatedTo(direction);
 
+        this.FindControl<TextBlock>("JobName")!.Text = _job.Name;
         _model.Source = _job.Source?.FullPath;
         _model.Destination = _job.Destination?.FullPath;
         _model.Running = true;
@@ -183,11 +184,15 @@ public partial class JobRunningPage : BasePage
             _model.Running = true;
             _model.ButtonText = Localizer.Localizer.Instance["Cancel"];
             var backupRes = await _backupJob.Run(_cts.Token);
-            if (backupRes.Bytes > 0) {
-                _job.LastRun = DateTime.Now;
-                await App.Settings!.Save(App.SettingFile!);
-                _model.Step = Localizer.Localizer.Instance["Step_Completed"];
-            }
+            Backup.Results result;
+            if (backupRes is BackupJobJobResult { Result: { } backupResult })
+                result = backupResult;
+            else if (_cts.IsCancellationRequested)
+                result = Backup.Results.Cancelled;
+            else
+                result = backupRes.Success ? Backup.Results.Completed : Backup.Results.Error;
+            await SaveLastRun(result);
+            _model.Step = Localizer.Localizer.Instance["Step_Completed"];
 
             if (!backupRes.Success) {
                 await MessageDialog.ShowMessage(App.GetMainWindow(),
@@ -195,6 +200,7 @@ public partial class JobRunningPage : BasePage
             }
         } catch (Exception ex) {
             BackupJobOnLogEmitted(null, BaseJobSettings.LogLevels.Error, ex.Message);
+            await SaveLastRun(Backup.Results.Error);
             Dispatcher.UIThread.Post(() =>
             {
                 _ = MessageDialog.ShowMessage(App.GetMainWindow(),
@@ -204,6 +210,16 @@ public partial class JobRunningPage : BasePage
             _model.Running = false;
             _model.ButtonText = Localizer.Localizer.Instance["Close"];
         }
+    }
+
+    /// <summary>
+    /// Save when the job ran and its result (shown in the job list)
+    /// </summary>
+    private async Task SaveLastRun(Backup.Results result)
+    {
+        _job.LastRun = DateTime.Now;
+        _job.LastResult = result;
+        await App.Settings!.Save(App.SettingFile!);
     }
 
     private async Task CancelBackup()

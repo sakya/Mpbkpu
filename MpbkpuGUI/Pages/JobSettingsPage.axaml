@@ -3,11 +3,10 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:models="clr-namespace:MpbkpuGUI.Models"
-             xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              xmlns:i18n="clr-namespace:MpbkpuGUI.Localizer"
              xmlns:controls="clr-namespace:MpbkpuGUI.Controls"
              xmlns:converters="clr-namespace:MpbkpuGUI.Converters"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             mc:Ignorable="d" d:DesignWidth="1180" d:DesignHeight="740"
              x:Class="MpbkpuGUI.Pages.JobSettingsPage">
 
     <Design.DataContext>
@@ -15,137 +14,128 @@
     </Design.DataContext>
     <UserControl.Resources>
         <converters:IsBackupJobConverter x:Key="IsBackupJobConverter"/>
+        <converters:EnumToLocalizedStringConverter x:Key="EnumToLocalizedStringConverter"/>
     </UserControl.Resources>
 
-    <Grid Margin="5,0,5,5">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-
+    <Grid RowDefinitions="*,Auto">
         <ScrollViewer>
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
+            <StackPanel Margin="40,28,40,32" MaxWidth="960" Spacing="20">
+                <TextBlock Classes="h1" Text="{i18n:Localize JobSettings}" />
 
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
+                <!-- General -->
+                <Border Classes="card">
+                    <StackPanel Spacing="16">
+                        <TextBlock Classes="h2" Text="{i18n:Localize General}" />
+                        <StackPanel>
+                            <Label Content="{i18n:Localize Name}" />
+                            <controls:ErrorContainer Name="NameError" FieldName="Name"
+                                                     Errors="{Binding $parent.DataContext.Errors}">
+                                <controls:ErrorContainer.Control>
+                                    <TextBox Name="Name" Text="{Binding $parent[3].DataContext.Job.Name, Mode=TwoWay}" />
+                                </controls:ErrorContainer.Control>
+                            </controls:ErrorContainer>
+                        </StackPanel>
+                        <StackPanel IsVisible="{Binding Job, Converter={StaticResource IsBackupJobConverter}}">
+                            <Label Content="{i18n:Localize Type}" />
+                            <ComboBox Name="CmbType" SelectedItem="{Binding Job.Type, Mode=TwoWay}" Width="280" HorizontalAlignment="Left">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Converter={StaticResource EnumToLocalizedStringConverter}, ConverterParameter=BackupType_}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                            <TextBlock Classes="hint" Text="{i18n:Localize TypeHint}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
 
-                    <RowDefinition Height="Auto" />
-
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-
-                <Label Content="{i18n:Localize Name}" />
-                <controls:ErrorContainer Name="NameError" Grid.Row="1" FieldName="Name"
-                                         Errors="{Binding $parent.DataContext.Errors}">
-                    <controls:ErrorContainer.Control>
-                        <TextBox Name="Name" Text="{Binding $parent[3].DataContext.Job.Name, Mode=TwoWay}" />
-                    </controls:ErrorContainer.Control>
-                </controls:ErrorContainer>
-
-                <Label Grid.Row="2" Content="{i18n:Localize Type}" Margin="0,5,0,0"
-                       IsVisible="{Binding Job, Converter={StaticResource IsBackupJobConverter}}"/>
-                <ComboBox Grid.Row="3" Name="CmbType"
-                          IsVisible="{Binding Job, Converter={StaticResource IsBackupJobConverter}}"
-                          SelectedItem="{Binding Job.Type, Mode=TwoWay}"/>
-
-                <Grid Grid.Row="4">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-
-                    <Label Grid.Row="0" Grid.Column="0" Content="{i18n:Localize Source}" Margin="0,5,5,0" />
-                    <Border Grid.Row="1" Grid.Column="0"
-                            Margin="0,0,5,0"
-                            CornerRadius="10" ClipToBounds="True"
-                            Background="{DynamicResource SystemControlBackgroundAltMediumBrush}"
-                            BorderBrush="{DynamicResource SystemControlBackgroundBaseHighBrush}"
-                            BorderThickness="0.5"
-                            Padding="15">
-                        <controls:PositionDetail
-                            Name="Source" />
+                <!-- Source and destination -->
+                <Grid ColumnDefinitions="*,20,*">
+                    <Border Classes="card">
+                        <StackPanel Spacing="12">
+                            <TextBlock Classes="h2" Text="{i18n:Localize Source}" />
+                            <controls:PositionDetail Name="Source" />
+                        </StackPanel>
                     </Border>
-
-                    <Label Grid.Row="0" Grid.Column="1" Content="{i18n:Localize Destination}" Margin="5,5,0,0" />
-                    <Border Grid.Row="1" Grid.Column="1"
-                            Margin="5,0,0,0"
-                            CornerRadius="10" ClipToBounds="True"
-                            Background="{DynamicResource SystemControlBackgroundAltMediumBrush}"
-                            BorderBrush="{DynamicResource SystemControlBackgroundBaseHighBrush}"
-                            BorderThickness="0.5"
-                            Padding="15">
-                        <controls:PositionDetail
-                            Name="Destination" />
+                    <Border Grid.Column="2" Classes="card">
+                        <StackPanel Spacing="12">
+                            <TextBlock Classes="h2" Text="{i18n:Localize Destination}" />
+                            <controls:PositionDetail Name="Destination" />
+                        </StackPanel>
                     </Border>
                 </Grid>
 
-                <Label Grid.Row="5" Content="{i18n:Localize CompressionLevel}" Margin="0,5,0,0"
-                       IsVisible="{Binding Job, Converter={StaticResource IsBackupJobConverter}}"/>
-                <ComboBox Grid.Row="6" Name="CmbCompressionLevel"
-                          IsVisible="{Binding Job, Converter={StaticResource IsBackupJobConverter}}"
-                          SelectedItem="{Binding Job.CompressionLevel, Mode=TwoWay}"/>
+                <!-- Security and compression -->
+                <Border Classes="card" IsVisible="{Binding Job, Converter={StaticResource IsBackupJobConverter}}">
+                    <StackPanel Spacing="16">
+                        <TextBlock Classes="h2" Text="{i18n:Localize SecurityCompression}" />
+                        <Grid ColumnDefinitions="*,24,*">
+                            <StackPanel>
+                                <CheckBox IsEnabled="{Binding IsNew}"
+                                          IsChecked="{Binding Job.Encrypted, Mode=TwoWay}"
+                                          Content="{i18n:Localize Encrypted}" />
+                                <TextBlock Classes="hint" Margin="0" Text="{i18n:Localize EncryptedHint}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <Label Content="{i18n:Localize CompressionLevel}" />
+                                <ComboBox Name="CmbCompressionLevel" SelectedItem="{Binding Job.CompressionLevel, Mode=TwoWay}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Converter={StaticResource EnumToLocalizedStringConverter}, ConverterParameter=Compression_}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
 
-                <Label Grid.Row="7" Content="{i18n:Localize Encrypted}"
-                       IsVisible="{Binding Job, Converter={StaticResource IsBackupJobConverter}}"
-                       Margin="0,5,0,0" />
-                <CheckBox Grid.Row="8"
-                          IsEnabled="{Binding IsNew}"
-                          IsVisible="{Binding Job, Converter={StaticResource IsBackupJobConverter}}"
-                          IsChecked="{Binding Job.Encrypted, Mode=TwoWay}"></CheckBox>
+                <!-- Chains and retention -->
+                <Border Classes="card" IsVisible="{Binding Job, Converter={StaticResource IsBackupJobConverter}}">
+                    <StackPanel Spacing="16">
+                        <StackPanel Spacing="4">
+                            <TextBlock Classes="h2" Text="{i18n:Localize Chains}" />
+                            <TextBlock Classes="hint" Margin="0" Text="{i18n:Localize ChainsDescription}" />
+                        </StackPanel>
+                        <Grid ColumnDefinitions="*,24,*">
+                            <StackPanel>
+                                <Label Content="{i18n:Localize FullBackupEveryDays}" />
+                                <NumericUpDown Value="{Binding Job.FullBackupEveryDays, Mode=TwoWay}" Minimum="0" Maximum="3650" FormatString="0" />
+                                <TextBlock Classes="hint" Text="{i18n:Localize FullBackupEveryDaysHint}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <Label Content="{i18n:Localize KeepChains}" />
+                                <NumericUpDown Value="{Binding Job.KeepChains, Mode=TwoWay}" Minimum="0" Maximum="1000" FormatString="0" />
+                                <TextBlock Classes="hint" Text="{i18n:Localize KeepChainsHint}" />
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
 
-                <Label Grid.Row="9" Content="{i18n:Localize HashCheck}" Margin="0,5,0,0" />
-                <CheckBox Grid.Row="10" IsChecked="{Binding !Job.SkipHashCheck, Mode=TwoWay}"></CheckBox>
-
-                <Label Grid.Row="11" Content="{i18n:Localize RetryOnError}" Margin="0,5,0,0" />
-                <NumericUpDown Grid.Row="12" Value="{Binding Job.RetryOnError, Mode=TwoWay}"
-                               Minimum="1"
-                               Maximum="255"/>
-
-                <Label Grid.Row="13" Content="{i18n:Localize FullBackupEveryDays}" Margin="0,5,0,0"
-                       IsVisible="{Binding Job, Converter={StaticResource IsBackupJobConverter}}"/>
-                <NumericUpDown Grid.Row="14" Value="{Binding Job.FullBackupEveryDays, Mode=TwoWay}"
-                               IsVisible="{Binding Job, Converter={StaticResource IsBackupJobConverter}}"
-                               Minimum="0"
-                               Maximum="3650"/>
-
-                <Label Grid.Row="15" Content="{i18n:Localize KeepChains}" Margin="0,5,0,0"
-                       IsVisible="{Binding Job, Converter={StaticResource IsBackupJobConverter}}"/>
-                <NumericUpDown Grid.Row="16" Value="{Binding Job.KeepChains, Mode=TwoWay}"
-                               IsVisible="{Binding Job, Converter={StaticResource IsBackupJobConverter}}"
-                               Minimum="0"
-                               Maximum="1000"/>
-            </Grid>
+                <!-- Advanced -->
+                <Border Classes="card" Padding="8">
+                    <Expander Header="{i18n:Localize Advanced}" HorizontalAlignment="Stretch"
+                              Background="Transparent" BorderThickness="0" FontWeight="SemiBold">
+                        <Grid ColumnDefinitions="*,24,*" Margin="8,0,8,8">
+                            <CheckBox IsChecked="{Binding !Job.SkipHashCheck, Mode=TwoWay}" FontWeight="Normal"
+                                      Content="{i18n:Localize HashCheck}" VerticalAlignment="Bottom" Margin="0,0,0,6" />
+                            <StackPanel Grid.Column="2">
+                                <Label Content="{i18n:Localize RetryOnError}" FontWeight="Normal" />
+                                <NumericUpDown Value="{Binding Job.RetryOnError, Mode=TwoWay}" Minimum="1" Maximum="255" FormatString="0" FontWeight="Normal" />
+                            </StackPanel>
+                        </Grid>
+                    </Expander>
+                </Border>
+            </StackPanel>
         </ScrollViewer>
 
-        <controls:OkCancelButtons
-            Grid.Row="1"
-            Margin="0,5,0,0"
-            OkClick="OnOkClick"
-            CancelClick="OnCancelClick"/>
+        <Border Grid.Row="1" Background="{StaticResource ChromeBrush}" BorderBrush="{StaticResource LineBrush}"
+                BorderThickness="0,1,0,0" Padding="40,14">
+            <controls:OkCancelButtons
+                MaxWidth="960"
+                OkText="{i18n:Localize Save}"
+                OkClick="OnOkClick"
+                CancelClick="OnCancelClick"/>
+        </Border>
     </Grid>
 </UserControl>

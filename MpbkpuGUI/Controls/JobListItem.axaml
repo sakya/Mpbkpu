@@ -6,56 +6,81 @@
              xmlns:i18n="clr-namespace:MpbkpuGUI.Localizer"
              xmlns:models="clr-namespace:MpbkpuGUI.Abstracts"
              xmlns:converters="clr-namespace:MpbkpuGUI.Converters"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="120"
              x:Class="MpbkpuGUI.Controls.JobListItem">
-    <Design.DataContext>
-        <models:Job />
-    </Design.DataContext>
     <UserControl.Resources>
         <converters:IsBackupJobConverter x:Key="IsBackupJobConverter"/>
         <converters:DateTimeConverter x:Key="DateTimeConverter"/>
+        <converters:EnumToLocalizedStringConverter x:Key="EnumToLocalizedStringConverter"/>
+        <converters:BackupResultToColorConverter x:Key="BackupResultToColorConverter"/>
     </UserControl.Resources>
 
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="Auto" />
-        </Grid.ColumnDefinitions>
+    <Border Classes="card hoverable" Padding="20">
+        <Grid ColumnDefinitions="Auto,*,Auto">
+            <Border Name="IconTile" Classes="iconTile">
+                <mi:MaterialIcon Name="Icon" Kind="ArchiveOutline" />
+            </Border>
 
-        <mi:MaterialIcon Name="Icon" Grid.Row="0" Grid.RowSpan="3" Grid.Column="0" Width="32" Height="32" Kind="Archive" Margin="0,0,12,0"
-                Foreground="{DynamicResource SystemAccentColor}"/>
+            <StackPanel Grid.Column="1" Margin="20,0" Spacing="8" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Classes="title" Text="{Binding Name}" VerticalAlignment="Center" />
+                    <Border Classes="chip">
+                        <TextBlock Name="TypeText" />
+                    </Border>
+                    <Border Classes="chip" IsVisible="{Binding Encrypted, FallbackValue=False}">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <mi:MaterialIcon Kind="LockOutline" Width="12" Height="12" Foreground="{StaticResource SubtleTextBrush}" />
+                            <TextBlock Text="{i18n:Localize Encrypted}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Classes="chip" IsVisible="{Binding IsCompressed, FallbackValue=False}">
+                        <TextBlock Text="{i18n:Localize Compressed}" />
+                    </Border>
+                </StackPanel>
 
-        <TextBlock Grid.Row="0" Grid.Column="1" Classes="Main" Text="{Binding Path=Name}" />
-        <TextBlock Grid.Row="1" Grid.Column="1" Classes="Secondary" Text="{Binding Path=Source.FullPath}" />
-        <TextBlock Grid.Row="2" Grid.Column="1" Classes="Secondary" Text="{Binding Path=Destination.FullPath}" />
+                <TextBlock Classes="mono">
+                    <Run Text="{Binding Source.FullPath}" /><Run Text="  →  " /><Run Text="{Binding Destination.FullPath}" />
+                </TextBlock>
 
-        <TextBlock Grid.Row="0" Grid.RowSpan="3" Grid.Column="2" FontSize="16" VerticalAlignment="Center" Text="{Binding LastRun, Converter={StaticResource DateTimeConverter}}" />
-        <StackPanel Grid.Row="0" Grid.RowSpan="3" Grid.Column="3" Orientation="Horizontal" Margin="12,0,0,0">
-            <Button Click="OnOpenClick" ToolTip.Tip="{i18n:Localize BrowseBackup}"
-                    IsEnabled="{Binding ., Converter={StaticResource IsBackupJobConverter}}">
-                <mi:MaterialIcon Kind="FolderOpen"></mi:MaterialIcon>
-            </Button>
-            <Button Click="OnRunClick" ToolTip.Tip="{i18n:Localize RunBackup}">
-                <mi:MaterialIcon Kind="Play"></mi:MaterialIcon>
-            </Button>
-            <Button Click="OnSettingsClick" ToolTip.Tip="{i18n:Localize BackupSettings}">
-                <mi:MaterialIcon Kind="Cog"></mi:MaterialIcon>
-            </Button>
-            <Button Click="OnDeleteClick" ToolTip.Tip="{i18n:Localize DeleteBackup}">
-                <Button.Styles>
-                    <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-                        <Setter Property="Background" Value="DarkRed"/>
-                    </Style>
-                </Button.Styles>
-                <mi:MaterialIcon Kind="Delete"></mi:MaterialIcon>
-            </Button>
-        </StackPanel>
-    </Grid>
+                <StackPanel Orientation="Horizontal" Spacing="16">
+                    <StackPanel Orientation="Horizontal" Spacing="6"
+                                IsVisible="{Binding LastResult, Converter={x:Static ObjectConverters.IsNotNull}}">
+                        <Ellipse Width="8" Height="8" VerticalAlignment="Center"
+                                 Fill="{Binding LastResult, Converter={StaticResource BackupResultToColorConverter}}" />
+                        <TextBlock FontSize="13" VerticalAlignment="Center"
+                                   Foreground="{Binding LastResult, Converter={StaticResource BackupResultToColorConverter}}"
+                                   Text="{Binding LastResult, Converter={StaticResource EnumToLocalizedStringConverter}, ConverterParameter=Result_}" />
+                    </StackPanel>
+                    <TextBlock Classes="muted" VerticalAlignment="Center"
+                               IsVisible="{Binding LastRun, Converter={x:Static ObjectConverters.IsNotNull}}">
+                        <Run Text="{i18n:Localize LastRunLabel}" /><Run Text=": " /><Run Text="{Binding LastRun, Converter={StaticResource DateTimeConverter}}" />
+                    </TextBlock>
+                    <StackPanel Orientation="Horizontal" Spacing="6"
+                                IsVisible="{Binding LastRun, Converter={x:Static ObjectConverters.IsNull}}">
+                        <Ellipse Width="8" Height="8" VerticalAlignment="Center" Stroke="#6B7380" StrokeThickness="1.5" />
+                        <TextBlock Classes="muted" VerticalAlignment="Center" Text="{i18n:Localize NeverRun}" />
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Button Classes="icon" Click="OnOpenClick" ToolTip.Tip="{i18n:Localize History}" AutomationProperties.Name="{i18n:Localize History}"
+                        IsVisible="{Binding ., Converter={StaticResource IsBackupJobConverter}}">
+                    <mi:MaterialIcon Kind="History" />
+                </Button>
+                <Button Classes="icon" Click="OnSettingsClick" ToolTip.Tip="{i18n:Localize Settings}" AutomationProperties.Name="{i18n:Localize Settings}">
+                    <mi:MaterialIcon Kind="Tune" />
+                </Button>
+                <Button Classes="icon dangerHover" Click="OnDeleteClick" ToolTip.Tip="{i18n:Localize Delete}" AutomationProperties.Name="{i18n:Localize Delete}">
+                    <mi:MaterialIcon Kind="DeleteOutline" />
+                </Button>
+                <Button Classes="accent" Click="OnRunClick" AutomationProperties.Name="{i18n:Localize Run}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <mi:MaterialIcon Kind="Play" Width="16" Height="16" />
+                        <TextBlock Name="RunText" Text="{i18n:Localize Run}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Grid>
+    </Border>
 </UserControl>

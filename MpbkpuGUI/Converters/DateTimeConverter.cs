@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Globalization;
 using Avalonia.Data.Converters;
 
@@ -11,8 +11,8 @@ public class DateTimeConverter : IValueConverter
         DateTime? dt = (DateTime?)value;
         if (dt != null) {
             if (dt.Value.Kind != DateTimeKind.Local)
-                return dt.Value.ToLocalTime().ToString();
-            return dt.Value.ToString();
+                return dt.Value.ToLocalTime().ToString("g");
+            return dt.Value.ToString("g");
         }
 
         return string.Empty;

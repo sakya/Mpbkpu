@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using MpbkpuLib.Interfaces;
 
 namespace MpbkpuLib.FileManagers;
@@ -9,6 +10,7 @@ public class OAuth2Settings : IOAuth2
 {
     public string? AppName { get; set; }
     public string? AppId { get; set; }
+    [JsonIgnore] // Never logged or saved in the backup database
     public string? AppSecret { get; set; }
     public string? TenantId { get; set; }
     public Uri? ServerUrl { get; set; }

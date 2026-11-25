@@ -2,10 +2,11 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:i18n="clr-namespace:MpbkpuGUI.Localizer"
              xmlns:controls="clr-namespace:MpbkpuGUI.Controls"
              xmlns:converters="clr-namespace:MpbkpuGUI.Converters"
              xmlns:models="clr-namespace:MpbkpuGUI.Models"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             mc:Ignorable="d" d:DesignWidth="1180" d:DesignHeight="740"
              x:Class="MpbkpuGUI.Pages.BackupVerifyPage">
     <Design.DataContext>
         <models:BackupVerifyPageModel />
@@ -14,63 +15,65 @@
         <converters:LogLevelToColorConverter x:Key="LogLevelToColorConverter"/>
     </UserControl.Resources>
 
-    <Grid Margin="5,0,5,5">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
+    <Grid>
+        <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="40,28,40,24" MaxWidth="1120">
+            <StackPanel Spacing="6">
+                <TextBlock Classes="h1" Text="{i18n:Localize VerifyingBackup}" />
+                <TextBlock Name="Subtitle" Classes="mono" />
+            </StackPanel>
 
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+            <Border Grid.Row="1" Classes="card" Margin="0,24,0,0">
+                <StackPanel Spacing="16">
+                    <StackPanel Orientation="Horizontal" Spacing="14">
+                        <TextBlock FontSize="44" FontWeight="Bold" LetterSpacing="-1"
+                                   Text="{Binding Progress, StringFormat='{}{0:0}%', FallbackValue='0%', TargetNullValue='0%'}" />
+                        <TextBlock FontSize="15" Foreground="{StaticResource SubtleTextBrush}" VerticalAlignment="Bottom"
+                                   Margin="0,0,0,10" Text="{Binding Step}" />
+                    </StackPanel>
+                    <ProgressBar Minimum="0" Maximum="100" Value="{Binding Progress}" />
+                    <Grid ColumnDefinitions="*,12,*,12,*">
+                        <Border Classes="tile">
+                            <StackPanel Spacing="4">
+                                <TextBlock Classes="muted" FontSize="12" Text="{i18n:Localize Files}" />
+                                <TextBlock FontSize="18" FontWeight="SemiBold" Text="{Binding ProgressMessageFiles, FallbackValue='–', TargetNullValue='–'}" />
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="2" Classes="tile">
+                            <StackPanel Spacing="4">
+                                <TextBlock Classes="muted" FontSize="12" Text="{i18n:Localize Data}" />
+                                <TextBlock FontSize="18" FontWeight="SemiBold" Text="{Binding ProgressMessageBytes, FallbackValue='–', TargetNullValue='–'}" />
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="4" Classes="tile">
+                            <StackPanel Spacing="4">
+                                <TextBlock Classes="muted" FontSize="12" Text="{i18n:Localize TimeLeft}" />
+                                <TextBlock FontSize="18" FontWeight="SemiBold" Text="{Binding ProgressMessageEta, FallbackValue='–', TargetNullValue='–'}" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </StackPanel>
+            </Border>
 
-        <TextBlock Grid.Row="0" Text="{Binding Step}"
-                   Foreground="{DynamicResource InfoColor}"
-                   Margin="0,15,0,0"/>
-        <ProgressBar Grid.Row="1" Minimum="0" Maximum="100" Value="{Binding Progress}"
-                     Margin="0,5,0,0"
-                     ShowProgressText="True"/>
+            <Border Grid.Row="2" Classes="card" Margin="0,20,0,0" Padding="20">
+                <Grid RowDefinitions="Auto,*">
+                    <TextBlock Classes="h2" Text="{i18n:Localize Log}" />
+                    <ScrollViewer Name="Log" Grid.Row="1" Margin="0,12,0,0">
+                        <ListBox Classes="log" ItemsSource="{Binding Log}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Message}"
+                                               Foreground="{Binding Level, Converter={StaticResource LogLevelToColorConverter}}"/>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
 
-        <Grid Grid.Row="2" MinHeight="20">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-
-            <TextBlock Grid.Column="0" Text="{Binding ProgressMessageFiles}"
-                       HorizontalAlignment="Left"/>
-            <TextBlock Grid.Column="1" Text="{Binding ProgressMessageEta}"
-                       HorizontalAlignment="Center"/>
-            <TextBlock Grid.Column="2" Text="{Binding ProgressMessageBytes}"
-                       HorizontalAlignment="Right"/>
+            <Button Grid.Row="3" Margin="0,20,0,0" HorizontalAlignment="Right" MinWidth="160"
+                    Classes.danger="{Binding Running}" Classes.accent="{Binding !Running}"
+                    Content="{Binding ButtonText}" Click="OnOkClick" />
         </Grid>
-
-        <ScrollViewer Name="Log" Grid.Row="3" Margin="0,5,0,0">
-            <ListBox FontSize="14"
-                     FontFamily="Consolas"
-                     ItemsSource="{Binding Log}">
-                <ListBox.Styles>
-                    <Style Selector="ListBoxItem">
-                        <Setter Property="Padding" Value="0"/>
-                    </Style>
-                </ListBox.Styles>
-
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding Message}"
-                                   Foreground="{Binding Level, Converter={StaticResource LogLevelToColorConverter}}"/>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
-        </ScrollViewer>
-
-        <controls:OkCancelButtons
-            Grid.Row="4"
-            Margin="0,5,0,0"
-            OkText="{Binding $parent.DataContext.ButtonText}"
-            CancelVisible="False"
-            OkClick="OnOkClick"/>
-        <controls:Spinner Grid.Row="0" Grid.RowSpan="4" Name="Spinner" />
+        <controls:Spinner Name="Spinner" />
     </Grid>
 </UserControl>

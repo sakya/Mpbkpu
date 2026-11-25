@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using MpbkpuLib.Abstracts;
 using MpbkpuLib.FileManagers;
 
@@ -18,6 +19,7 @@ public class RestoreJobSettings : BaseJobSettings
     /// The password to access to the backup path
     /// </summary>
     /// <value></value>
+    [JsonIgnore] // Never logged or saved in the backup database
     public string? BackupPathPassword { get; set; }
     /// <summary>
     /// OAuth settings to access to the backup path
@@ -43,6 +45,7 @@ public class RestoreJobSettings : BaseJobSettings
     /// The password to access to the destination
     /// </summary>
     /// <value></value>
+    [JsonIgnore] // Never logged or saved in the backup database
     public string? DestinationPassword { get; set; }
     /// <summary>
     /// OAuth settings to access to the destination

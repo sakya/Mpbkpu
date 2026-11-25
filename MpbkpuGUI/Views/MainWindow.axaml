@@ -3,28 +3,18 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:controls="clr-namespace:MpbkpuGUI.Controls"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d" d:DesignWidth="1180" d:DesignHeight="780"
         WindowStartupLocation="CenterScreen"
         x:Class="MpbkpuGUI.Views.MainWindow"
-        MinWidth="500"
-        MinHeight="200"
+        Width="1180"
+        Height="780"
+        MinWidth="720"
+        MinHeight="480"
         Title="Multi Platform Backup Utility">
-    <Panel>
-        <ExperimentalAcrylicBorder IsHitTestVisible="False">
-            <ExperimentalAcrylicBorder.Material>
-                <ExperimentalAcrylicMaterial
-                    BackgroundSource="Digger"
-                    TintColor="Black"
-                    TintOpacity="1"
-                    MaterialOpacity="0.65" />
-            </ExperimentalAcrylicBorder.Material>
-        </ExperimentalAcrylicBorder>
-
-        <DockPanel>
-            <controls:TitleBar Name="TitleBar" DockPanel.Dock="Top"/>
-            <Grid Name="Container">
-                <controls:Spinner Name="Spinner"></controls:Spinner>
-            </Grid>
-        </DockPanel>
-    </Panel>
+    <DockPanel>
+        <controls:TitleBar Name="TitleBar" DockPanel.Dock="Top"/>
+        <Grid Name="Container" Background="{StaticResource BgBrush}">
+            <controls:Spinner Name="Spinner"></controls:Spinner>
+        </Grid>
+    </DockPanel>
 </Window>

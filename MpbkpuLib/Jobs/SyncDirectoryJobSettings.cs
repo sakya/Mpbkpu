@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using MpbkpuLib.Abstracts;
 using MpbkpuLib.FileManagers;
 
@@ -19,6 +20,7 @@ public class SyncDirectoryJobSettings : BaseJobSettings
     /// The password to access to the source
     /// </summary>
     /// <value></value>
+    [JsonIgnore] // Never logged or saved in the backup database
     public string? SourcePassword { get; set; }
     /// <summary>
     /// OAuth settings to access to the source
@@ -39,6 +41,7 @@ public class SyncDirectoryJobSettings : BaseJobSettings
     /// The password to access to the destination
     /// </summary>
     /// <value></value>
+    [JsonIgnore] // Never logged or saved in the backup database
     public string? DestinationPassword { get; set; }
     /// <summary>
     /// OAuth settings to access to the destination

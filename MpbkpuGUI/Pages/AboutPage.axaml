@@ -2,43 +2,39 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              xmlns:models="clr-namespace:MpbkpuGUI.Models"
              xmlns:controls="clr-namespace:MpbkpuGUI.Controls"
              xmlns:i18n="clr-namespace:MpbkpuGUI.Localizer"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             mc:Ignorable="d" d:DesignWidth="1180" d:DesignHeight="740"
              x:Class="MpbkpuGUI.Pages.AboutPage">
     <Design.DataContext>
         <models:AboutPageModel />
     </Design.DataContext>
 
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+    <Grid RowDefinitions="*,Auto">
+        <ScrollViewer>
+            <Border Classes="card" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Margin="40" Padding="40" MaxWidth="560">
+                <StackPanel Spacing="10">
+                    <Border Width="64" Height="64" CornerRadius="16" Background="{StaticResource AccentBrush}"
+                            HorizontalAlignment="Center" Margin="0,0,0,10">
+                        <mi:MaterialIcon Kind="TrayArrowDown" Width="36" Height="36" Foreground="#FFFFFF" />
+                    </Border>
+                    <TextBlock FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center"
+                               TextWrapping="Wrap" TextAlignment="Center" Text="{Binding Title}" />
+                    <TextBlock Classes="muted" HorizontalAlignment="Center" TextWrapping="Wrap" Text="{Binding Copyright}" />
+                    <TextBlock Margin="0,14,0,0" TextWrapping="Wrap" TextAlignment="Center" TextTrimming="None"
+                               Foreground="{StaticResource SubtleTextBrush}" Text="{Binding Description}" />
+                </StackPanel>
+            </Border>
+        </ScrollViewer>
 
-        <StackPanel Orientation="Vertical"
-                    VerticalAlignment="Center">
-            <Image Source="/Assets/icon.ico" Width="50"
-                   Margin="0,0,0,15"/>
-            <TextBlock TextWrapping="Wrap"
-                       HorizontalAlignment="Center"
-                       Foreground="{DynamicResource SystemAccentColor}"
-                       Text="{Binding Title}" />
-            <TextBlock TextWrapping="Wrap"
-                       HorizontalAlignment="Center"
-                       Text="{Binding Copyright}" />
-            <TextBlock TextWrapping="Wrap"
-                       TextAlignment="Center"
-                       HorizontalAlignment="Center"
-                       FontWeight="ExtraLight"
-                       Margin="0,15,0,0"
-                       Text="{Binding Description}" />
-        </StackPanel>
-
-        <controls:OkCancelButtons Grid.Row="1"
-                                  CancelVisible="False"
-                                  OkText="{i18n:Localize Close}"
-                                  OkClick="OnOkClick"/>
+        <Border Grid.Row="1" Background="{StaticResource ChromeBrush}" BorderBrush="{StaticResource LineBrush}"
+                BorderThickness="0,1,0,0" Padding="40,14">
+            <controls:OkCancelButtons CancelVisible="False"
+                                      OkText="{i18n:Localize Close}"
+                                      OkClick="OnOkClick"/>
+        </Border>
     </Grid>
 </UserControl>

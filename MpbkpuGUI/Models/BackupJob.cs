@@ -1,5 +1,5 @@
 using System.IO.Compression;
-using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 using MpbkpuGUI.Abstracts;
 using MpbkpuLib.DataModel;
 
@@ -13,6 +13,10 @@ public class BackupJob : Job
     public int FullBackupEveryDays { get; set; }
     public int KeepChains { get; set; }
 
+    // Never saved in the settings file
     [JsonIgnore]
     public string? Password { get; set; }
+
+    [JsonIgnore]
+    public bool IsCompressed => CompressionLevel != CompressionLevel.NoCompression;
 }

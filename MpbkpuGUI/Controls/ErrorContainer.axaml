@@ -16,6 +16,7 @@
         </Grid.RowDefinitions>
 
         <ContentControl Content="{Binding Control}" />
-        <TextBlock Grid.Row="1" Text="{Binding Error}" Foreground="{StaticResource DangerColor}" />
+        <TextBlock Grid.Row="1" Text="{Binding Error}" Foreground="{StaticResource DangerBrush}" FontSize="12" Margin="0,6,0,0"
+                   IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
     </Grid>
 </UserControl>

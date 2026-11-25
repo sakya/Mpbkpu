@@ -3,73 +3,63 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="40"
              x:Class="MpbkpuGUI.Controls.TitleBar">
 
   <UserControl.Styles>
-    <Style Selector="Button /template/ ContentPresenter">
+    <Style Selector="Button.chrome">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
       <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="MinHeight" Value="0" />
+      <Setter Property="Height" Value="40" />
+      <Setter Property="Width" Value="46" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}" />
     </Style>
-    <Style Selector="Button:not(:pointerover) /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="Transparent"/>
+    <Style Selector="Button.chrome:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{StaticResource HoverBrush}" />
+      <Setter Property="Foreground" Value="#FFFFFF" />
+    </Style>
+    <Style Selector="Button.chrome.close:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#C42B1C" />
+      <Setter Property="Foreground" Value="#FFFFFF" />
+    </Style>
+    <Style Selector="Button.chrome mi|MaterialIcon">
+      <Setter Property="Width" Value="16" />
+      <Setter Property="Height" Value="16" />
     </Style>
   </UserControl.Styles>
 
-  <StackPanel>
-    <Grid Background="Transparent" WindowDecorationProperties.ElementRole="TitleBar">
-      <DockPanel Background="{DynamicResource TitleBarBackground}"
-                 IsHitTestVisible="False"></DockPanel>
+  <Border Background="{StaticResource ChromeBrush}" BorderBrush="#1E222A" BorderThickness="0,0,0,1">
+    <Grid Height="40" Background="Transparent" WindowDecorationProperties.ElementRole="TitleBar"
+          ColumnDefinitions="Auto,*,Auto">
+      <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+        <Button Name="BackBtn" Classes="chrome" Width="44" IsVisible="False"
+                WindowDecorationProperties.ElementRole="User"
+                ToolTip.Tip="Indietro">
+          <mi:MaterialIcon Kind="ArrowLeft" />
+        </Button>
+        <Border Name="Icon" Width="18" Height="18" CornerRadius="5" Margin="14,0,0,0"
+                Background="{StaticResource AccentBrush}" IsHitTestVisible="False">
+          <mi:MaterialIcon Kind="TrayArrowDown" Width="13" Height="13" Foreground="#FFFFFF" />
+        </Border>
+        <TextBlock Name="Title" FontSize="13" Margin="10,0,0,0"
+                   Foreground="{StaticResource MutedTextBrush}"
+                   IsHitTestVisible="False" VerticalAlignment="Center" />
+      </StackPanel>
 
-      <DockPanel>
-        <StackPanel Orientation="Horizontal"
-                    DockPanel.Dock="Left"
-                    Height="30">
-
-          <Button Name="BackBtn" WindowDecorationProperties.ElementRole="User" Height="30" Width="30" Margin="0" Padding="5" IsVisible="False">
-            <Button.Styles>
-              <Style Selector="Button /template/ ContentPresenter">
-                <Setter Property="CornerRadius" Value="0" />
-              </Style>
-              <Style Selector="Button:not(:pointerover) /template/ ContentPresenter#PART_ContentPresenter">
-                <Setter Property="Background" Value="Transparent"/>
-              </Style>
-            </Button.Styles>
-            <mi:MaterialIcon Kind="ArrowLeft" />
-          </Button>
-
-          <Image Source="/Assets/icon.ico"
-                 Name="Icon"
-                 Height="20"
-                 Width="20"
-                 VerticalAlignment="Center"
-                 IsHitTestVisible="False"
-                 Margin="5,0,5,0" />
-          <TextBlock Name="Title"
-                     FontSize="16"
-                     IsHitTestVisible="False"
-                     VerticalAlignment="Center" />
-        </StackPanel>
-
-        <StackPanel HorizontalAlignment="Right"
-                    Orientation="Horizontal">
-          <Button Name="MinimizeBtn" WindowDecorationProperties.ElementRole="User" Height="30" Width="46" Padding="0">
-            <mi:MaterialIcon Kind="WindowMinimize" />
-          </Button>
-
-          <Button Name="MaximizeBtn" WindowDecorationProperties.ElementRole="User" Height="30" Width="46" Padding="0">
-            <mi:MaterialIcon Name="MaximizeIcon" Kind="WindowMaximize" />
-          </Button>
-
-          <Button Name="CloseBtn" WindowDecorationProperties.ElementRole="User" Height="30" Width="46" Padding="0">
-            <Button.Styles>
-              <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-                <Setter Property="Background" Value="DarkRed"/>
-              </Style>
-            </Button.Styles>
-            <mi:MaterialIcon Kind="WindowClose" />
-          </Button>
-        </StackPanel>
-      </DockPanel>
+      <StackPanel Grid.Column="2" Orientation="Horizontal">
+        <Button Name="MinimizeBtn" Classes="chrome" WindowDecorationProperties.ElementRole="User">
+          <mi:MaterialIcon Kind="WindowMinimize" />
+        </Button>
+        <Button Name="MaximizeBtn" Classes="chrome" WindowDecorationProperties.ElementRole="User">
+          <mi:MaterialIcon Name="MaximizeIcon" Kind="WindowMaximize" />
+        </Button>
+        <Button Name="CloseBtn" Classes="chrome close" WindowDecorationProperties.ElementRole="User">
+          <mi:MaterialIcon Kind="WindowClose" />
+        </Button>
+      </StackPanel>
     </Grid>
-  </StackPanel>
+  </Border>
 </UserControl>

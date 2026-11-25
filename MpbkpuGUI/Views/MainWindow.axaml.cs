@@ -22,6 +22,8 @@ namespace MpbkpuGUI.Views
                 this.WindowDecorations = WindowDecorations.BorderOnly;
             }
             WindowTitle = Title;
+            Transition = new TransitionSettings(TransitionSettings.EnterTransitions.SlideLeft, TimeSpan.FromMilliseconds(220),
+                new Avalonia.Animation.Easings.CubicEaseOut());
 
             Container = this.FindControl<Grid>("Container");
             _titleBar = this.FindControl<Controls.TitleBar>("TitleBar");
@@ -38,6 +40,12 @@ namespace MpbkpuGUI.Views
         private void InitializeComponent()
         {
             AvaloniaXamlLoader.Load(this);
+        }
+
+        protected override void PageChanged()
+        {
+            // Show the back button in the title bar on every page except the first one
+            _titleBar!.CanGoBack = CanNavigateBack;
         }
 
         private void SetWaitAnimation(bool visible)

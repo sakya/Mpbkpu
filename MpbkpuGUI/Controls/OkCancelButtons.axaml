@@ -2,23 +2,13 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="60"
              x:Class="MpbkpuGUI.Controls.OkCancelButtons">
 
-    <UserControl.Styles>
-        <Style Selector="Button.Ok">
-            <Setter Property="Margin" Value="5,0,0,0" />
-        </Style>
-    </UserControl.Styles>
-
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
-        <Button Grid.Column="0" Name="Cancel" Content="{Binding CancelText}"
+    <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Right">
+        <Button Name="Cancel" MinWidth="120" Content="{Binding CancelText}"
                 IsVisible="{Binding CancelVisible}" IsCancel="True" />
-        <Button Grid.Column="1" Name="Ok" Classes="Ok accent" Content="{Binding OkText}"
+        <Button Name="Ok" Classes="Ok accent" MinWidth="120" Content="{Binding OkText}"
                 IsEnabled="{Binding OkEnabled}" IsDefault="True" />
-    </Grid>
+    </StackPanel>
 </UserControl>

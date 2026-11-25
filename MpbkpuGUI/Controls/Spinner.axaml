@@ -17,7 +17,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <Border Grid.Row="0" Grid.RowSpan="4" Background="#000000" Opacity="0.4" />
+        <Border Grid.Row="0" Grid.RowSpan="4" Background="{StaticResource BgBrush}" Opacity="0.75" />
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center">
             <StackPanel Name="WaitSpinner"
                         Classes="spinner"
@@ -25,10 +25,13 @@
                         Width="40" Height="40">
                 <mi:MaterialIcon HorizontalAlignment="Center" VerticalAlignment="Center"
                         Width="40" Height="40"
+                        Foreground="{StaticResource AccentTextBrush}"
                         Kind="Loading" />
             </StackPanel>
         </StackPanel>
         <TextBlock Grid.Row="2"
+                   Margin="0,16,0,0"
+                   Foreground="{StaticResource SubtleTextBrush}"
                    HorizontalAlignment="Center"
                    Text="{Binding Message}"/>
     </Grid>

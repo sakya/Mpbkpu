@@ -1,4 +1,5 @@
-﻿using MpbkpuLib.Abstracts;
+﻿using Newtonsoft.Json;
+using MpbkpuLib.Abstracts;
 using MpbkpuLib.FileManagers;
 
 namespace MpbkpuLib.Jobs;
@@ -18,6 +19,7 @@ public class DeleteJobSettings : BaseJobSettings
     /// The password to access to the backup path
     /// </summary>
     /// <value></value>
+    [JsonIgnore] // Never logged or saved in the backup database
     public string? BackupPathPassword { get; set; }
     /// <summary>
     /// OAuth settings to access to the backup path

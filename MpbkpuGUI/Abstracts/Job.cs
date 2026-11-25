@@ -97,6 +97,7 @@ public abstract class Job
     public bool SkipHashCheck { get; set; } = false;
     public int RetryOnError { get; set; } = 3;
     public DateTime? LastRun { get; set; }
+    public MpbkpuLib.DataModel.Backup.Results? LastResult { get; set; }
 
     public Job Copy()
     {

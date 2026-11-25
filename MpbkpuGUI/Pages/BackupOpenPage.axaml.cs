@@ -20,6 +20,8 @@ public partial class BackupOpenPage : BasePage
     private BackupFile.OpenResult? _backupFile;
 
     private readonly BackupOpenPageModel _model = new();
+    // Reload the backups when coming back from a page that changed them
+    private bool _reloadOnReturn;
 
     public BackupOpenPage()
     {
@@ -45,8 +47,12 @@ public partial class BackupOpenPage : BasePage
     {
         base.OnNavigatedTo(direction);
 
-        if (direction == NavigationDirection.Backward)
-            return;
+        if (direction == NavigationDirection.Backward) {
+            if (!_reloadOnReturn)
+                return;
+            _reloadOnReturn = false;
+            this.FindControl<Controls.Spinner>("Spinner")!.IsVisible = true;
+        }
 
         _model.SpinnerMessage = Localizer.Localizer.Instance["Step_OpenDatabase"];
         try {
@@ -65,6 +71,8 @@ public partial class BackupOpenPage : BasePage
         AvaloniaXamlLoader.Load(this);
 
         PageTitle = $"{Localizer.Localizer.Instance["Backup"]}: {_backup.Name}";
+        this.FindControl<TextBlock>("Title")!.Text = string.Format(Localizer.Localizer.Instance["HistoryOf"], _backup.Name);
+        this.FindControl<TextBlock>("Paths")!.Text = $"{_backup.Source?.FullPath}  →  {_backup.Destination?.FullPath}";
     }
 
     private async Task OpenDatabase()
@@ -78,7 +86,8 @@ public partial class BackupOpenPage : BasePage
             ServerUrl = _backup.Destination.OauthServerUrl,
             RedirectUrl = _backup.Destination.OauthRedirectUrl
         };
-        using var fm = FileManagerFactory.GetFileManager(_backup.Destination.FullPath, out var backupPath, oauth2Settings: oauthSettings);
+        using var fm = FileManagerFactory.GetFileManager(_backup.Destination.FullPath, out var backupPath,
+            _backup.Destination.User, _backup.Destination.Password, oauthSettings);
         _backupFile = await BackupFile.OpenBackupFile(fm, backupPath, _backup.Password,
             progressAction: (bytes, total) =>
             {
@@ -86,25 +95,38 @@ public partial class BackupOpenPage : BasePage
                 _model.SpinnerMessage = $"{Localizer.Localizer.Instance["Step_OpenDatabase"]}: {percentage,5:0.0}%";
             });
 
-        _model.Backups = new ObservableCollection<BackupOpenPageModel.BackupData>();
-        var backups = _backupFile.BackupFile.Backups.OrderBy(b => b.Id)
-            .Select(b => new
+        // Newest first, grouped by chain (a full backup and the following backups)
+        var backups = _backupFile.BackupFile.Backups.OrderByDescending(b => b.Id)
+            .Select(b => new BackupOpenPageModel.BackupData()
             {
                 Backup = b,
-                Files = b.Items.Count(),
-                Bytes = b.Items.Sum(i => i.OriginalSize)
-            });
-        foreach (var bkp in backups) {
-            Dispatcher.UIThread.Post(() =>
-            {
-                _model.Backups.Add(new BackupOpenPageModel.BackupData()
-                {
-                    Backup = bkp.Backup,
-                    Items = bkp.Files,
-                    Size = bkp.Bytes
-                });
-            });
+                Items = b.Items.Count(),
+                Size = b.Items.Sum(i => i.OriginalSize)
+            })
+            .ToList();
+        var warnings = _backupFile.BackupFile.BackupWarnings.ToList()
+            .GroupBy(w => w.BackupId)
+            .ToDictionary(g => g.Key, g => g.Select(w => w.Message ?? string.Empty).ToList());
+        for (var i = 0; i < backups.Count; i++) {
+            if (warnings.TryGetValue(backups[i].Backup!.Id, out var messages))
+                backups[i].Warnings = messages;
+
+            if (i > 0 && backups[i - 1].Backup!.Type != MpbkpuLib.DataModel.Backup.BackupTypes.Full)
+                continue;
+            var fullIndex = backups.FindIndex(i, b => b.Backup!.Type == MpbkpuLib.DataModel.Backup.BackupTypes.Full);
+            var chain = backups.GetRange(i, (fullIndex < 0 ? backups.Count : fullIndex + 1) - i);
+            var started = chain[^1].Backup!.StartedAt?.ToLocalTime().ToString("d");
+            backups[i].ChainTitle = i == 0 ?
+                Localizer.Localizer.Instance["CurrentChain"] :
+                string.Format(Localizer.Localizer.Instance["ChainFrom"], started);
+            backups[i].ChainSummary = string.Format(Localizer.Localizer.Instance["ChainSummary"], chain.Count,
+                MpbkpuLib.Utility.String.BytesToString(chain.Sum(b => b.Size)));
         }
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            _model.Backups = new ObservableCollection<BackupOpenPageModel.BackupData>(backups);
+        });
     }
 
     private async void OnDeleteClick(object? sender, RoutedEventArgs e)
@@ -113,7 +135,11 @@ public partial class BackupOpenPage : BasePage
             if (await MessageDialog.ShowConfirmMessage(MainWindow,
                     Localizer.Localizer.Instance["ConfirmDeleteBackup"],
                     MessageDialog.Icons.Warning)) {
-                await NavigateTo(new DeleteBackupPage(bkp.Backup!));
+                // The delete job updates the database: close it and reload it when coming back
+                _backupFile?.Dispose();
+                _backupFile = null;
+                _reloadOnReturn = true;
+                await NavigateTo(new DeleteBackupPage(_backup, bkp.Backup!));
             }
         }
     }

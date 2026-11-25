@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using Dropbox.Api.TeamLog;
 using MpbkpuLib.Abstracts;
 using MpbkpuLib.FileManagers;
@@ -19,6 +20,7 @@ public class ListContentJobSettings : BaseJobSettings
     /// The password to access to the backup path
     /// </summary>
     /// <value></value>
+    [JsonIgnore] // Never logged or saved in the backup database
     public string? BackupPathPassword { get; set; }
     /// <summary>
     /// OAuth settings to access to the backup path

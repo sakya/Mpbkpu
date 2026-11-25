@@ -1,4 +1,5 @@
-﻿using System.Collections.ObjectModel;
+﻿using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using MpbkpuGUI.Abstracts;
 using MpbkpuLib.DataModel;
 
@@ -11,6 +12,16 @@ public class BackupOpenPageModel : BaseModel
         public Backup? Backup { get; set; }
         public long Items { get; set; }
         public long Size { get; set; }
+        public string ItemsText => string.Format(Localizer.Localizer.Instance["FilesCount"], Items.ToString("N0"));
+
+        /// <summary>
+        /// Title of the chain starting with this backup (backups are listed newest first), null for the other backups
+        /// </summary>
+        public string? ChainTitle { get; set; }
+        public string? ChainSummary { get; set; }
+
+        public List<string> Warnings { get; set; } = new();
+        public bool HasWarnings => Warnings.Count > 0;
     }
 
     private string? _spinnerMessage;

@@ -33,7 +33,7 @@ namespace MpbkpuGUI.Controls
                 var btn = this.FindControl<Button>("BackBtn");
                 btn.IsVisible = _canGoBack;
 
-                var icon = this.FindControl<Image>("Icon");
+                var icon = this.FindControl<Control>("Icon");
                 icon.IsVisible = !_canGoBack;
             }
         }

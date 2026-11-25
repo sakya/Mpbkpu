@@ -44,6 +44,8 @@ public partial class BackupVerifyPage : BasePage
         AvaloniaXamlLoader.Load(this);
 
         PageTitle = $"{Localizer.Localizer.Instance["VerifyingBackup"]}: {_backup.Guid}";
+        this.FindControl<TextBlock>("Subtitle")!.Text =
+            $"{_backup.StartedAt?.ToLocalTime():g} · {Localizer.Localizer.Instance[$"BackupType_{_backup.Type}"]} · {_backup.Guid}";
         NavigateBackWithKeyboard = false;
     }
 
