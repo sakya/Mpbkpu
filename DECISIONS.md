@@ -23,6 +23,10 @@
 - **Local paths without a drive letter** (relative, UNC) → file system of the current OS.
 - **Passwords are never serialized**: Newtonsoft `[JsonIgnore]` (job settings, `OAuth2Settings.AppSecret`, GUI
   `BackupJob.Password`). Newtonsoft is the serializer used everywhere.
+- **GUI credentials in the OS secure storage**: `Job.Position.Password` and `OauthAppSecret` are `[JsonIgnore]` and
+  saved by `AppSettings.Save` in `SecretStore` (MSAL extensions storage, already a dependency: DPAPI / Keychain /
+  libsecret), keys `{jobId}.{Source|Destination}.{field}`. Old plain-text values are read through private
+  `Legacy*` setters and removed at startup. The backup encryption password is still never stored (asked on each run).
 
 ## GUI
 - **SingleWindow navigation unchanged** (pages animated in `Container`, back arrow in the TitleBar); the sidebar is

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using MpbkpuLib.FileManagers;
 using MpbkpuLib.Interfaces;
 using Newtonsoft.Json;
@@ -25,13 +26,50 @@ public abstract class Job
         public FileSystemTypes Type { get; set; }
         public string? Path { get; set; }
         public string? User { get; set; }
+        [JsonIgnore]
         public string? Password { get; set; }
 
         public Uri? OauthServerUrl { get; set; }
         public Uri? OauthRedirectUrl { get; set; }
         public string? OauthAppName { get; set; }
         public string? OauthAppId { get; set; }
+        [JsonIgnore]
         public string? OauthAppSecret { get; set; }
+
+        /// <summary>
+        /// True if the settings file contained plain-text secrets written by an older version
+        /// </summary>
+        [JsonIgnore]
+        public bool HasLegacySecrets { get; private set; }
+
+        // Plain-text secrets written by older versions: read once, then moved to the secret store
+        [JsonProperty(nameof(Password))]
+        private string? LegacyPassword
+        {
+            set { Password = value; HasLegacySecrets = true; }
+        }
+
+        [JsonProperty(nameof(OauthAppSecret))]
+        private string? LegacyOauthAppSecret
+        {
+            set { OauthAppSecret = value; HasLegacySecrets = true; }
+        }
+
+        public void GetSecrets(string prefix, IDictionary<string, string> secrets)
+        {
+            if (!string.IsNullOrEmpty(Password))
+                secrets[$"{prefix}.{nameof(Password)}"] = Password;
+            if (!string.IsNullOrEmpty(OauthAppSecret))
+                secrets[$"{prefix}.{nameof(OauthAppSecret)}"] = OauthAppSecret;
+        }
+
+        public void SetSecrets(string prefix, IReadOnlyDictionary<string, string> secrets)
+        {
+            if (secrets.TryGetValue($"{prefix}.{nameof(Password)}", out var password))
+                Password = password;
+            if (secrets.TryGetValue($"{prefix}.{nameof(OauthAppSecret)}", out var appSecret))
+                OauthAppSecret = appSecret;
+        }
 
         [JsonIgnore]
         public string FullPath
@@ -107,6 +145,26 @@ public abstract class Job
             NullValueHandling = NullValueHandling.Ignore
         };
         var objectSerialized = JsonConvert.SerializeObject(this, settings);
-        return JsonConvert.DeserializeObject<Job>(objectSerialized, settings)!;
+        var res = JsonConvert.DeserializeObject<Job>(objectSerialized, settings)!;
+        // Secrets are not serialized
+        var secrets = new Dictionary<string, string>();
+        GetSecrets(secrets);
+        res.SetSecrets(secrets);
+        return res;
+    }
+
+    [JsonIgnore]
+    public bool HasLegacySecrets => Source?.HasLegacySecrets == true || Destination?.HasLegacySecrets == true;
+
+    public void GetSecrets(IDictionary<string, string> secrets)
+    {
+        Source?.GetSecrets($"{Id}.{nameof(Source)}", secrets);
+        Destination?.GetSecrets($"{Id}.{nameof(Destination)}", secrets);
+    }
+
+    public void SetSecrets(IReadOnlyDictionary<string, string> secrets)
+    {
+        Source?.SetSecrets($"{Id}.{nameof(Source)}", secrets);
+        Destination?.SetSecrets($"{Id}.{nameof(Destination)}", secrets);
     }
 }

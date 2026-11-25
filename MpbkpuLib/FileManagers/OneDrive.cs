@@ -5,6 +5,7 @@ using Microsoft.Kiota.Abstractions;
 using Microsoft.Kiota.Abstractions.Authentication;
 using Microsoft.Identity.Client;
 using Microsoft.Identity.Client.Extensions.Msal;
+using MpbkpuLib.Utility;
 using File = MpbkpuLib.DataModel.File;
 
 namespace MpbkpuLib.FileManagers
@@ -386,15 +387,10 @@ namespace MpbkpuLib.FileManagers
                 var app = PublicClientApplicationBuilder.CreateWithApplicationOptions(appOptions).Build();
 
                 // Create token cache
-                var storageProperties = new StorageCreationPropertiesBuilder("OneDriveUserTokenCache", Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Mpbkpu"))
-                    .WithLinuxKeyring(
-                        "com.github.sakya.Mpbkpu",
-                        MsalCacheHelper.LinuxKeyRingDefaultCollection,
-                        "MSAL token cache for Mpbkpu app.",
-                        new KeyValuePair<string, string>("Version", "1"),
-                        new KeyValuePair<string, string>("ProductGroup", "com.github.sakya"))
-                    .WithMacKeyChain("Mpbkpu_msal_service", "Mpbkpu_msal_account")
-                    .Build();
+                var storageProperties = SecretStore.CreateProperties("OneDriveUserTokenCache",
+                    Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Mpbkpu"),
+                    "MSAL token cache for Mpbkpu app.", "Mpbkpu_msal_service", "Mpbkpu_msal_account",
+                    new KeyValuePair<string, string>("ProductGroup", "com.github.sakya"));
                 var cacheHelper = await MsalCacheHelper.CreateAsync(storageProperties);
                 cacheHelper.VerifyPersistence();
                 cacheHelper.RegisterCache(app.UserTokenCache);

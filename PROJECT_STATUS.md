@@ -19,21 +19,16 @@ CLI `Mpbkpu`, Avalonia GUI `MpbkpuGUI`, plus `Tests` (NUnit).
 | Locked files / files changed during the copy → saved warnings, `CompletedWithWarnings` result | tests `LockedFileIsSkippedWithWarning`, `FileChangedDuringCopyIsRetried` |
 | GUI redesign (mockup: https://claude.ai/artifact/HpYrM1fJ6XE4of8AhhtrrS) | screenshot of every page: job list, running, settings, history, verify, browse, delete, about, confirmation dialog |
 | Delete backup page implemented (it was empty) | deletion run from the GUI, history reloaded |
+| Position passwords and `OauthAppSecret` moved from `settings.json` to the OS secure storage (`SecretStore`), automatic migration of old files | scratch test: legacy file loaded, secrets moved, `settings.json` without secrets, reload and `Job.Copy` keep them |
 | Window style with `WS_CAPTION` for the Windows animations (same fix as Darsena) | Win32 style read from the running window; custom title bar intact; maximize/restore/close work |
 
 ## Uncommitted changes
-- GUI: `App.axaml` (theme), `Views/MainWindow.*` (also the window styles callback), `Controls/*` (TitleBar,
-  JobListItem, OkCancelButtons, PositionDetail, ErrorContainer, Spinner), `Pages/*` (all), `Dialogs/*`,
-  `Models/BackupJob.cs`, `Models/BackupOpenPageModel.cs`, `Abstracts/Job.cs` (`LastResult`),
-  `Converters/EnumToLocalizedStringConverter.cs` (new), `DateTimeConverter.cs`, `Assets/i18n/*.json`,
-  `MpbkpuGUI.csproj` (Avalonia.Fonts.Inter).
-- Library: `BackupJobJobResult.Result`, job settings passwords and `OAuth2Settings.AppSecret` marked `[JsonIgnore]`.
-- Project memory files: `PROJECT_STATUS.md`, `DECISIONS.md`, `AGENTS.md`, `TODO.md`.
-- Everything builds; the 45 non-remote tests pass with these changes.
+- `MpbkpuLib/Utility/SecretStore.cs` (new), `FileManagers/OneDrive.cs` (shared storage properties),
+  GUI `Abstracts/Job.cs`, `Models/AppSettings.cs`, `Program.cs`; memory files.
+- GUI redesign and window animation fix are committed (`8a47b37`, `ea4ad27`).
 
 ## Current state
-GUI redesign applied and checked on screen, alignment fixes (checkboxes, numeric inputs) verified, window
-animation fix applied. Waiting for a commit.
+GUI redesign and window animation fix committed. Plain-text credentials fixed, waiting for a commit.
 
 ## Open issues and attempts so far
 - `Tests/FileManagers` tests use real credentials (`filemanagers-settings.json`) and hang (OneDrive waits for an
@@ -46,5 +41,4 @@ animation fix applied. Waiting for a commit.
   they cannot be repaired automatically.
 
 ## Next step
-Check the Windows animations by hand (minimize, maximize, restore), then commit the GUI redesign and the pending
-library changes.
+Commit the secret store change, then check the Windows animations by hand (minimize, maximize, restore).

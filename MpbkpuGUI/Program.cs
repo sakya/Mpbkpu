@@ -60,6 +60,9 @@ namespace MpbkpuGUI
             if (App.Settings == null) {
                 App.Settings = new AppSettings();
                 await App.Settings.Save(App.SettingFile);
+            } else if (App.Settings.HasLegacySecrets) {
+                // Move the plain-text secrets of older versions to the secret store
+                await App.Settings.Save(App.SettingFile);
             }
 
             Localizer.Localizer.Instance.LoadLanguage(App.Settings.Language);
