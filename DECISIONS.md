@@ -1,34 +1,37 @@
-# Decisioni
+# Decisions
 
-## Piattaforma e dipendenze
-- **Avalonia 12 con binding a riflessione e generatore di nomi disattivato** (`AvaloniaUseCompiledBindingsByDefault=false`,
-  `AvaloniaNameGeneratorIsEnabled=false`). Il codice usa `FindControl` e binding senza `x:DataType`; i campi generati
-  nascondevano `MainWindowBase.Container` e `StyledElement.Name`.
-- **Material.Icons.Avalonia** al posto di Projektanker/FontAwesome: Projektanker non supporta Avalonia 12.
-- **EF Core 10**, non 11: la 11 richiede .NET 11.
-- **Font Inter** da `Avalonia.Fonts.Inter` (`avares://Avalonia.Fonts.Inter/Assets#Inter`).
+## Platform and dependencies
+- **Avalonia 12 with reflection bindings and the name generator disabled** (`AvaloniaUseCompiledBindingsByDefault=false`,
+  `AvaloniaNameGeneratorIsEnabled=false`). The code uses `FindControl` and bindings without `x:DataType`; the
+  generated fields hid `MainWindowBase.Container` and `StyledElement.Name`.
+- **Material.Icons.Avalonia** instead of Projektanker/FontAwesome: Projektanker does not support Avalonia 12.
+- **EF Core 10**, not 11: version 11 requires .NET 11.
+- **Inter font** from `Avalonia.Fonts.Inter` (`avares://Avalonia.Fonts.Inter/Assets#Inter`).
 
 ## Backup
-- **Differenziale confrontato con l'ultimo full**; i record di cancellazione hanno `OriginalRelativePath`.
-- **Catene**: un full avvia sempre una nuova catena; dopo un full non completato il backup successivo è un full; cambio
-  di tipo incrementale/differenziale → nuovo full. Così la ricostruzione esistente (`GetBackupItems`) resta valida
-  anche per i backup vecchi.
-- **Conservazione** (`KeepChains`): eseguita dopo un full completato riusando `DeleteJob`; un errore è solo un avviso.
-- **Scritture sicure**: restore su file temporaneo + rinomina dopo la verifica dell'hash; database copiato come
-  `mpbkpu.db.tmp` e poi rinominato; `DeleteJob` cancella i file dallo storage solo dopo commit e copia del database.
-- **Niente VSS** (dipendenza nativa + privilegi admin): file bloccati saltati con avviso, file modificati durante la
-  copia ripetuti; avvisi in `BackupWarnings`, esito `CompletedWithWarnings` (trattato come completato).
-- **Cifratura v2**: AES-256-CBC + HMAC-SHA256 (encrypt-then-MAC), header `MPBKPU_ENCRYPT02`; chiavi derivate una volta
-  per istanza di `EncryptDecrypt`. Il formato v1 resta leggibile.
-- **Percorsi locali senza lettera di unità** (relativi, UNC) → file system del sistema operativo corrente.
-- **Password mai serializzate**: `[JsonIgnore]` di Newtonsoft (impostazioni dei job, `OAuth2Settings.AppSecret`,
-  `BackupJob.Password` della GUI). Il serializzatore usato ovunque è Newtonsoft.
+- **Differential backups compare with the last full backup**; deletion records carry `OriginalRelativePath`.
+- **Chains**: a full backup always starts a new chain; after an incomplete full backup the next backup is a full one;
+  switching between incremental and differential → new full backup. This keeps the existing reconstruction
+  (`GetBackupItems`) valid for old backups too.
+- **Retention** (`KeepChains`): runs after a completed full backup, reusing `DeleteJob`; a failure is only a warning.
+- **Safe writes**: restore to a temporary file + rename after the hash check; database copied as `mpbkpu.db.tmp` and
+  then renamed; `DeleteJob` deletes the storage files only after the database commit and copy.
+- **No VSS** (native dependency + admin rights): locked files skipped with a warning, files changed during the copy
+  retried; warnings stored in `BackupWarnings`, result `CompletedWithWarnings` (treated as completed).
+- **Encryption v2**: AES-256-CBC + HMAC-SHA256 (encrypt-then-MAC), header `MPBKPU_ENCRYPT02`; keys derived once per
+  `EncryptDecrypt` instance. Format v1 is still readable.
+- **Local paths without a drive letter** (relative, UNC) → file system of the current OS.
+- **Passwords are never serialized**: Newtonsoft `[JsonIgnore]` (job settings, `OAuth2Settings.AppSecret`, GUI
+  `BackupJob.Password`). Newtonsoft is the serializer used everywhere.
 
 ## GUI
-- **Navigazione SingleWindow invariata** (pagine animate in `Container`, freccia indietro nella TitleBar); la barra
-  laterale è solo nella lista job.
-- **Card con `ItemsControl`** invece di `ItemsList` per lista job e cronologia: `ItemsList` colora lo sfondo delle righe
-  e confligge con le card. `ItemsList` resta nel browser dei file (serve la selezione).
-- **Stile centralizzato** in `App.axaml` tramite override delle risorse Fluent e classi (`card`, `chip`, `h1`, `accent`,
+- **SingleWindow navigation unchanged** (pages animated in `Container`, back arrow in the TitleBar); the sidebar is
+  only on the job list.
+- **Cards with `ItemsControl`** instead of `ItemsList` for the job list and the history: `ItemsList` colors the row
+  backgrounds and conflicts with the cards. `ItemsList` stays in the file browser (selection is needed there).
+- **Centralized styling** in `App.axaml` through Fluent resource overrides and classes (`card`, `chip`, `h1`, `accent`,
   `danger`, `icon`, `nav`, `log`…).
-- **Esito dell'ultima esecuzione** salvato nel job (`LastResult`) a ogni run, anche in caso di errore o annullamento.
+- **Result of the last run** saved in the job (`LastResult`) on every run, also on error or cancellation.
+- **Windows animations with the custom title bar**: a Win32 window styles callback adds `WS_CAPTION` (DWM needs it for
+  the open/minimize/maximize/restore animations) and removes `WS_SYSMENU` (native caption buttons);
+  `WindowDecorations.BorderOnly` still hides the native caption. Same fix as Darsena (commit `1fdf4834`).

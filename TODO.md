@@ -1,17 +1,18 @@
 # TODO
 
-## Subito
-- [ ] Committare il redesign della GUI e le modifiche di libreria in sospeso (vedi PROJECT_STATUS.md).
-- [ ] Verificare a schermo: riquadro avvisi nella cronologia, dialog password, finestre strette (<1180 px).
+## Now
+- [ ] Check the Windows animations by hand (minimize, maximize, restore).
+- [ ] Commit the GUI redesign and the pending library changes (see PROJECT_STATUS.md).
+- [ ] Check on screen: warnings box in the history, password dialog, narrow windows (<1180 px).
 
-## Funzionalità previste dal mockup, non implementate
-- [ ] Ripristino dalla GUI (oggi solo da CLI).
-- [ ] Filtri nella lista job («Con avvisi», «Mai eseguiti»).
-- [ ] Elenco delle fasi (stepper) nella pagina di esecuzione.
-- [ ] Scelta del servizio con chip nelle impostazioni (oggi ComboBox).
+## Mockup features not implemented
+- [ ] Restore from the GUI (today only from the CLI).
+- [ ] Job list filters ("With warnings", "Never run").
+- [ ] Phase list (stepper) on the running page.
+- [ ] Service picker with chips in the settings (today a ComboBox).
 
-## Correzioni
-- [ ] CLI: `RestoreAction` ignora `Success` del restore, quindi un restore fallito non viene segnalato.
-- [ ] Credenziali di sorgente/destinazione (`Job.Position.Password`) salvate in chiaro in `settings.json`.
-- [ ] Test `FileManagers`: renderli espliciti/saltabili senza credenziali (oggi bloccano la suite).
-- [ ] Sincronizzazioni: `LastResult` distingue solo Completato/Errore/Annullato (nessun avviso).
+## Fixes
+- [ ] CLI: `RestoreAction` ignores the restore `Success`, so a failed restore is not reported.
+- [ ] Source/destination credentials (`Job.Position.Password`) are stored in plain text in `settings.json`.
+- [ ] `FileManagers` tests: make them explicit/skippable without credentials (today they block the suite).
+- [ ] Synchronizations: `LastResult` only distinguishes Completed/Error/Cancelled (no warnings).

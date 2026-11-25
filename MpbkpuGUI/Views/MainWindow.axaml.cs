@@ -14,6 +14,8 @@ namespace MpbkpuGUI.Views
 
         public MainWindow()
         {
+            if (OperatingSystem.IsWindows())
+                Win32Properties.AddWindowStylesCallback(this, CustomTitleBarStyles);
             InitializeComponent();
 
             if (OperatingSystem.IsWindows()) {
@@ -40,6 +42,19 @@ namespace MpbkpuGUI.Views
         private void InitializeComponent()
         {
             AvaloniaXamlLoader.Load(this);
+        }
+
+        /// <summary>
+        /// Window styles for the custom title bar on Windows
+        /// </summary>
+        private static (uint style, uint exStyle) CustomTitleBarStyles(uint style, uint exStyle)
+        {
+            // DWM needs WS_CAPTION for the open/minimize/maximize/restore animations;
+            // WindowDecorations.BorderOnly still prevents the native caption from being painted
+            const uint captionStyle = 0x00C00000;
+            // WS_SYSMENU owns the native caption buttons, replaced by the custom title bar
+            const uint systemMenuStyle = 0x00080000;
+            return ((style | captionStyle) & ~systemMenuStyle, exStyle);
         }
 
         protected override void PageChanged()
