@@ -1,7 +1,8 @@
-using System.Net;
 using MpbkpuLib.Interfaces;
-using System.Net.Http.Headers;
 using Microsoft.Graph;
+using Microsoft.Graph.Models;
+using Microsoft.Kiota.Abstractions;
+using Microsoft.Kiota.Abstractions.Authentication;
 using Microsoft.Identity.Client;
 using Microsoft.Identity.Client.Extensions.Msal;
 using File = MpbkpuLib.DataModel.File;
@@ -13,19 +14,20 @@ namespace MpbkpuLib.FileManagers
         public const string Scheme = "onedrive://";
 
         #region classes
-        private class AuthenticationProvider : IAuthenticationProvider
+        private class TokenProvider : IAccessTokenProvider
         {
             private readonly string _accessToken;
 
-            public AuthenticationProvider(string accessToken)
+            public TokenProvider(string accessToken)
             {
                 _accessToken = accessToken;
             }
 
-            public Task AuthenticateRequestAsync(HttpRequestMessage request)
+            public AllowedHostsValidator AllowedHostsValidator { get; } = new();
+
+            public Task<string> GetAuthorizationTokenAsync(Uri uri, Dictionary<string, object>? additionalAuthenticationContext = null, CancellationToken cancellationToken = default)
             {
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);
-                return Task.CompletedTask;
+                return Task.FromResult(_accessToken);
             }
         }
 
@@ -38,10 +40,10 @@ namespace MpbkpuLib.FileManagers
             private readonly List<byte> _buffer = new();
             private readonly SemaphoreSlim _bufferSema = new(1,1);
 
-            public WriterStream(UploadSession session, long length)
+            public WriterStream(UploadSession session, long length, IRequestAdapter requestAdapter)
             {
                 Length = length;
-                _writeTask = new LargeFileUploadTask<DriveItem>(session, this, (int)_cacheSize).UploadAsync();
+                _writeTask = new LargeFileUploadTask<DriveItem>(session, this, (int)_cacheSize, requestAdapter).UploadAsync();
             }
 
             public override bool CanRead => true;
@@ -124,6 +126,7 @@ namespace MpbkpuLib.FileManagers
         #endregion
 
         private GraphServiceClient? _client;
+        private string? _driveId;
         private readonly string? _account;
         private readonly string[] _scopes = new[] { "User.Read", "files.readwrite", "offline_access" };
 
@@ -173,7 +176,7 @@ namespace MpbkpuLib.FileManagers
             var client = await GetClient();
             path = GetPath(path);
             try {
-                var item = await client.Drive.Root.ItemWithPath(path).Request().GetAsync();
+                var item = await client.Drives[_driveId].Root.ItemWithPath(path).GetAsync();
                 if (item.File == null)
                     throw new FileNotFoundException($"File {path} not found", path);
 
@@ -188,8 +191,8 @@ namespace MpbkpuLib.FileManagers
                     LastModified = item.LastModifiedDateTime?.UtcDateTime
                 };
                 return fInfo;
-            } catch (ServiceException ex) {
-                if (ex.StatusCode == HttpStatusCode.NotFound)
+            } catch (ApiException ex) {
+                if (ex.ResponseStatusCode == 404)
                     throw new FileNotFoundException($"File {path} not found", path);
                 throw;
             }
@@ -202,9 +205,10 @@ namespace MpbkpuLib.FileManagers
 
             var client = await GetClient();
             path = GetPath(path);
-            var page = await client.Drive.Root.ItemWithPath(path).Children.Request().GetAsync();
+            var children = client.Drives[_driveId].Root.ItemWithPath(path).Children;
+            var page = await children.GetAsync();
             while (page != null) {
-                foreach (var item in page.CurrentPage) {
+                foreach (var item in page.Value ?? new List<DriveItem>()) {
                     var fInfo = new File()
                     {
                         FullPath = $"{path}/{item.Name}",
@@ -218,7 +222,7 @@ namespace MpbkpuLib.FileManagers
                     yield return fInfo;
                 }
 
-                page = page.NextPageRequest != null ? await page.NextPageRequest.GetAsync() : null;
+                page = page.OdataNextLink != null ? await children.WithUrl(page.OdataNextLink).GetAsync() : null;
             }
         }
 
@@ -237,9 +241,9 @@ namespace MpbkpuLib.FileManagers
             };
 
             if (string.IsNullOrEmpty(parent)) {
-                await client.Drive.Root.Children.Request().AddAsync(folderDriveItem);
+                await client.Drives[_driveId].Items["root"].Children.PostAsync(folderDriveItem);
             } else {
-                await client.Drive.Root.ItemWithPath(parent).Children.Request().AddAsync(folderDriveItem);
+                await client.Drives[_driveId].Root.ItemWithPath(parent).Children.PostAsync(folderDriveItem);
             }
 
             return true;
@@ -252,7 +256,7 @@ namespace MpbkpuLib.FileManagers
 
             var client = await GetClient();
             path = GetPath(path);
-            await client.Drive.Root.ItemWithPath(path).Request().DeleteAsync();
+            await client.Drives[_driveId].Root.ItemWithPath(path).DeleteAsync();
             return true;
         }
 
@@ -263,7 +267,7 @@ namespace MpbkpuLib.FileManagers
 
             var client = await GetClient();
             path = GetPath(path);
-            await client.Drive.Root.ItemWithPath(path).Request().DeleteAsync();
+            await client.Drives[_driveId].Root.ItemWithPath(path).DeleteAsync();
             return true;
         }
 
@@ -275,10 +279,10 @@ namespace MpbkpuLib.FileManagers
             var client = await GetClient();
             path = GetPath(path);
             try {
-                var item = await client.Drive.Root.ItemWithPath(path).Request().GetAsync();
+                var item = await client.Drives[_driveId].Root.ItemWithPath(path).GetAsync();
                 return item.Folder != null;
-            } catch (ServiceException ex) {
-                if (ex.StatusCode == HttpStatusCode.NotFound)
+            } catch (ApiException ex) {
+                if (ex.ResponseStatusCode == 404)
                     return false;
                 throw;
             }
@@ -292,10 +296,10 @@ namespace MpbkpuLib.FileManagers
             var client = await GetClient();
             path = GetPath(path);
             try {
-                var item = await client.Drive.Root.ItemWithPath(path).Request().GetAsync();
+                var item = await client.Drives[_driveId].Root.ItemWithPath(path).GetAsync();
                 return item.File != null;
-            } catch (ServiceException ex) {
-                if (ex.StatusCode == HttpStatusCode.NotFound)
+            } catch (ApiException ex) {
+                if (ex.ResponseStatusCode == 404)
                     return false;
                 throw;
             }
@@ -310,12 +314,12 @@ namespace MpbkpuLib.FileManagers
             filePath = GetPath(filePath);
             Stream? res;
             if (!write) {
-                res = await client.Drive.Root.ItemWithPath(filePath).Content.Request().GetAsync();
+                res = await client.Drives[_driveId].Root.ItemWithPath(filePath).Content.GetAsync();
             } else {
                 if (size == null)
                     throw new ArgumentNullException(nameof(size));
-                UploadSession uploadSession = await client.Me.Drive.Root.ItemWithPath(filePath).CreateUploadSession().Request().PostAsync();
-                res = new WriterStream(uploadSession, size.Value);
+                UploadSession uploadSession = await client.Drives[_driveId].Root.ItemWithPath(filePath).CreateUploadSession.PostAsync(new Microsoft.Graph.Drives.Item.Items.Item.CreateUploadSession.CreateUploadSessionPostRequestBody()) ?? throw new Exception("Failed to create upload session");
+                res = new WriterStream(uploadSession, size.Value, client.RequestAdapter);
             }
 
             return new FileSystemStream(this, res);
@@ -332,7 +336,7 @@ namespace MpbkpuLib.FileManagers
 
             var client = await GetClient();
             filePath = GetPath(filePath);
-            var item = await client.Drive.Root.ItemWithPath(filePath).Request().GetAsync();
+            var item = await client.Drives[_driveId].Root.ItemWithPath(filePath).GetAsync();
             if (item.File == null)
                 throw new FileNotFoundException($"File {filePath} not found", filePath);
 
@@ -341,11 +345,11 @@ namespace MpbkpuLib.FileManagers
                 Id = item.Id,
                 ParentReference = new ItemReference
                 {
-                    Id = item.ParentReference.Id
+                    Id = item.ParentReference?.Id
                 },
                 Name = newName
             };
-            await client.Drive.Root.ItemWithPath(filePath).Request().UpdateAsync(updateItem);
+            await client.Drives[_driveId].Root.ItemWithPath(filePath).PatchAsync(updateItem);
         }
 
         public async Task<bool> CloseFile(Stream stream)
@@ -409,7 +413,9 @@ namespace MpbkpuLib.FileManagers
                 }
 
                 // Create client
-                _client = new GraphServiceClient(new AuthenticationProvider(result.AccessToken));
+                _client = new GraphServiceClient(new BaseBearerTokenAuthenticationProvider(new TokenProvider(result.AccessToken)));
+                var drive = await _client.Me.Drive.GetAsync();
+                _driveId = drive?.Id ?? throw new Exception("OneDrive drive not found");
             }
 
             return _client;

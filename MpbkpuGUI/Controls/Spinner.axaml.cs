@@ -1,12 +1,13 @@
 ﻿using System;
 using Avalonia;
+using Avalonia.Reactive;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using MpbkpuGUI.Controls.Models;
 
 namespace MpbkpuGUI.Controls;
 
-public class Spinner : UserControl
+public partial class Spinner : UserControl
 {
     public static readonly DirectProperty<Spinner, string?> MessageProperty =
         AvaloniaProperty.RegisterDirect<Spinner, string?>(
@@ -38,14 +39,14 @@ public class Spinner : UserControl
     {
         AvaloniaXamlLoader.Load(this);
         var iv = this.GetObservable(UserControl.IsVisibleProperty);
-        iv.Subscribe(value =>
+        iv.Subscribe(new AnonymousObserver<bool>(value =>
         {
             var stack = this.FindControl<StackPanel>("WaitSpinner");
             if (value)
                 stack.Classes.Add("spinner");
             else
                 stack.Classes.Remove("spinner");
-        });
+        }));
     }
 
 

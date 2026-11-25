@@ -63,7 +63,7 @@ namespace MpbkpuGUI
         public static void UpdateLayout()
         {
             if (Current is App app && app.MainWindow != null) {
-                app.MainWindow.LayoutManager.ExecuteLayoutPass();
+                app.MainWindow.UpdateLayout();
             }
         }
 

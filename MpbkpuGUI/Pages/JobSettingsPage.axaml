@@ -3,7 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:models="clr-namespace:MpbkpuGUI.Models"
-             xmlns:i="clr-namespace:Projektanker.Icons.Avalonia;assembly=Projektanker.Icons.Avalonia"
+             xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              xmlns:i18n="clr-namespace:MpbkpuGUI.Localizer"
              xmlns:controls="clr-namespace:MpbkpuGUI.Controls"
              xmlns:converters="clr-namespace:MpbkpuGUI.Converters"
@@ -32,6 +32,12 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
 
+                    <RowDefinition Height="Auto" />
+
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
 
                     <RowDefinition Height="Auto" />
@@ -119,6 +125,20 @@
                 <NumericUpDown Grid.Row="12" Value="{Binding Job.RetryOnError, Mode=TwoWay}"
                                Minimum="1"
                                Maximum="255"/>
+
+                <Label Grid.Row="13" Content="{i18n:Localize FullBackupEveryDays}" Margin="0,5,0,0"
+                       IsVisible="{Binding Job, Converter={StaticResource IsBackupJobConverter}}"/>
+                <NumericUpDown Grid.Row="14" Value="{Binding Job.FullBackupEveryDays, Mode=TwoWay}"
+                               IsVisible="{Binding Job, Converter={StaticResource IsBackupJobConverter}}"
+                               Minimum="0"
+                               Maximum="3650"/>
+
+                <Label Grid.Row="15" Content="{i18n:Localize KeepChains}" Margin="0,5,0,0"
+                       IsVisible="{Binding Job, Converter={StaticResource IsBackupJobConverter}}"/>
+                <NumericUpDown Grid.Row="16" Value="{Binding Job.KeepChains, Mode=TwoWay}"
+                               IsVisible="{Binding Job, Converter={StaticResource IsBackupJobConverter}}"
+                               Minimum="0"
+                               Maximum="1000"/>
             </Grid>
         </ScrollViewer>
 

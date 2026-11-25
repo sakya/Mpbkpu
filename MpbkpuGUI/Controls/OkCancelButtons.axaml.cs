@@ -6,7 +6,7 @@ using Avalonia.Markup.Xaml;
 
 namespace MpbkpuGUI.Controls
 {
-    public class OkCancelButtons : UserControl
+    public partial class OkCancelButtons : UserControl
     {
         private string? _okText;
         private bool _okEnabled;

@@ -4,11 +4,12 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using MpbkpuGUI.Abstracts;
 using MpbkpuGUI.Models;
-using Projektanker.Icons.Avalonia;
+using Material.Icons;
+using Material.Icons.Avalonia;
 
 namespace MpbkpuGUI.Controls;
 
-public class JobListItem : UserControl
+public partial class JobListItem : UserControl
 {
     public static readonly DirectProperty<JobListItem, Job?> ItemProperty =
         AvaloniaProperty.RegisterDirect<JobListItem, Job?>(
@@ -39,11 +40,11 @@ public class JobListItem : UserControl
             if (SetAndRaise(ItemProperty, ref _item, value)) {
                 DataContext = _item;
 
-                var icon = this.FindControl<Icon>("Icon");
+                var icon = this.FindControl<MaterialIcon>("Icon");
                 if (_item is BackupJob) {
-                    icon.Value = "fas fa-archive";
+                    icon.Kind = MaterialIconKind.Archive;
                 } else {
-                    icon.Value = "fas fa-sync";
+                    icon.Kind = MaterialIconKind.Sync;
                 }
             }
         }

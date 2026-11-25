@@ -6,10 +6,11 @@ using Avalonia.Markup.Xaml;
 using MpbkpuGUI.Abstracts;
 using MpbkpuGUI.Controls.Models;
 using MpbkpuGUI.Interfaces;
+using Avalonia.Platform.Storage;
 
 namespace MpbkpuGUI.Controls;
 
-public class PositionDetail : UserControl, IValidate
+public partial class PositionDetail : UserControl, IValidate
 {
     private readonly PositionDetailModel _model = new();
 
@@ -52,7 +53,7 @@ public class PositionDetail : UserControl, IValidate
         AvaloniaXamlLoader.Load(this);
 
         var cmbType = this.FindControl<ComboBox>("CmbType");
-        cmbType.Items = new List<Job.Position.FileSystemTypes>()
+        cmbType.ItemsSource = new List<Job.Position.FileSystemTypes>()
         {
             Job.Position.FileSystemTypes.FileSystem,
             Job.Position.FileSystemTypes.DropBox,
@@ -77,8 +78,8 @@ public class PositionDetail : UserControl, IValidate
 
     private async void OnBrowseClick(object? sender, RoutedEventArgs e)
     {
-        var dlg = new OpenFolderDialog();
-        var dir = await dlg.ShowAsync(((App)Application.Current!).MainWindow!);
+        var folders = await ((App)Application.Current!).MainWindow!.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions());
+        var dir = folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
         if (!string.IsNullOrEmpty(dir)) {
             _model.Path = dir;
         }

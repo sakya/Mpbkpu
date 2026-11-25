@@ -32,6 +32,10 @@ public abstract class BaseJob : IDisposable
     private readonly StreamWriter? _logWriter;
     protected IFileManager? BackupFm;
     protected string? BackupPath;
+    /// <summary>
+    /// Relative paths of the directories that could not be read by <see cref="ReadPathContent"/>
+    /// </summary>
+    protected readonly List<string> UnreadableDirectories = new();
     #endregion
 
     #region delegates
@@ -87,33 +91,41 @@ public abstract class BaseJob : IDisposable
         var info = await sourceFm.GetFileInfo(openRes.TempFilePath);
         progressAction?.Invoke(0, info.Size);
 
-        // Backup existing database
-        if (await BackupFm.FileExists(openRes.BackupFilePath)) {
-            var parent = BackupFm is BaseLocalFileSystem ?
-                Path.GetDirectoryName(openRes.BackupFilePath) :
-                Files.GetParent(BackupFm.PathSeparator, openRes.BackupFilePath!, out _, BackupFm.GetScheme());
-            var backupDbPath = Files.CombinePath(BackupFm.PathSeparator, parent!, BackupFile.DatabaseBackupFileName);
-            if (await BackupFm.FileExists(backupDbPath)) {
-                await BackupFm.DeleteFile(backupDbPath);
+        var parent = BackupFm is BaseLocalFileSystem ?
+            Path.GetDirectoryName(openRes.BackupFilePath) :
+            Files.GetParent(BackupFm.PathSeparator, openRes.BackupFilePath!, out _, BackupFm.GetScheme());
+        var dbPath = Files.CombinePath(BackupFm.PathSeparator, parent!, BackupFile.DefaultDatabaseFileName);
+        var backupDbPath = Files.CombinePath(BackupFm.PathSeparator, parent!, BackupFile.DatabaseBackupFileName);
+        var tempDbPath = Files.CombinePath(BackupFm.PathSeparator, parent!, BackupFile.DatabaseTempFileName);
+
+        // Write the new database to a temporary file: the current database is untouched until the copy is complete
+        if (await BackupFm.FileExists(tempDbPath))
+            await BackupFm.DeleteFile(tempDbPath);
+        await using (var sourceStream = await sourceFm.OpenFile(openRes.TempFilePath)) {
+            var destFileSize = Files.GetDestinationFileSize(sourceStream.Length, BackupFm.SupportCompression ? CompressionLevel.SmallestSize : CompressionLevel.NoCompression,
+                !string.IsNullOrEmpty(password));
+            await using var destStream = await BackupFm.OpenFile(tempDbPath, true, destFileSize);
+
+            var action = new Action<long>((copied) =>
+            {
+                progressAction?.Invoke(copied, info.Size);
+            });
+            if (string.IsNullOrEmpty(password))
+                await Files.Copy(sourceStream, destStream, action);
+            else {
+                var encrypt = new EncryptDecrypt(password);
+                await encrypt.Encrypt(sourceStream, destStream, BackupFm.SupportCompression ? CompressionLevel.SmallestSize : CompressionLevel.NoCompression, action);
             }
-            await BackupFm.RenameFile(openRes.BackupFilePath, BackupFile.DatabaseBackupFileName);
         }
 
-        await using var sourceStream = await sourceFm.OpenFile(openRes.TempFilePath);
-        var destFileSize = Files.GetDestinationFileSize(sourceStream.Length, BackupFm.SupportCompression ? CompressionLevel.SmallestSize : CompressionLevel.NoCompression,
-            !string.IsNullOrEmpty(password));
-        await using var destStream = await BackupFm.OpenFile(openRes.BackupFilePath, true, destFileSize);
-
-        var action = new Action<long>((copied) =>
-        {
-            progressAction?.Invoke(copied, info.Size);
-        });
-        if (string.IsNullOrEmpty(password))
-            await Files.Copy(sourceStream, destStream, action);
-        else {
-            var encrypt = new EncryptDecrypt(password);
-            await encrypt.Encrypt(sourceStream, destStream, BackupFm.SupportCompression ? CompressionLevel.SmallestSize : CompressionLevel.NoCompression, action);
+        // Keep the current database as backup, then move the new one in place.
+        // If interrupted between the two renames the database is missing and OpenBackupFile falls back to the backup copy.
+        if (await BackupFm.FileExists(dbPath)) {
+            if (await BackupFm.FileExists(backupDbPath))
+                await BackupFm.DeleteFile(backupDbPath);
+            await BackupFm.RenameFile(dbPath, BackupFile.DatabaseBackupFileName);
         }
+        await BackupFm.RenameFile(tempDbPath, BackupFile.DefaultDatabaseFileName);
     }
 
     /// <summary>
@@ -166,6 +178,9 @@ public abstract class BaseJob : IDisposable
         File.FileActions defaultAction,
         CancellationToken? token)
     {
+        // Local file systems return absolute paths: the root must be absolute too to compute relative paths
+        if (fileManager is BaseLocalFileSystem && !string.IsNullOrEmpty(rootPath))
+            rootPath = Path.GetFullPath(rootPath);
         return ReadPathContent(bkpFile, fileManager, rootPath, rootPath, includeHiddenFiles, defaultAction, token);
     }
 
@@ -277,10 +292,57 @@ public abstract class BaseJob : IDisposable
             file.RootPath = rootPath;
             file.RelativePath = file.FullPath?.Substring(file.RootPath.Length);
             bkpFile.Files.Add(file);
-            if (file.Type == File.FileTyes.Directory)
-                await ReadPathContent(bkpFile, fileManager, rootPath, file.FullPath, includeHiddenFiles, defaultAction, token);
+            if (file.Type == File.FileTyes.Directory) {
+                try {
+                    await ReadPathContent(bkpFile, fileManager, rootPath, file.FullPath, includeHiddenFiles, defaultAction, token);
+                } catch (Exception ex) when (ex is UnauthorizedAccessException or DirectoryNotFoundException) {
+                    // A single unreadable directory must not abort the whole job
+                    LogWarning($"Cannot read directory {file.FullPath}: {ex.Message}");
+                    UnreadableDirectories.Add(file.RelativePath!);
+                }
+            }
         }
         return true;
+    }
+
+    /// <summary>
+    /// Check if a relative path is inside a directory that could not be read
+    /// </summary>
+    protected bool IsInUnreadableDirectory(string? relativePath, char pathSeparator)
+    {
+        return relativePath != null &&
+               UnreadableDirectories.Any(d => relativePath.StartsWith($"{d}{pathSeparator}", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// Delete a directory and its content (not all the file managers delete non empty directories)
+    /// </summary>
+    protected static async Task DeleteDirectoryRecursive(IFileManager fm, string path)
+    {
+        var children = new List<File>();
+        await foreach (var child in fm.GetDirectoryContent(path)) {
+            children.Add(child);
+        }
+        foreach (var child in children) {
+            if (child.Type == File.FileTyes.Directory)
+                await DeleteDirectoryRecursive(fm, child.FullPath!);
+            else
+                await fm.DeleteFile(child.FullPath);
+        }
+        await fm.DeleteDirectory(path);
+    }
+
+    /// <summary>
+    /// Delete a file if it exists, logging a warning on failure
+    /// </summary>
+    protected async Task TryDeleteFile(IFileManager fm, string path)
+    {
+        try {
+            if (await fm.FileExists(path))
+                await fm.DeleteFile(path);
+        } catch (Exception ex) {
+            LogWarning($"Cannot delete {path}: {ex.Message}");
+        }
     }
 
     protected TimeSpan GetEta(DateTime? started, long done, long total)

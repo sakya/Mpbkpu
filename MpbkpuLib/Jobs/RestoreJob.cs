@@ -42,6 +42,7 @@ public class RestoreJob : BaseJob
     #endregion
 
     #region private members
+    private const string TempFileSuffix = ".mpbkpu-tmp";
     private CancellationToken? _cancellationToken;
     private ProgressData? _progressData;
     private IFileManager? _destinationFm;
@@ -116,11 +117,12 @@ public class RestoreJob : BaseJob
         LogInfo("Opening database");
         Step?.Invoke(this, Steps.OpenDatabase);
         await CheckDestination();
+        bool success;
         using (var openRes = await BackupFile.OpenBackupFile(BackupFm, BackupPath, Settings.EncryptPassword, progressAction: OnOpenBackup, token: _cancellationToken)) {
             var backupFile = openRes.BackupFile;
             await backupFile.EmptyFiles();
             try {
-                await RunPrimitive(backupFile);
+                success = await RunPrimitive(backupFile);
             } catch (Exception ex) {
                 LogError(ex);
                 throw;
@@ -129,7 +131,7 @@ public class RestoreJob : BaseJob
 
         return new RestoreJobResult()
         {
-            Success = true,
+            Success = success,
             Started = started,
             Bytes = _progressData?.RestoreTotalBytes,
             Completed = DateTime.UtcNow
@@ -162,7 +164,7 @@ public class RestoreJob : BaseJob
             LogError($"Backup with GUID {Settings.BackupGuid} not found");
             return false;
         }
-        if (bkp.Result != Backup.Results.Completed) {
+        if (bkp.Result is not (Backup.Results.Completed or Backup.Results.CompletedWithWarnings)) {
             LogError($"Cannot restore a backup with {bkp.Result} result");
             return false;
         }
@@ -252,7 +254,7 @@ public class RestoreJob : BaseJob
         };
         if (cArgs.FilesToRestore == 0 && cArgs.FilesToDelete == 0) {
             LogInfo("No files to restore");
-            return false;
+            return true;
         }
 
         if (ConfirmRestore != null) {
@@ -281,7 +283,7 @@ public class RestoreJob : BaseJob
             LogInfo("Deleting files");
             Step?.Invoke(this, Steps.DeleteFiles);
             var filesToDelete = backupFile.Files.AsNoTracking()
-                .Where(f => f.FileAction == File.FileActions.Restore)
+                .Where(f => f.FileAction == File.FileActions.Delete)
                 .OrderBy(f => f.RelativePath)
                 .ThenBy(f => f.Type);
             foreach (var fileToDelete in filesToDelete) {
@@ -362,6 +364,8 @@ public class RestoreJob : BaseJob
             throw new ArgumentNullException(nameof(Settings.BackupGuid), "Backup GUID cannot be empty");
         if (string.IsNullOrEmpty(Settings.Destination))
             throw new ArgumentNullException(nameof(Settings.BackupPath), "Destination path cannot be empty");
+        if (Settings.RetryOnError <= 0)
+            throw new ArgumentException("RetryOnError must be greater than zero");
     }
 
     /// <summary>
@@ -401,31 +405,43 @@ public class RestoreJob : BaseJob
                 break;
             case File.FileTyes.File:
                 DateTime? lastFileProgress = null;
-                using (var backupStream = await BackupFm.OpenFile(GetBackupItemPath(BackupFm, BackupPath, fileToRestore.BackupItem))) {
-                    using (var destStream = await _destinationFm.OpenFile(destFilePath, true)) {
-                        var progressAction = new Action<long>((copied) =>
-                        {
-                            if (lastFileProgress == null || copied == fileToRestore.Size ||
-                                (DateTime.UtcNow - lastFileProgress.Value).TotalMilliseconds >= 500) {
-                                FileProgress?.Invoke(this, fileToRestore.RelativePath!, copied, fileToRestore.Size);
-                                RestoreProgress?.Invoke(this, new ProgressHandlerArgs(_progressData!.RestoreFileIndex, _progressData.RestoreTotalFiles, _progressData.RestoreBytes + copied, _progressData.RestoreTotalBytes, TimeSpan.Zero));
-                                lastFileProgress = DateTime.UtcNow;
-                            }
-                        });
+                // Write to a temporary file: the existing file is replaced only after the hash has been verified
+                var tempFilePath = $"{destFilePath}{TempFileSuffix}";
+                try {
+                    using (var backupStream = await BackupFm.OpenFile(GetBackupItemPath(BackupFm, BackupPath, fileToRestore.BackupItem))) {
+                        using (var destStream = await _destinationFm.OpenFile(tempFilePath, true)) {
+                            var progressAction = new Action<long>((copied) =>
+                            {
+                                if (lastFileProgress == null || copied == fileToRestore.Size ||
+                                    (DateTime.UtcNow - lastFileProgress.Value).TotalMilliseconds >= 500) {
+                                    FileProgress?.Invoke(this, fileToRestore.RelativePath!, copied, fileToRestore.Size);
+                                    RestoreProgress?.Invoke(this, new ProgressHandlerArgs(_progressData!.RestoreFileIndex, _progressData.RestoreTotalFiles, _progressData.RestoreBytes + copied, _progressData.RestoreTotalBytes, TimeSpan.Zero));
+                                    lastFileProgress = DateTime.UtcNow;
+                                }
+                            });
 
-                        string? hash;
-                        if (encryptor != null)
-                            hash = await encryptor.Decrypt(backupStream, destStream, backupSettings.CompressionLevel != CompressionLevel.NoCompression,
-                                progressAction, _cancellationToken);
-                        else if (backupSettings.CompressionLevel != CompressionLevel.NoCompression)
-                            hash = await RestoreFileFromSourceDecompress(backupStream, destStream, progressAction);
-                        else
-                            hash = await RestoreFileFromSourceCopy(backupStream, destStream, progressAction);
+                            string? hash;
+                            if (encryptor != null)
+                                hash = await encryptor.Decrypt(backupStream, destStream, backupSettings.CompressionLevel != CompressionLevel.NoCompression,
+                                    progressAction, _cancellationToken);
+                            else if (backupSettings.CompressionLevel != CompressionLevel.NoCompression)
+                                hash = await RestoreFileFromSourceDecompress(backupStream, destStream, progressAction);
+                            else
+                                hash = await RestoreFileFromSourceCopy(backupStream, destStream, progressAction);
 
-                        if (hash != fileToRestore.BackupItem!.OriginalSha256)
-                            throw new Exception($"Hash mismatch for file {fileToRestore.BackupItem.OriginalRelativePath}");
+                            if (hash != fileToRestore.BackupItem!.OriginalSha256)
+                                throw new Exception($"Hash mismatch for file {fileToRestore.BackupItem.OriginalRelativePath}");
+                        }
                     }
+                } catch {
+                    if (await _destinationFm.FileExists(tempFilePath))
+                        await _destinationFm.DeleteFile(tempFilePath);
+                    throw;
                 }
+
+                if (await _destinationFm.FileExists(destFilePath))
+                    await _destinationFm.DeleteFile(destFilePath);
+                await _destinationFm.RenameFile(tempFilePath, fileToRestore.Name);
 
                 // Restore last modified date (only on local file system)
                 if (_destinationFm is BaseLocalFileSystem && fileToRestore.BackupItem.OriginalLastModified.HasValue) {
@@ -439,13 +455,13 @@ public class RestoreJob : BaseJob
     {
         using (var hasher = SHA256.Create()) {
             using (CryptoStream hashStream = new CryptoStream(destStream, hasher, CryptoStreamMode.Write, true)) {
-                using (var compressorStream = new GZipStream(hashStream, CompressionMode.Decompress, true)) {
+                using (var decompressorStream = new GZipStream(sourceStream, CompressionMode.Decompress, true)) {
                     long copied = 0;
                     int read;
                     byte[] buffer = new byte[32768];
-                    while ((read = await sourceStream.ReadAsync(buffer, 0, buffer.Length)) > 0) {
+                    while ((read = await decompressorStream.ReadAsync(buffer, 0, buffer.Length)) > 0) {
                         _cancellationToken?.ThrowIfCancellationRequested();
-                        await compressorStream.WriteAsync(buffer, 0, read);
+                        await hashStream.WriteAsync(buffer, 0, read);
                         copied += read;
                         progressAction?.Invoke(copied);
                     }

@@ -2,7 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:i="clr-namespace:Projektanker.Icons.Avalonia;assembly=Projektanker.Icons.Avalonia"
+             xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              xmlns:i18n="clr-namespace:MpbkpuGUI.Localizer"
              xmlns:models="clr-namespace:MpbkpuGUI.Controls.Models"
              xmlns:controls="clr-namespace:MpbkpuGUI.Controls"
@@ -65,7 +65,7 @@
                     Click="OnBrowseClick"
                     Padding="15,0,15,0"
                     Height="35">
-                <i:Icon Value="fas fa-folder-open"></i:Icon>
+                <mi:MaterialIcon Kind="FolderOpen"></mi:MaterialIcon>
             </Button>
         </Grid>
 

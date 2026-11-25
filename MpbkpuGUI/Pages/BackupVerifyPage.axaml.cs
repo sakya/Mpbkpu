@@ -16,7 +16,7 @@ using Newtonsoft.Json;
 
 namespace MpbkpuGUI.Pages;
 
-public class BackupVerifyPage : BasePage
+public partial class BackupVerifyPage : BasePage
 {
     private readonly BackupVerifyPageModel _model = new();
     private readonly CancellationTokenSource _cts = new();

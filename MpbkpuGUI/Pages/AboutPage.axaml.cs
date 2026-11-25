@@ -6,7 +6,7 @@ using MpbkpuGUI.Models;
 
 namespace MpbkpuGUI.Pages;
 
-public class AboutPage : BasePage
+public partial class AboutPage : BasePage
 {
     private readonly AboutPageModel _model;
     public AboutPage()

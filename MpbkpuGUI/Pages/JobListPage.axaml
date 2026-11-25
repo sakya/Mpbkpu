@@ -2,7 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:i="clr-namespace:Projektanker.Icons.Avalonia;assembly=Projektanker.Icons.Avalonia"
+             xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              xmlns:i18n="clr-namespace:MpbkpuGUI.Localizer"
              xmlns:controls="clr-namespace:MpbkpuGUI.Controls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
@@ -13,20 +13,20 @@
                 <MenuItem Header="{i18n:Localize _NewBackup}"
                           Click="OnNewBackupClick">
                     <MenuItem.Icon>
-                        <i:Icon FontSize="14" Value="fas fa-archive" />
+                        <mi:MaterialIcon Width="14" Height="14" Kind="Archive" />
                     </MenuItem.Icon>
                 </MenuItem>
                 <MenuItem Header="{i18n:Localize _NewSync}"
                           Click="OnNewSyncClick">
                     <MenuItem.Icon>
-                        <i:Icon FontSize="14" Value="fas fa-sync" />
+                        <mi:MaterialIcon Width="14" Height="14" Kind="Sync" />
                     </MenuItem.Icon>
                 </MenuItem>
                 <Separator />
                 <MenuItem Header="{i18n:Localize _Exit}"
                           Click="OnExitClick">
                     <MenuItem.Icon>
-                        <i:Icon FontSize="14" Value="fas fa-sign-out-alt" />
+                        <mi:MaterialIcon Width="14" Height="14" Kind="ExitToApp" />
                     </MenuItem.Icon>
                 </MenuItem>
             </MenuItem>
@@ -34,7 +34,7 @@
                 <MenuItem Header="{i18n:Localize _About}" InputGesture="F1"
                           Click="OnAboutClick">
                     <MenuItem.Icon>
-                        <i:Icon FontSize="14" Value="far fa-question-circle" />
+                        <mi:MaterialIcon Width="14" Height="14" Kind="HelpCircleOutline" />
                     </MenuItem.Icon>
                 </MenuItem>
             </MenuItem>

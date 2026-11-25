@@ -17,6 +17,7 @@ public class BackupFile : IDisposable
 {
     public const string DefaultDatabaseFileName = "mpbkpu.db";
     public const string DatabaseBackupFileName = "mpbkpu.db.bak";
+    public const string DatabaseTempFileName = "mpbkpu.db.tmp";
 
     #region classes
     public class OpenResult : IDisposable
@@ -138,7 +139,7 @@ public class BackupFile : IDisposable
             await using (var sourceStream = await backupFm.OpenFile(backupDbPath)) {
                 var header = new byte[EncryptDecrypt.HeaderSize];
                 var read = await sourceStream.ReadAsync(header);
-                encrypted = read == header.Length && Encoding.ASCII.GetString(header) == EncryptDecrypt.Header;
+                encrypted = read == header.Length && EncryptDecrypt.IsEncryptedHeader(Encoding.ASCII.GetString(header));
                 switch (encrypted) {
                     case true when string.IsNullOrEmpty(password):
                         throw new Exception("This backup is encrypted");
@@ -154,14 +155,22 @@ public class BackupFile : IDisposable
                 });
                 // Copy database to temp file
                 tempDbPath = TempFile.GetTempFileName();
-                using var tempFm = FileManagerFactory.GetFileManager(tempDbPath, out _);
-                await using var sourceStream = await backupFm.OpenFile(backupDbPath);
-                await using var tempStream = await tempFm.OpenFile(tempDbPath, true);
-                if (string.IsNullOrEmpty(password))
-                    await Utility.Files.Copy(sourceStream, tempStream, action, token);
-                else {
-                    var decrypt = new EncryptDecrypt(password);
-                    await decrypt.Decrypt(sourceStream, tempStream, backupFm.SupportCompression, action, token);
+                try {
+                    using var tempFm = FileManagerFactory.GetFileManager(tempDbPath, out _);
+                    await using var sourceStream = await backupFm.OpenFile(backupDbPath);
+                    await using var tempStream = await tempFm.OpenFile(tempDbPath, true);
+                    if (string.IsNullOrEmpty(password))
+                        await Utility.Files.Copy(sourceStream, tempStream, action, token);
+                    else {
+                        var decrypt = new EncryptDecrypt(password);
+                        await decrypt.Decrypt(sourceStream, tempStream, backupFm.SupportCompression, action, token);
+                    }
+                } catch (System.Security.Cryptography.CryptographicException) {
+                    System.IO.File.Delete(tempDbPath);
+                    throw new Exception("Failed to open the database (wrong password or corrupted file)");
+                } catch {
+                    System.IO.File.Delete(tempDbPath);
+                    throw;
                 }
             }
         } else {
@@ -228,10 +237,11 @@ public class BackupFile : IDisposable
         _context!.Entry(entity).State = EntityState.Detached;
     }
 
-    public async Task<Backup?> LastBackup()
+    public async Task<Backup?> LastBackup(Backup.BackupTypes? type = null)
     {
         EnsureDbOpen();
         return await _context!.Backups.AsNoTracking()
+            .Where(b => type == null || b.Type == type)
             .OrderByDescending(b => b.Id)
             .FirstOrDefaultAsync();
     }
@@ -335,7 +345,10 @@ public class BackupFile : IDisposable
                 .Where(i => i.BackupId == fullBkp.Id);
             if (fileType.HasValue)
                 items = items.Where(i => i.Type == fileType);
+            // Paths already resolved to their last state: a path can be added more times (e.g. deleted and created again)
+            var resolvedPaths = new HashSet<string?>();
             foreach (var item in items) {
+                resolvedPaths.Add(item.OriginalRelativePath);
                 // Read the same item from subsequents incremental backups
                 var itemLastBackup = await _context!.BackupItems
                     .Include(i => i.Backup)
@@ -365,6 +378,8 @@ public class BackupFile : IDisposable
             if (fileType.HasValue)
                 addedItems = addedItems.Where(i => i.Type == fileType);
             foreach (var item in addedItems) {
+                if (!resolvedPaths.Add(item.OriginalRelativePath))
+                    continue;
                 // Read the same item from subsequents incremental backups
                 var itemLastBackup = await _context!.BackupItems
                     .Include(i => i.Backup)
@@ -413,6 +428,21 @@ public class BackupFile : IDisposable
                 } else {
                     yield return item;
                 }
+            }
+
+            // Items added in the differential backup (not present in the full backup)
+            var addedItems = _context.BackupItems
+                .Include(i => i.Backup)
+                .Include(i => i.Volume)
+                .AsNoTracking()
+                .OrderBy(i => i.OriginalRelativePath)
+                .ThenByDescending(i => i.Type)
+                .Where(i => i.BackupId == backupId && i.Action == BackupItem.Actions.Added &&
+                            !_context.BackupItems.Any(f => f.BackupId == fullBkp.Id && f.OriginalRelativePath == i.OriginalRelativePath));
+            if (fileType.HasValue)
+                addedItems = addedItems.Where(i => i.Type == fileType);
+            foreach (var item in addedItems) {
+                yield return item;
             }
         }
     }

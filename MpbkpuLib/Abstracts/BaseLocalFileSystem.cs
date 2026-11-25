@@ -93,6 +93,9 @@ namespace MpbkpuLib.Abstracts
             foreach (var sdi in await Task.Run( () => di.GetDirectories())) {
                 if (sdi.Name == ".." || sdi.Name == ".")
                     continue;
+                // Don't follow junctions and symbolic links to directories: they can create loops
+                if (sdi.Attributes.HasFlag(FileAttributes.ReparsePoint))
+                    continue;
 
                 var fInfo = new DataModel.File()
                 {
@@ -100,8 +103,8 @@ namespace MpbkpuLib.Abstracts
                     Name = sdi.Name,
                     Type = DataModel.File.FileTyes.Directory,
 
-                    Created = di.CreationTime,
-                    LastModified = di.LastWriteTime,
+                    Created = sdi.CreationTime,
+                    LastModified = sdi.LastWriteTime,
                     Hidden = IsFileHidden(sdi)
                 };
 
@@ -142,7 +145,8 @@ namespace MpbkpuLib.Abstracts
                 throw new ArgumentNullException(filePath);
             Stream? res;
             if (!write)
-                res = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                // Allow reading files open for writing by other processes: changes during the copy are detected by the jobs
+                res = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
             else
                 res = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
             return Task.FromResult(new FileSystemStream(this, res));

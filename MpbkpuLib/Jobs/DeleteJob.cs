@@ -15,9 +15,23 @@ public class DeleteJob : BaseJob
         CopyDatabase
     }
 
+    #region classes
+    private class DeletedBackup
+    {
+        public DeletedBackup(string guid)
+        {
+            Guid = guid;
+        }
+
+        public string Guid { get; }
+        public List<(string Path, long Size)> Files { get; } = new();
+    }
+    #endregion
+
     #region private members
     private CancellationToken? _cancellationToken;
     private bool _skipDatabaseCopy;
+    private readonly List<DeletedBackup> _deletedBackups = new();
     #endregion
 
     #region delegates
@@ -97,12 +111,17 @@ public class DeleteJob : BaseJob
         Step?.Invoke(this, Steps.OpenDatabase);
         using (var openRes = await BackupFile.OpenBackupFile(BackupFm, BackupPath, Settings.EncryptPassword, progressAction: OnOpenBackup, token: _cancellationToken)) {
             var backupFile = openRes.BackupFile;
-            await backupFile.EmptyFiles();
-            var transaction = backupFile.BeginTransaction();
-
             try {
-                await RunPrimitive(backupFile);
-                await transaction.CommitAsync();
+                await backupFile.EmptyFiles();
+                await using (var transaction = backupFile.BeginTransaction()) {
+                    try {
+                        await RunPrimitive(backupFile);
+                        await transaction.CommitAsync();
+                    } catch {
+                        await transaction.RollbackAsync();
+                        throw;
+                    }
+                }
 
                 await backupFile.Vacuum();
                 backupFile.Close();
@@ -113,12 +132,15 @@ public class DeleteJob : BaseJob
                     Step?.Invoke(this, Steps.CopyDatabase);
                     await CopyDatabaseToDestination(openRes, Settings.EncryptPassword, OnCopyBackup);
                 }
+
+                // Delete the files only now that the database no longer references them:
+                // a failure from here on leaves orphan files, never backups with missing files
+                foreach (var deleted in _deletedBackups) {
+                    await DeleteBackupFiles(deleted);
+                }
             } catch (Exception ex) {
                 LogError(ex);
-                await transaction.RollbackAsync();
                 throw;
-            } finally {
-                transaction.Dispose();
             }
         }
 
@@ -202,6 +224,9 @@ public class DeleteJob : BaseJob
         }
     }
 
+    /// <summary>
+    /// Delete a backup from the database, saving the list of its files to delete them after the commit
+    /// </summary>
     private async Task DeleteBackup(BackupFile backupFile, int backupId)
     {
         if (BackupFm == null)
@@ -213,43 +238,54 @@ public class DeleteJob : BaseJob
         if (bkp == null)
             throw new Exception($"Backup with Id { backupId } not found");
 
-        Delete?.Invoke(this, bkp.Guid);
-        var bkpPath = BackupFm.CombinePath(BackupPath!, bkp.Guid);
-        if (await BackupFm.DirectoryExists(bkpPath)) {
-            // Delete files
-            var items = backupFile.BackupItems
-                .Include(i => i.Volume)
-                .Include(i => i.Backup)
-                .AsNoTracking()
-                .Where(i => i.BackupId == backupId);
-
-            var started = DateTime.UtcNow;
-            var totalFiles = await items.CountAsync();
-            var totalSize = await items.Select(i => i.Size)
-                .SumAsync();
-            var fileIdx = 0;
-            long bytes = 0;
-            foreach (var item in items) {
-                if (_cancellationToken?.IsCancellationRequested == true) {
-                    LogInfo("Cancelled by user");
-                    return;
-                }
-
-                var filePath = GetBackupItemPath(BackupFm, BackupPath, item);
-                if (!await BackupFm.FileExists(filePath))
-                    LogWarning($"File {filePath} not found");
-                else
-                    await BackupFm.DeleteFile(GetBackupItemPath(BackupFm, BackupPath, item));
-                fileIdx++;
-                bytes += item.Size;
-                Progress?.Invoke(this,
-                    new ProgressHandlerArgs(fileIdx, totalFiles, bytes, totalSize, GetEta(started, bytes, totalSize)));
-            }
-            // Delete backup directory
-            await BackupFm.DeleteDirectory(bkpPath);
+        var deleted = new DeletedBackup(bkp.Guid!);
+        var items = backupFile.BackupItems
+            .Include(i => i.Volume)
+            .Include(i => i.Backup)
+            .AsNoTracking()
+            .Where(i => i.BackupId == backupId);
+        foreach (var item in items) {
+            deleted.Files.Add((GetBackupItemPath(BackupFm, BackupPath, item), item.Size));
         }
-        // Delete data
+
         await backupFile.DeleteBackup(backupId);
+        _deletedBackups.Add(deleted);
+    }
+
+    /// <summary>
+    /// Delete the files of a backup already removed from the database
+    /// </summary>
+    private async Task DeleteBackupFiles(DeletedBackup deleted)
+    {
+        if (BackupFm == null)
+            throw new Exception("Backup file manager not initialized");
+
+        Delete?.Invoke(this, deleted.Guid);
+        var bkpPath = BackupFm.CombinePath(BackupPath!, deleted.Guid);
+        if (!await BackupFm.DirectoryExists(bkpPath))
+            return;
+
+        var started = DateTime.UtcNow;
+        var totalSize = deleted.Files.Sum(f => f.Size);
+        var fileIdx = 0;
+        long bytes = 0;
+        foreach (var (filePath, size) in deleted.Files) {
+            if (_cancellationToken?.IsCancellationRequested == true) {
+                LogWarning($"Cancelled by user: the remaining files in {bkpPath} have not been deleted");
+                return;
+            }
+
+            if (!await BackupFm.FileExists(filePath))
+                LogWarning($"File {filePath} not found");
+            else
+                await BackupFm.DeleteFile(filePath);
+            fileIdx++;
+            bytes += size;
+            Progress?.Invoke(this,
+                new ProgressHandlerArgs(fileIdx, deleted.Files.Count, bytes, totalSize, GetEta(started, bytes, totalSize)));
+        }
+        // Delete backup directory
+        await DeleteDirectoryRecursive(BackupFm, bkpPath);
     }
 
     /// <summary>

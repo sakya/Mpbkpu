@@ -52,7 +52,7 @@ public class RestoreJobSettings : BaseJobSettings
     /// <summary>
     /// Number of retries on error while restoring a file
     /// </summary>
-    public int RetryOnError { get; set; }
+    public int RetryOnError { get; set; } = 3;
 
     /// <summary>
     /// Skip hash check on existing file in the destination directory

@@ -3,6 +3,7 @@ using System.Globalization;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
 using MpbkpuLib.DataModel;
+using Material.Icons;
 
 namespace MpbkpuGUI.Converters;
 
@@ -14,11 +15,13 @@ public class BackupResultToIconConverter : IValueConverter
         if (result != null) {
             switch (result) {
                 case Backup.Results.Error:
-                    return "fas fa-exclamation-triangle";
+                    return MaterialIconKind.Alert;
                 case Backup.Results.Cancelled:
-                    return "fas fa-exclamation-triangle";
+                    return MaterialIconKind.Alert;
                 case Backup.Results.Completed:
-                    return "fas fa-check-circle";
+                    return MaterialIconKind.CheckCircle;
+                case Backup.Results.CompletedWithWarnings:
+                    return MaterialIconKind.AlertCircle;
             };
         }
 

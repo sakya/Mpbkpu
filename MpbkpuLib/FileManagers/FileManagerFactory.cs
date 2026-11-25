@@ -248,7 +248,8 @@ namespace MpbkpuLib.FileManagers
             // Default to FileSystem
             if (res == null) {
                 var m = Regex.Match(path, "[a-zA-Z]:[\\\\/].*");
-                res = m.Success ? new LocalFileSystemWindows() : new LocalFileSystemLinux();
+                // Paths without a drive letter (relative or UNC) use the file system of the current OS
+                res = m.Success || OperatingSystem.IsWindows() ? new LocalFileSystemWindows() : new LocalFileSystemLinux();
             }
 
             if (oauth2Settings is { IsEmpty: false } && res is not IOAuth2)

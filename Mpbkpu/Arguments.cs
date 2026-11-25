@@ -191,6 +191,18 @@ public class Arguments : IOptions
         DefaultValue = "3")]
     public int? RetryOnError { get; set; }
 
+    [Option("fullEvery",
+        Description = "Start a new chain with a full backup when the last full backup is older than the given number of days (0 = never)",
+        OnlyForVerbs = "Backup",
+        DefaultValue = "0")]
+    public int? FullBackupEveryDays { get; set; }
+
+    [Option("keepChains",
+        Description = "Number of backup chains (a full backup and its incremental or differential backups) to keep, older chains are deleted (0 = keep all)",
+        OnlyForVerbs = "Backup",
+        DefaultValue = "0")]
+    public int? KeepChains { get; set; }
+
     [Option("yes", 'y',
         Description = "Auto reply YES to any question")]
     public bool AlwaysYes { get; set; }

@@ -8,7 +8,7 @@ using MpbkpuGUI.Pages;
 
 namespace MpbkpuGUI.Views
 {
-    public class MainWindow : MainWindowBase
+    public partial class MainWindow : MainWindowBase
     {
         private Controls.TitleBar? _titleBar;
 
@@ -19,7 +19,7 @@ namespace MpbkpuGUI.Views
             if (OperatingSystem.IsWindows()) {
                 this.ExtendClientAreaToDecorationsHint = true;
                 this.ExtendClientAreaTitleBarHeightHint = -1;
-                this.ExtendClientAreaChromeHints = ExtendClientAreaChromeHints.NoChrome;
+                this.WindowDecorations = WindowDecorations.BorderOnly;
             }
             WindowTitle = Title;
 

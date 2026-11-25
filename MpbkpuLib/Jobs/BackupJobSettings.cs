@@ -93,4 +93,15 @@ public class BackupJobSettings : BaseJobSettings
     /// Skip hash check on existing file in the destination directory
     /// </summary>
     public bool SkipHashCheck { get; set; } = false;
+
+    /// <summary>
+    /// Number of days after which an incremental or differential backup starts a new chain with a full backup (0 = never)
+    /// </summary>
+    public int FullBackupEveryDays { get; set; }
+
+    /// <summary>
+    /// Number of chains (a full backup and its incremental or differential backups) to keep (0 = keep all).
+    /// Older chains are deleted after a full backup completes.
+    /// </summary>
+    public int KeepChains { get; set; }
 }

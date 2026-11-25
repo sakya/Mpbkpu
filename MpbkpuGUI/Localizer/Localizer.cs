@@ -17,10 +17,10 @@
 
         public bool LoadLanguage(string language)
         {
-            var assets = AvaloniaLocator.Current.GetService<IAssetLoader>();
+            
             var uri = new Uri($"avares://mpbkpugui/Assets/i18n/{language}.json");
-            if (assets!.Exists(uri)) {
-                using (var sr = new StreamReader(assets.Open(uri), Encoding.UTF8)) {
+            if (AssetLoader.Exists(uri)) {
+                using (var sr = new StreamReader(AssetLoader.Open(uri), Encoding.UTF8)) {
                     _strings = JsonConvert.DeserializeObject<Dictionary<string, string>>(sr.ReadToEnd());
                 }
                 Language = language;

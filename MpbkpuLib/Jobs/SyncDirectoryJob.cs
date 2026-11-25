@@ -138,11 +138,11 @@ public class SyncDirectoryJob : BaseJob
         if (string.IsNullOrEmpty(Settings.Destination))
             throw new ArgumentNullException(nameof(Settings.Destination), "Destination cannot be empty");
 
-        if (Settings.Source == Settings.Destination)
-            throw new ArgumentException("Source and Destination cannot be the same");
-
-        if (Settings.Destination.StartsWith(Settings.Source))
-            throw new ArgumentException("Destination cannot be a subdirectory of Source");
+        if (Utility.Files.IsSameOrSubPath(Settings.Source, Settings.Destination)) {
+            throw new ArgumentException(Utility.Files.IsSameOrSubPath(Settings.Destination, Settings.Source) ?
+                "Source and Destination cannot be the same" :
+                "Destination cannot be a subdirectory of Source");
+        }
 
         if (Settings.RetryOnError <= 0)
             throw new ArgumentException("RetryOnError must be greater than zero");

@@ -6,9 +6,9 @@ using Avalonia.Markup.Xaml;
 
 namespace MpbkpuGUI.Controls;
 
-public class ErrorContainer : UserControl
+public partial class ErrorContainer : UserControl
 {
-    public class ErrorData
+    public partial class ErrorData
     {
         public ErrorData(string fieldName, string message)
         {
@@ -20,8 +20,8 @@ public class ErrorContainer : UserControl
         public string? Message { get; set; }
     }
 
-    public static readonly DirectProperty<ErrorContainer, IControl?> ControlProperty =
-        AvaloniaProperty.RegisterDirect<ErrorContainer, IControl?>(
+    public static readonly DirectProperty<ErrorContainer, Control?> ControlProperty =
+        AvaloniaProperty.RegisterDirect<ErrorContainer, Control?>(
             nameof(Control),
             o => o.Control,
             (o, v) => o.Control = v);
@@ -50,8 +50,8 @@ public class ErrorContainer : UserControl
         InitializeComponent();
     }
 
-    private IControl? _control;
-    public IControl? Control
+    private Control? _control;
+    public Control? Control
     {
         get => _control;
         set

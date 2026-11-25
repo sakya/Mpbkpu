@@ -4,8 +4,6 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using MpbkpuGUI.Models;
-using Projektanker.Icons.Avalonia;
-using Projektanker.Icons.Avalonia.FontAwesome;
 
 namespace MpbkpuGUI
 {
@@ -30,11 +28,8 @@ namespace MpbkpuGUI
         {
             return AppBuilder.Configure<App>()
                 .UsePlatformDetect()
-                .With(new X11PlatformOptions { UseGpu = true })
-                .With(new Win32PlatformOptions { AllowEglInitialization = true })
                 .LogToTrace()
-                .UseSkia()
-                .WithIcons(container => container.Register<FontAwesomeIconProvider>());
+                .UseSkia();
         }
 
         private static void AppMain(Application app, string[] args)

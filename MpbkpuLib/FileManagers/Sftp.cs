@@ -68,7 +68,7 @@ namespace MpbkpuLib.FileManagers
 
             path = GetPath(path);
             var client = GetClient();
-            foreach (var f in await ListDirectoryAsync(client, path)) {
+            await foreach (var f in client.ListDirectoryAsync(path, CancellationToken.None)) {
                 var fInfo = new File()
                 {
                     FullPath = $"{Scheme}{Host}{f.FullName}",
@@ -231,10 +231,6 @@ namespace MpbkpuLib.FileManagers
             return Utility.Files.GetPath(PathSeparator, $"{Scheme}{Host}", path);
         }
 
-        private async Task<IEnumerable<SftpFile>> ListDirectoryAsync(SftpClient client, string path)
-        {
-            return await Task.Factory.FromAsync<IEnumerable<SftpFile>>((callback, obj) => client.BeginListDirectory(path, callback, obj), client.EndListDirectory, null);
-        }
         #endregion
     }
 }

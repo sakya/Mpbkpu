@@ -1,6 +1,8 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="MpbkpuGUI.App">
+             xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             x:Class="MpbkpuGUI.App"
+             RequestedThemeVariant="Dark">
     <Application.Resources>
         <Color x:Key="DebugColor">#bfbfbf</Color>
         <Color x:Key="InfoColor">#5bc0de</Color>
@@ -13,7 +15,13 @@
     </Application.Resources>
 
     <Application.Styles>
-        <FluentTheme Mode="Dark"/>
+        <FluentTheme />
+        <mi:MaterialIconStyles />
+
+        <Style Selector="mi|MaterialIcon">
+            <Setter Property="Width" Value="{StaticResource FontSize}" />
+            <Setter Property="Height" Value="{StaticResource FontSize}" />
+        </Style>
 
         <Style Selector="StackPanel.spinner">
             <Style.Animations>
@@ -78,13 +86,6 @@
         <Style Selector="Button.Small">
             <Setter Property="Padding" Value="14,5,14,5" />
             <Setter Property="MinWidth" Value="70" />
-        </Style>
-
-        <Style Selector="Button.Accent">
-            <Setter Property="Background" Value="{DynamicResource SystemAccentColor}"/>
-        </Style>
-        <Style Selector="Button.Accent:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource HighlightColor}"/>
         </Style>
 
         <Style Selector="GridSplitter">

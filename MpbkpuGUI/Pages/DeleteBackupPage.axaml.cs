@@ -4,7 +4,7 @@ using MpbkpuLib.DataModel;
 
 namespace MpbkpuGUI.Pages;
 
-public class DeleteBackupPage : BasePage
+public partial class DeleteBackupPage : BasePage
 {
     private readonly Backup _backup;
     public DeleteBackupPage()

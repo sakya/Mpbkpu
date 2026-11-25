@@ -10,7 +10,7 @@ using MpbkpuLib.DataModel;
 
 namespace MpbkpuGUI.Pages;
 
-public class JobListPage : BasePage
+public partial class JobListPage : BasePage
 {
     public JobListPage()
     {

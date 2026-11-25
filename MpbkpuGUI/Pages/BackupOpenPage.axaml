@@ -2,7 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:i="clr-namespace:Projektanker.Icons.Avalonia;assembly=Projektanker.Icons.Avalonia"
+             xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              xmlns:controls="clr-namespace:MpbkpuGUI.Controls"
              xmlns:converters="clr-namespace:MpbkpuGUI.Converters"
              xmlns:models="clr-namespace:MpbkpuGUI.Models"
@@ -43,11 +43,11 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
 
-                            <i:Icon Value="{Binding Backup.Result, Converter={StaticResource BackupResultToIconConverter}}"
+                            <mi:MaterialIcon Kind="{Binding Backup.Result, Converter={StaticResource BackupResultToIconConverter}}"
                                     Foreground="{Binding Backup.Result, Converter={StaticResource BackupResultToColorConverter}}"
                                     Grid.RowSpan="2"
                                     VerticalAlignment="Center"
-                                    FontSize="24"
+                                    Width="24" Height="24"
                                     Margin="0,0,15,0"/>
                             <TextBlock Grid.Row="0" Grid.Column="1" Classes="Main" Text="{Binding Backup.StartedAt, Converter={StaticResource DateTimeConverter}, FallbackValue=null}" />
                             <TextBlock Grid.Row="1" Grid.Column="1" Classes="Secondary" Text="{Binding Backup.Type, FallbackValue=null}" />
@@ -57,10 +57,10 @@
                                        VerticalAlignment="Center"/>
                             <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="3" Orientation="Horizontal" Margin="12,0,0,0">
                                 <Button Click="OnOpenClick" ToolTip.Tip="{i18n:Localize BrowseBackup}">
-                                    <i:Icon Value="fas fa-folder-open"></i:Icon>
+                                    <mi:MaterialIcon Kind="FolderOpen"></mi:MaterialIcon>
                                 </Button>
                                 <Button Click="OnVerifyClick" ToolTip.Tip="{i18n:Localize VerifyBackup}">
-                                    <i:Icon Value="fas fa-check-circle"></i:Icon>
+                                    <mi:MaterialIcon Kind="CheckCircle"></mi:MaterialIcon>
                                 </Button>
                                 <Button Click="OnDeleteClick" ToolTip.Tip="{i18n:Localize DeleteBackup}">
                                     <Button.Styles>
@@ -68,7 +68,7 @@
                                             <Setter Property="Background" Value="DarkRed"/>
                                         </Style>
                                     </Button.Styles>
-                                    <i:Icon Value="fas fa-trash"></i:Icon>
+                                    <mi:MaterialIcon Kind="Delete"></mi:MaterialIcon>
                                 </Button>
                             </StackPanel>
                         </Grid>

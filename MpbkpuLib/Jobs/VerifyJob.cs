@@ -121,7 +121,7 @@ public class VerifyJob: BaseJob
             };
         }
 
-        if (bkp.Result != Backup.Results.Completed)
+        if (bkp.Result is not (Backup.Results.Completed or Backup.Results.CompletedWithWarnings))
             LogWarning($"Database result is { bkp.Result }");
 
         var bkpItemsCount = 0;

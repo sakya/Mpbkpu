@@ -16,6 +16,7 @@ public class BackupResultToColorConverter : IValueConverter
             {
                 Backup.Results.Error => App.GetStyleColor("ErrorColor"),
                 Backup.Results.Cancelled => App.GetStyleColor("WarningColor"),
+                Backup.Results.CompletedWithWarnings => App.GetStyleColor("WarningColor"),
                 Backup.Results.Completed => App.GetStyleColor("SuccessColor"),
                 _ => null
             };

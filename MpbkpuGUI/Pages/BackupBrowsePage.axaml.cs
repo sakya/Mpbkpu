@@ -15,7 +15,7 @@ using MpbkpuLib.Interfaces;
 
 namespace MpbkpuGUI.Pages;
 
-public class BackupBrowsePage : BasePage
+public partial class BackupBrowsePage : BasePage
 {
     private readonly BackupBrowseModel _model = new();
     private readonly BackupFile _backupFile;

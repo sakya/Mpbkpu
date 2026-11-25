@@ -10,7 +10,7 @@ using System.Linq;
 
 namespace MpbkpuGUI.Controls
 {
-    public class ItemsList : UserControl
+    public partial class ItemsList : UserControl
     {
         private IEnumerable<object>? _items;
         private bool _selectable;
@@ -66,7 +66,7 @@ namespace MpbkpuGUI.Controls
             set
             {
                 if (SetAndRaise(ItemsProperty, ref _items, value)) {
-                    _itemsRepeater!.Items = _items;
+                    _itemsRepeater!.ItemsSource = _items;
                     if (Selectable && _items?.Count() > 0)
                         SelectedItem = _items.ElementAt(0);
                 }
@@ -149,13 +149,13 @@ namespace MpbkpuGUI.Controls
             }
         } // OnKeyDown
 
-        private IControl GetItemControl(int index)
+        private Control GetItemControl(int index)
         {
             var ctrl = _itemsRepeater!.TryGetElement(index);
             if (ctrl == null)
                 ctrl = _itemsRepeater.GetOrCreateElement(index);
-            if (VisualRoot is TopLevel top)
-                top.LayoutManager.ExecuteLayoutPass();
+            if (TopLevel.GetTopLevel(this) is { } top)
+                top.UpdateLayout();
             return ctrl;
         } // GetItemControl
 

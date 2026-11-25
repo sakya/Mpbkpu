@@ -14,7 +14,7 @@ using MpbkpuLib.FileManagers;
 
 namespace MpbkpuGUI.Pages;
 
-public class BackupOpenPage : BasePage
+public partial class BackupOpenPage : BasePage
 {
     private readonly BackupJob _backup;
     private BackupFile.OpenResult? _backupFile;

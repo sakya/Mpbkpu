@@ -7,10 +7,11 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.SingleWindow.Abstracts;
 using MpbkpuGUI.Dialogs.Models;
+using Material.Icons;
 
 namespace MpbkpuGUI.Dialogs;
 
-public class MessageDialog : BaseDialog
+public partial class MessageDialog : BaseDialog
 {
     public enum Buttons
     {
@@ -80,25 +81,25 @@ public class MessageDialog : BaseDialog
                 _model.IconVisible = false;
                 break;
             case Icons.Warning:
-                _model.Icon = "fas fa-exclamation-triangle";
+                _model.Icon = MaterialIconKind.Alert;
                 var wc = App.GetStyleColor("WarningColor");
                 if (wc != null)
                     _model.IconBrush = new SolidColorBrush(wc.Value);
                 break;
             case Icons.Error:
-                _model.Icon = "fas fa-exclamation-triangle";
+                _model.Icon = MaterialIconKind.Alert;
                 var ec = App.GetStyleColor("DangerColor");
                 if (ec != null)
                     _model.IconBrush = new SolidColorBrush(ec.Value);
                 break;
             case Icons.Info:
-                _model.Icon = "fas fa-info-circle";
+                _model.Icon = MaterialIconKind.Information;
                 var ic = App.GetStyleColor("InfoColor");
                 if (ic != null)
                     _model.IconBrush = new SolidColorBrush(ic.Value);
                 break;
             case Icons.Question:
-                _model.Icon = "fas fa-question-circle";
+                _model.Icon = MaterialIconKind.HelpCircle;
                 var qc = App.GetStyleColor("InfoColor");
                 if (qc != null)
                     _model.IconBrush = new SolidColorBrush(qc.Value);

@@ -11,7 +11,7 @@ namespace MpbkpuLib.FileManagers
     {
         public const string Scheme = "ftp://";
 
-        private  FtpClient? _client;
+        private  AsyncFtpClient? _client;
 
         public string? Host { get; set; }
         public int Port { get; set; }
@@ -47,8 +47,8 @@ namespace MpbkpuLib.FileManagers
                 throw new ArgumentNullException(path);
 
             path = GetPath(path);
-            var client = GetClient();
-            var f = await client.GetObjectInfoAsync(path, true);
+            var client = await GetClient();
+            var f = await client.GetObjectInfo(path, true);
             if (f == null || f.Type != FtpObjectType.File)
                 throw new Exception($"File {path} not found");
 
@@ -69,8 +69,8 @@ namespace MpbkpuLib.FileManagers
                 throw new ArgumentNullException(path);
 
             path = GetPath(path);
-            var client = GetClient();
-            foreach (var f in await client.GetListingAsync(path)) {
+            var client = await GetClient();
+            foreach (var f in await client.GetListing(path)) {
                 var fInfo = new File()
                 {
                     FullPath = $"{Scheme}{Host}{f.FullName}",
@@ -97,10 +97,10 @@ namespace MpbkpuLib.FileManagers
                 throw new ArgumentNullException(path);
 
             path = GetPath(path);
-            var client = GetClient();
+            var client = await GetClient();
             if (await DirectoryExists(path))
                 throw new Exception($"Cannot create '{path}' because a directory with the same name already exists");
-            return await client.CreateDirectoryAsync(path);
+            return await client.CreateDirectory(path);
         }
 
         public async Task<bool> DeleteDirectory(string? path)
@@ -109,10 +109,10 @@ namespace MpbkpuLib.FileManagers
                 throw new ArgumentNullException(path);
 
             path = GetPath(path);
-            var client = GetClient();
-            var fi = await client.GetObjectInfoAsync(path);
+            var client = await GetClient();
+            var fi = await client.GetObjectInfo(path);
             if (fi.Type == FtpObjectType.Directory)
-                await client.DeleteDirectoryAsync(path);
+                await client.DeleteDirectory(path);
             else
                 return false;
 
@@ -125,10 +125,10 @@ namespace MpbkpuLib.FileManagers
                 throw new ArgumentNullException(path);
 
             path = GetPath(path);
-            var client = GetClient();
-            var fi = await client.GetObjectInfoAsync(path);
+            var client = await GetClient();
+            var fi = await client.GetObjectInfo(path);
             if (fi.Type == FtpObjectType.File)
-                await client.DeleteFileAsync(path);
+                await client.DeleteFile(path);
             else
                 return false;
 
@@ -141,8 +141,8 @@ namespace MpbkpuLib.FileManagers
                 throw new ArgumentNullException(path);
 
             path = GetPath(path);
-            var client = GetClient();
-            return await client.DirectoryExistsAsync(path);
+            var client = await GetClient();
+            return await client.DirectoryExists(path);
         }
 
         public async Task<bool> FileExists(string? path)
@@ -151,8 +151,8 @@ namespace MpbkpuLib.FileManagers
                 throw new ArgumentNullException(path);
 
             path = GetPath(path);
-            var client = GetClient();
-            return await client.FileExistsAsync(path);
+            var client = await GetClient();
+            return await client.FileExists(path);
         }
 
         public async Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null)
@@ -161,12 +161,12 @@ namespace MpbkpuLib.FileManagers
                 throw new ArgumentNullException(filePath);
 
             filePath = GetPath(filePath);
-            var client = GetClient();
+            var client = await GetClient();
             Stream? res;
             if (!write)
-                res = await client.OpenReadAsync(filePath);
+                res = await client.OpenRead(filePath);
             else
-                res = await client.OpenWriteAsync(filePath);
+                res = await client.OpenWrite(filePath);
 
             return new FileSystemStream(this, res);
         }
@@ -181,14 +181,14 @@ namespace MpbkpuLib.FileManagers
                 throw new ArgumentException($"The new name cannot contain '{PathSeparator}'", newName);
 
             filePath = GetPath(filePath);
-            var client = GetClient();
+            var client = await GetClient();
 
-            var f = await client.GetObjectInfoAsync(filePath, true);
+            var f = await client.GetObjectInfo(filePath, true);
             if (f == null || f.Type != FtpObjectType.File)
                 throw new FileNotFoundException($"File {filePath} not found", filePath);
 
             var parent = Files.GetParent(PathSeparator, filePath, out _);
-            if (!await client.MoveFileAsync(filePath, Utility.Files.CombinePath(PathSeparator, parent, newName),
+            if (!await client.MoveFile(filePath, Utility.Files.CombinePath(PathSeparator, parent, newName),
                     FtpRemoteExists.Skip))
                 throw new Exception($"Failed to move rename file {filePath}");
         }
@@ -199,27 +199,26 @@ namespace MpbkpuLib.FileManagers
             stream.Close();
 
             if (canWrite) {
-                var client = GetClient();
-                await client.GetReplyAsync(default);
+                var client = await GetClient();
+                await client.GetReply(default);
             }
 
             return true;
         }
 
         #region private operations
-        private FtpClient GetClient()
+        private async Task<AsyncFtpClient> GetClient()
         {
             if (_client == null) {
-                _client = new FtpClient(Host, Port, Credentials);
-                _client.SocketKeepAlive = true;
-                _client.EncryptionMode = FtpEncryptionMode.Auto;
-                _client.SslProtocols = SslProtocols;
-                _client.SslBuffering = FtpsBuffering.Off;
-                _client.ValidateAnyCertificate = true;
+                _client = new AsyncFtpClient(Host, Credentials, Port);
+                _client.Config.SocketKeepAlive = true;
+                _client.Config.EncryptionMode = FtpEncryptionMode.Auto;
+                _client.Config.SslProtocols = SslProtocols;
+                _client.Config.ValidateAnyCertificate = true;
             }
 
             if (!_client.IsConnected)
-                _client.Connect();
+                await _client.Connect();
             return _client;
         }
 

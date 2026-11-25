@@ -1,13 +1,16 @@
 using Avalonia;
+using Avalonia.Reactive;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Markup.Xaml;
 using System;
 using MpbkpuGUI.Views;
+using Material.Icons;
+using Material.Icons.Avalonia;
 
 namespace MpbkpuGUI.Controls
 {
-    public class TitleBar : UserControl
+    public partial class TitleBar : UserControl
     {
         bool _canGoBack;
 
@@ -46,32 +49,32 @@ namespace MpbkpuGUI.Controls
         {
             base.OnApplyTemplate(e);
 
-            if (this.VisualRoot is Window pw) {
+            if (TopLevel.GetTopLevel(this) is Window pw) {
                 SetTitle(pw.Title);
                 var title = pw.GetObservable(Window.TitleProperty);
-                title.Subscribe(value =>
+                title.Subscribe(new AnonymousObserver<string>(value =>
                 {
                     SetTitle(value);
-                });
+                }));
 
                 var canResize = pw.GetObservable(Window.CanResizeProperty);
-                canResize.Subscribe(value =>
+                canResize.Subscribe(new AnonymousObserver<bool>(value =>
                 {
                     this.FindControl<Button>("MaximizeBtn").IsEnabled = CanMaximize && value;
-                });
+                }));
 
                 var wState = pw.GetObservable(Window.WindowStateProperty);
-                wState.Subscribe(s =>
+                wState.Subscribe(new AnonymousObserver<WindowState>(s =>
                 {
-                    var btn = this.FindControl<Button>("MaximizeBtn");
+                    var icon = this.FindControl<MaterialIcon>("MaximizeIcon")!;
                     if (s == WindowState.Maximized) {
                         pw.Padding = new Thickness(5);
-                        btn.Content = new Projektanker.Icons.Avalonia.Icon() { Value = "fas fa-window-restore" };
+                        icon.Kind = MaterialIconKind.WindowRestore;
                     } else {
                         pw.Padding = new Thickness(0);
-                        btn.Content = new Projektanker.Icons.Avalonia.Icon() { Value = "fas fa-window-maximize" };
+                        icon.Kind = MaterialIconKind.WindowMaximize;
                     }
-                });
+                }));
 
                 var btn = this.FindControl<Button>("MinimizeBtn");
                 btn.Click += (s, a) =>
@@ -83,7 +86,7 @@ namespace MpbkpuGUI.Controls
                 btn = this.FindControl<Button>("MaximizeBtn");
                 btn.Click += (s, a) =>
                 {
-                    var parentWindow = VisualRoot as Window;
+                    var parentWindow = TopLevel.GetTopLevel(this) as Window;
                     if (parentWindow != null) {
                         if (parentWindow.WindowState == WindowState.Maximized)
                             parentWindow.WindowState = WindowState.Normal;

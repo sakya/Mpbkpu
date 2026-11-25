@@ -77,6 +77,28 @@ public static class Files
         throw new Exception($"Cannot get parent of {path}");
     }
 
+    /// <summary>
+    /// Check if <see cref="path"/> is the same as <see cref="parent"/> or inside it.
+    /// Local paths are compared as full paths (case insensitive on Windows and macOS), remote paths (scheme://) as they are
+    /// </summary>
+    public static bool IsSameOrSubPath(string parent, string path)
+    {
+        var local = !parent.Contains("://") && !path.Contains("://");
+        var separator = '/';
+        var comparison = StringComparison.Ordinal;
+        if (local) {
+            parent = System.IO.Path.GetFullPath(parent);
+            path = System.IO.Path.GetFullPath(path);
+            separator = System.IO.Path.DirectorySeparatorChar;
+            if (OperatingSystem.IsWindows() || OperatingSystem.IsMacOS())
+                comparison = StringComparison.OrdinalIgnoreCase;
+        }
+
+        parent = $"{parent.TrimEnd(separator)}{separator}";
+        path = $"{path.TrimEnd(separator)}{separator}";
+        return path.StartsWith(parent, comparison);
+    }
+
     public static long? GetDestinationFileSize(long sourceFileSize, CompressionLevel compressionLevel, bool encrypt)
     {
         long? destFileSize = sourceFileSize;
@@ -88,6 +110,7 @@ public static class Files
             destFileSize += EncryptDecrypt.AesBlockByteSize; // iv
             destFileSize += EncryptDecrypt.PasswordSaltByteSize;
             destFileSize += EncryptDecrypt.HeaderSize;
+            destFileSize += EncryptDecrypt.MacByteSize;
         }
 
         return destFileSize;

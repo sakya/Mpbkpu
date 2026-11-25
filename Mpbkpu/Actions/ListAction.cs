@@ -82,6 +82,7 @@ public class ListAction : BaseAction
             case Backup.Results.Completed:
                 Console.ForegroundColor = Utility.Console.SuccessColor;
                 break;
+            case Backup.Results.CompletedWithWarnings:
             case Backup.Results.Cancelled:
                 Console.ForegroundColor = Utility.Console.WarningColor;
                 break;

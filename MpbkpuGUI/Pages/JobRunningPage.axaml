@@ -74,8 +74,7 @@
         <ScrollViewer Name="Log" Grid.Row="4" Margin="0,5,0,0">
             <ListBox FontSize="14"
                      FontFamily="Consolas"
-                     VirtualizationMode="None"
-                     Items="{Binding Log}">
+                     ItemsSource="{Binding Log}">
                 <ListBox.Styles>
                     <Style Selector="ListBoxItem">
                         <Setter Property="Padding" Value="0"/>

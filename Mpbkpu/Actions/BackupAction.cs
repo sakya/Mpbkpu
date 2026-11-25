@@ -48,6 +48,8 @@ public class BackupAction : BaseAction
             IncludeHiddenFiles = true,
             Exclude = pArgs.Exclude,
             RetryOnError = pArgs.RetryOnError ?? 3,
+            FullBackupEveryDays = pArgs.FullBackupEveryDays ?? 0,
+            KeepChains = pArgs.KeepChains ?? 0,
             EncryptPassword = pArgs.Password,
             CompressionLevel = pArgs.CompressionLevel,
             LogToConsole = false,
@@ -117,6 +119,9 @@ public class BackupAction : BaseAction
                 break;
             case BackupJob.Steps.CopyDatabase:
                 Console.WriteLine("Copying database file");
+                break;
+            case BackupJob.Steps.DeleteOldBackups:
+                Console.WriteLine("Deleting old backups");
                 break;
         }
 

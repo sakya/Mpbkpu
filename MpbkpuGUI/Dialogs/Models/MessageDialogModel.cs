@@ -1,5 +1,6 @@
 ﻿using Avalonia.Media;
 using MpbkpuGUI.Abstracts;
+using Material.Icons;
 
 namespace MpbkpuGUI.Dialogs.Models;
 
@@ -86,8 +87,8 @@ public class MessageDialogModel : BaseModel
         set => SetField(ref _iconVisible, value);
     }
 
-    private string? _icon;
-    public string? Icon
+    private MaterialIconKind _icon;
+    public MaterialIconKind Icon
     {
         get => _icon;
         set => SetField(ref _icon, value);

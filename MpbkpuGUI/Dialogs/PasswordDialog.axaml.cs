@@ -10,7 +10,7 @@ using MpbkpuGUI.Dialogs.Models;
 
 namespace MpbkpuGUI.Dialogs;
 
-public class PasswordDialog : BaseDialog
+public partial class PasswordDialog : BaseDialog
 {
     private readonly PasswordDialogModel _model;
     public PasswordDialog()

@@ -18,7 +18,7 @@
         </Grid.ColumnDefinitions>
         <Button Grid.Column="0" Name="Cancel" Content="{Binding CancelText}"
                 IsVisible="{Binding CancelVisible}" IsCancel="True" />
-        <Button Grid.Column="1" Name="Ok" Classes="Ok Accent" Content="{Binding OkText}"
+        <Button Grid.Column="1" Name="Ok" Classes="Ok accent" Content="{Binding OkText}"
                 IsEnabled="{Binding OkEnabled}" IsDefault="True" />
     </Grid>
 </UserControl>

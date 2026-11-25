@@ -2,7 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:i="clr-namespace:Projektanker.Icons.Avalonia;assembly=Projektanker.Icons.Avalonia"
+             xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              xmlns:i18n="clr-namespace:MpbkpuGUI.Localizer"
              xmlns:models="clr-namespace:MpbkpuGUI.Abstracts"
              xmlns:converters="clr-namespace:MpbkpuGUI.Converters"
@@ -29,7 +29,7 @@
             <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
 
-        <i:Icon Name="Icon" Grid.Row="0" Grid.RowSpan="3" Grid.Column="0" FontSize="32" Value="fas fa-archive" Margin="0,0,12,0"
+        <mi:MaterialIcon Name="Icon" Grid.Row="0" Grid.RowSpan="3" Grid.Column="0" Width="32" Height="32" Kind="Archive" Margin="0,0,12,0"
                 Foreground="{DynamicResource SystemAccentColor}"/>
 
         <TextBlock Grid.Row="0" Grid.Column="1" Classes="Main" Text="{Binding Path=Name}" />
@@ -40,13 +40,13 @@
         <StackPanel Grid.Row="0" Grid.RowSpan="3" Grid.Column="3" Orientation="Horizontal" Margin="12,0,0,0">
             <Button Click="OnOpenClick" ToolTip.Tip="{i18n:Localize BrowseBackup}"
                     IsEnabled="{Binding ., Converter={StaticResource IsBackupJobConverter}}">
-                <i:Icon Value="fas fa-folder-open"></i:Icon>
+                <mi:MaterialIcon Kind="FolderOpen"></mi:MaterialIcon>
             </Button>
             <Button Click="OnRunClick" ToolTip.Tip="{i18n:Localize RunBackup}">
-                <i:Icon Value="fas fa-play"></i:Icon>
+                <mi:MaterialIcon Kind="Play"></mi:MaterialIcon>
             </Button>
             <Button Click="OnSettingsClick" ToolTip.Tip="{i18n:Localize BackupSettings}">
-                <i:Icon Value="fas fa-cogs"></i:Icon>
+                <mi:MaterialIcon Kind="Cog"></mi:MaterialIcon>
             </Button>
             <Button Click="OnDeleteClick" ToolTip.Tip="{i18n:Localize DeleteBackup}">
                 <Button.Styles>
@@ -54,7 +54,7 @@
                         <Setter Property="Background" Value="DarkRed"/>
                     </Style>
                 </Button.Styles>
-                <i:Icon Value="fas fa-trash"></i:Icon>
+                <mi:MaterialIcon Kind="Delete"></mi:MaterialIcon>
             </Button>
         </StackPanel>
     </Grid>

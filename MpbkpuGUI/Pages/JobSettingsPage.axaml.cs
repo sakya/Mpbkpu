@@ -12,7 +12,7 @@ using MpbkpuLib.DataModel;
 
 namespace MpbkpuGUI.Pages;
 
-public class JobSettingsPage : BasePage
+public partial class JobSettingsPage : BasePage
 {
     private readonly JobSettingsPageModel _model;
     private readonly string _jobId;
@@ -57,7 +57,7 @@ public class JobSettingsPage : BasePage
         ctrl.Value = _job.Destination;
 
         var cmbType = this.FindControl<ComboBox>("CmbType");
-        cmbType.Items = new List<Backup.BackupTypes>()
+        cmbType.ItemsSource = new List<Backup.BackupTypes>()
         {
             Backup.BackupTypes.Full,
             Backup.BackupTypes.Differential,
@@ -65,7 +65,7 @@ public class JobSettingsPage : BasePage
         };
 
         var cmbCompression = this.FindControl<ComboBox>("CmbCompressionLevel");
-        cmbCompression.Items = new List<CompressionLevel>()
+        cmbCompression.ItemsSource = new List<CompressionLevel>()
         {
             CompressionLevel.NoCompression,
             CompressionLevel.Fastest,

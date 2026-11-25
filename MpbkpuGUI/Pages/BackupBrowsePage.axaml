@@ -2,7 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:i="clr-namespace:Projektanker.Icons.Avalonia;assembly=Projektanker.Icons.Avalonia"
+             xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              xmlns:controls="clr-namespace:MpbkpuGUI.Controls"
              xmlns:converters="clr-namespace:MpbkpuGUI.Converters"
              xmlns:models="clr-namespace:MpbkpuGUI.Models"
@@ -29,7 +29,7 @@
             <ColumnDefinition Width="2*" MinWidth="100" />
         </Grid.ColumnDefinitions>
 
-        <TreeView Name="TreeView" Items="{Binding Directories}"
+        <TreeView Name="TreeView" ItemsSource="{Binding Directories}"
                   SelectionChanged="OnTreeSelectionChanged">
             <TreeView.ItemsPanel>
                 <ItemsPanelTemplate>
@@ -60,7 +60,7 @@
                                 <ColumnDefinition SharedSizeGroup="ColSize" Width="Auto" />
                             </Grid.ColumnDefinitions>
 
-                            <i:Icon Grid.Column="0" Value="{Binding Type, Converter={StaticResource ItemTypeToIconConverter}}" />
+                            <mi:MaterialIcon Grid.Column="0" Kind="{Binding Type, Converter={StaticResource ItemTypeToIconConverter}}" />
                             <TextBlock Grid.Column="1" Text="{Binding OriginalName}"
                                        TextTrimming="CharacterEllipsis"/>
                             <TextBlock Grid.Column="2" Text="{Binding OriginalLastModified, Converter={StaticResource DateTimeConverter}}"

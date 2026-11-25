@@ -22,7 +22,8 @@ public class BackupJob : BaseJob
         ReadSource,
         CalculateFilesToBackup,
         BackupFiles,
-        CopyDatabase
+        CopyDatabase,
+        DeleteOldBackups
     }
 
     #region classes
@@ -51,6 +52,8 @@ public class BackupJob : BaseJob
     private string? _sourcePath;
     private bool _skipDatabaseCopy;
     private ProgressData? _progressData;
+    private bool _hasWarnings;
+    private List<string> _chainsToDelete = new();
     #endregion
 
     #region delegates
@@ -119,12 +122,20 @@ public class BackupJob : BaseJob
         await CheckDestination();
         using (var openRes = await BackupFile.OpenBackupFile(BackupFm, BackupPath, Settings.EncryptPassword, true, OnOpenBackup, _cancellationToken)) {
             var backupFile = openRes.BackupFile;
-            await backupFile.EmptyFiles();
-            var transaction = backupFile.BeginTransaction();
-
+            // True when the database in the destination references this backup
+            var persisted = false;
             try {
-                await RunPrimitive(backupFile);
-                await transaction.CommitAsync();
+                await backupFile.EmptyFiles();
+                await using (var transaction = backupFile.BeginTransaction()) {
+                    try {
+                        await RunPrimitive(backupFile);
+                        await transaction.CommitAsync();
+                        persisted = string.IsNullOrEmpty(openRes.TempFilePath);
+                    } catch {
+                        await transaction.RollbackAsync();
+                        throw;
+                    }
+                }
 
                 await backupFile.Vacuum();
                 backupFile.Close();
@@ -135,16 +146,19 @@ public class BackupJob : BaseJob
                         LogInfo("Copying database");
                         Step?.Invoke(this, Steps.CopyDatabase);
                         await CopyDatabaseToDestination(openRes, Settings.EncryptPassword, OnCopyBackup);
+                        persisted = true;
                     }
                 }
             } catch (Exception ex) {
                 LogError(ex);
-                await transaction.RollbackAsync();
+                if (!persisted)
+                    await DeleteOrphanBackupDirectory();
                 throw;
-            } finally {
-                transaction.Dispose();
             }
         }
+
+        if (_chainsToDelete.Count > 0)
+            await DeleteOldChains();
 
         return new BackupJobJobResult()
         {
@@ -178,13 +192,23 @@ public class BackupJob : BaseJob
 
         _lastUsedVolume = null;
         Backup? lastBackup = await backupFile.LastBackup();
-        // If there is no previous backup this is a full backup
-        if (lastBackup == null && Settings.BackupType != Backup.BackupTypes.Full) {
-            LogWarning("No previous backup found, switching to Full backup");
-            Settings.BackupType = Backup.BackupTypes.Full;
-        } else if (lastBackup != null && (lastBackup.Type == Backup.BackupTypes.Differential || lastBackup.Type == Backup.BackupTypes.Incremental) && lastBackup.Type != Settings.BackupType) {
-            // We cannot change backup type
-            throw new Exception($"Cannot change backup type. Backup to a different destination");
+        // A chain is a full backup followed by backups of the same type: start a new chain when needed
+        if (Settings.BackupType != Backup.BackupTypes.Full) {
+            var lastFull = await backupFile.LastBackup(Backup.BackupTypes.Full);
+            string? newChainReason = null;
+            if (lastFull == null)
+                newChainReason = "No previous full backup found";
+            else if (lastFull.Result is not (Backup.Results.Completed or Backup.Results.CompletedWithWarnings))
+                newChainReason = $"The last full backup is {lastFull.Result}";
+            else if (lastBackup!.Type != Backup.BackupTypes.Full && lastBackup.Type != Settings.BackupType)
+                newChainReason = $"Backup type changed from {lastBackup.Type} to {Settings.BackupType}";
+            else if (Settings.FullBackupEveryDays > 0 && lastFull.StartedAt <= DateTime.UtcNow.AddDays(-Settings.FullBackupEveryDays))
+                newChainReason = $"The last full backup is older than {Settings.FullBackupEveryDays} days";
+
+            if (newChainReason != null) {
+                LogWarning($"{newChainReason}, switching to Full backup");
+                Settings.BackupType = Backup.BackupTypes.Full;
+            }
         }
 
         if (lastBackup != null) {
@@ -223,13 +247,19 @@ public class BackupJob : BaseJob
             return;
         }
         await backupFile.SaveChangesAsync();
+        foreach (var directory in UnreadableDirectories)
+            await AddWarning(backupFile, $"Directory {directory} is not readable: its content has not been backed up");
 
         // Compute files to backup (only if not a full backup)
         // Read last backup items
         LogInfo("Checking files to backup");
         Step?.Invoke(this, Steps.CalculateFilesToBackup);
-        if (lastBackup != null && _backup.Type != Backup.BackupTypes.Full) {
-            await foreach (var item in backupFile.GetBackupItems(lastBackup.Id)) {
+        // A differential backup contains all the changes since the last full backup
+        var compareBackup = _backup.Type == Backup.BackupTypes.Differential ?
+            await backupFile.LastBackup(Backup.BackupTypes.Full) :
+            lastBackup;
+        if (compareBackup != null && _backup.Type != Backup.BackupTypes.Full) {
+            await foreach (var item in backupFile.GetBackupItems(compareBackup.Id)) {
                 if (item.Action == BackupItem.Actions.Deleted)
                     continue;
 
@@ -257,6 +287,9 @@ public class BackupJob : BaseJob
                     } else {
                         sourceFile.FileAction = File.FileActions.None;
                     }
+                } else if (IsInUnreadableDirectory(item.OriginalRelativePath, _sourceFm.PathSeparator)) {
+                    // Not readable now: don't record it as deleted
+                    LogWarning($"Cannot check {item.OriginalPath}: its directory is not readable");
                 } else {
                     backupFile.Files.Add(new File()
                     {
@@ -264,6 +297,7 @@ public class BackupJob : BaseJob
                         Created = item.OriginalCreated,
                         Extension = item.OriginalExtension,
                         FullPath = item.OriginalPath,
+                        RelativePath = item.OriginalRelativePath,
                         Hidden = item.OriginalHidden,
                         Name = item.OriginalName,
                         Size = item.OriginalSize,
@@ -340,6 +374,7 @@ public class BackupJob : BaseJob
                         if (fInfo.Size != fileToBackup.Size || fInfo.LastModified != fileToBackup.LastModified) {
                             LogWarning($"File {fileToBackup.FullPath} changed after the backup started");
                             fileToBackup.Size = fInfo.Size;
+                            fileToBackup.LastModified = fInfo.LastModified;
                         }
                     } catch (FileNotFoundException) {
                         LogWarning($"File {fileToBackup.FullPath} not found");
@@ -362,7 +397,15 @@ public class BackupJob : BaseJob
                     try {
                         // Compute file size of the backup file if possible
                         long? backupFileSize = Files.GetDestinationFileSize(fileToBackup.Size, Settings.CompressionLevel, encryptor != null);
-                        await BackupFileFromSource(backupFile, fileToBackup, encryptor, backupFileSize);
+                        // On the last try accept a file changed during the copy (with a warning)
+                        await BackupFileFromSource(backupFile, fileToBackup, encryptor, backupFileSize, tryCount == Settings.RetryOnError);
+                        _progressData.Bytes += fileToBackup.Size;
+                        _progressData.FileIndex++;
+                        Progress?.Invoke(this, new ProgressHandlerArgs(_progressData.FileIndex, cArgs.FilesToBackup, _progressData.Bytes, _progressData.TotalBytes, GetEta(_progressData.Started, _progressData.Bytes, _progressData.TotalBytes)));
+                        break;
+                    } catch (Exception ex) when (tryCount == Settings.RetryOnError && IsSourceAccessError(ex)) {
+                        // A locked or protected file must not abort the whole backup
+                        await AddWarning(backupFile, $"File {fileToBackup.FullPath} has not been backed up: {ex.Message}");
                         _progressData.Bytes += fileToBackup.Size;
                         _progressData.FileIndex++;
                         Progress?.Invoke(this, new ProgressHandlerArgs(_progressData.FileIndex, cArgs.FilesToBackup, _progressData.Bytes, _progressData.TotalBytes, GetEta(_progressData.Started, _progressData.Bytes, _progressData.TotalBytes)));
@@ -378,9 +421,11 @@ public class BackupJob : BaseJob
                 await DeleteItem(backupFile, fileToBackup);
             }
         }
-        if (!await SetBackupResult(backupFile, Backup.Results.Completed))
+        if (!await SetBackupResult(backupFile, _hasWarnings ? Backup.Results.CompletedWithWarnings : Backup.Results.Completed))
             LogWarning("Cannot set backup result");
         await backupFile.SaveChangesAsync();
+        if (_backup.Type == Backup.BackupTypes.Full && Settings.KeepChains > 0)
+            _chainsToDelete = await GetChainsToDelete(backupFile);
         await backupFile.EmptyFiles();
         LogInfo("Completed");
     }
@@ -398,11 +443,11 @@ public class BackupJob : BaseJob
         if (string.IsNullOrEmpty(Settings.Destination))
             throw new ArgumentNullException(nameof(Settings.Destination), "Destination cannot be empty");
 
-        if (Settings.Source == Settings.Destination)
-            throw new ArgumentException("Source and Destination cannot be the same");
-
-        if (Settings.Destination.StartsWith(Settings.Source))
-            throw new ArgumentException("Destination cannot be a subdirectory of Source");
+        if (Utility.Files.IsSameOrSubPath(Settings.Source, Settings.Destination)) {
+            throw new ArgumentException(Utility.Files.IsSameOrSubPath(Settings.Destination, Settings.Source) ?
+                "Source and Destination cannot be the same" :
+                "Destination cannot be a subdirectory of Source");
+        }
 
         if (Settings.MaxFilesPerDirectory <= 0)
             throw new ArgumentException("MaxFilesPerDirectory must be greater than zero");
@@ -412,6 +457,12 @@ public class BackupJob : BaseJob
 
         if (!string.IsNullOrEmpty(Settings.EncryptPassword) && Settings.EncryptPassword.Length < 8)
             throw new ArgumentException("EncryptPassword must have at least 8 characters");
+
+        if (Settings.FullBackupEveryDays < 0)
+            throw new ArgumentException("FullBackupEveryDays cannot be negative");
+
+        if (Settings.KeepChains < 0)
+            throw new ArgumentException("KeepChains cannot be negative");
     }
 
     /// <summary>
@@ -436,11 +487,13 @@ public class BackupJob : BaseJob
     /// <param name="sourceFile">The <see cref="DataModel.File"/> to backup</param>
     /// <param name="encryptor">The optional <see cref="Utility.EncryptDecrypt"/> to encrypt the file</param>
     /// <param name="backupFileSize">The size of the backup file, if known</param>
+    /// <param name="acceptChanges">If false a file changed during the copy throws an exception (to retry)</param>
     /// <exception cref="ArgumentNullException"></exception>
     private async Task BackupFileFromSource(BackupFile? backupFile,
         File? sourceFile,
         EncryptDecrypt? encryptor,
-        long? backupFileSize)
+        long? backupFileSize,
+        bool acceptChanges)
     {
         if (_sourceFm == null)
             throw new Exception("Source file manager not initialized");
@@ -465,51 +518,67 @@ public class BackupJob : BaseJob
         backupItem.OriginalSize = sourceFile.Size;
 
         var destFilePath = BackupFm.CombinePath(BackupPath!, _backup.Guid, _lastUsedVolume!.Name!, backupItem.Name!);
-        switch (sourceFile.Type) {
-            case File.FileTyes.Directory:
-                // Create a placeholder file
-                // We don't write a zero byte file because it would be not valid for some remote filesystems (like OneDrive)
-                if (!await _sourceFm.DirectoryExists(sourceFile.FullPath)) {
-                    LogWarning($"Directory {sourceFile.FullPath} not found");
-                    return;
-                }
-
-                var size = 9;
-                FileProgress?.Invoke(this, sourceFile.RelativePath!, 0, size);
-                using (var sourceStream = new MemoryStream(Encoding.ASCII.GetBytes("DIRECTORY"))) {
-                    await using (var destStream = await BackupFm.OpenFile(destFilePath, true, size)) {
-                        await sourceStream.CopyToAsync(destStream);
+        try {
+            switch (sourceFile.Type) {
+                case File.FileTyes.Directory:
+                    // Create a placeholder file
+                    // We don't write a zero byte file because it would be not valid for some remote filesystems (like OneDrive)
+                    if (!await _sourceFm.DirectoryExists(sourceFile.FullPath)) {
+                        LogWarning($"Directory {sourceFile.FullPath} not found");
+                        return;
                     }
-                }
 
-                FileProgress?.Invoke(this, sourceFile.RelativePath!, size, size);
-                break;
-            case File.FileTyes.File:
-                LogDebug($"Backing up {sourceFile.FullPath} to {destFilePath}");
-                FileProgress?.Invoke(this, sourceFile.RelativePath!, 0, sourceFile.Size);
-                DateTime? lastFileProgress = null;
-                using (var sourceStream = await _sourceFm.OpenFile(sourceFile.FullPath)) {
-                    using (var destStream = await BackupFm.OpenFile(destFilePath, true, backupFileSize)) {
-                        var progressAction = new Action<long>((copied) =>
-                        {
-                            if (lastFileProgress == null || copied == sourceFile.Size ||
-                                (DateTime.UtcNow - lastFileProgress.Value).TotalMilliseconds >= 500) {
-                                FileProgress?.Invoke(this, sourceFile.RelativePath!, copied, sourceFile.Size);
-                                Progress?.Invoke(this, new ProgressHandlerArgs(_progressData!.FileIndex, _progressData.TotalFiles, _progressData.Bytes + copied, _progressData.TotalBytes, GetEta(_progressData.Started, _progressData.Bytes + copied, _progressData.TotalBytes)));
-                                lastFileProgress = DateTime.UtcNow;
-                            }
-                        });
-
-                        if (encryptor != null)
-                            await encryptor.Encrypt(backupItem, sourceStream, destStream, Settings.CompressionLevel,
-                                progressAction, _cancellationToken);
-                        else if (Settings.CompressionLevel != CompressionLevel.NoCompression)
-                            await BackupFileFromSourceCompress(backupItem, sourceStream, destStream, Settings.CompressionLevel, progressAction);
-                        else
-                            await BackupFileFromSourceCopy(backupItem, sourceStream, destStream, progressAction);
+                    var size = 9;
+                    FileProgress?.Invoke(this, sourceFile.RelativePath!, 0, size);
+                    using (var sourceStream = new MemoryStream(Encoding.ASCII.GetBytes("DIRECTORY"))) {
+                        await using (var destStream = await BackupFm.OpenFile(destFilePath, true, size)) {
+                            await sourceStream.CopyToAsync(destStream);
+                        }
                     }
-                }
-                break;
+
+                    FileProgress?.Invoke(this, sourceFile.RelativePath!, size, size);
+                    break;
+                case File.FileTyes.File:
+                    LogDebug($"Backing up {sourceFile.FullPath} to {destFilePath}");
+                    FileProgress?.Invoke(this, sourceFile.RelativePath!, 0, sourceFile.Size);
+                    DateTime? lastFileProgress = null;
+                    using (var sourceStream = await _sourceFm.OpenFile(sourceFile.FullPath)) {
+                        using (var destStream = await BackupFm.OpenFile(destFilePath, true, backupFileSize)) {
+                            var progressAction = new Action<long>((copied) =>
+                            {
+                                if (lastFileProgress == null || copied == sourceFile.Size ||
+                                    (DateTime.UtcNow - lastFileProgress.Value).TotalMilliseconds >= 500) {
+                                    FileProgress?.Invoke(this, sourceFile.RelativePath!, copied, sourceFile.Size);
+                                    Progress?.Invoke(this, new ProgressHandlerArgs(_progressData!.FileIndex, _progressData.TotalFiles, _progressData.Bytes + copied, _progressData.TotalBytes, GetEta(_progressData.Started, _progressData.Bytes + copied, _progressData.TotalBytes)));
+                                    lastFileProgress = DateTime.UtcNow;
+                                }
+                            });
+
+                            if (encryptor != null)
+                                await encryptor.Encrypt(backupItem, sourceStream, destStream, Settings.CompressionLevel,
+                                    progressAction, _cancellationToken);
+                            else if (Settings.CompressionLevel != CompressionLevel.NoCompression)
+                                await BackupFileFromSourceCompress(backupItem, sourceStream, destStream, Settings.CompressionLevel, progressAction);
+                            else
+                                await BackupFileFromSourceCopy(backupItem, sourceStream, destStream, progressAction);
+                        }
+                    }
+
+                    // Check that the file has not been modified during the copy
+                    var fileInfo = await _sourceFm.GetFileInfo(sourceFile.FullPath);
+                    if (fileInfo.Size != sourceFile.Size || fileInfo.LastModified != sourceFile.LastModified) {
+                        sourceFile.Size = fileInfo.Size;
+                        sourceFile.LastModified = fileInfo.LastModified;
+                        if (!acceptChanges)
+                            throw new IOException($"File {sourceFile.FullPath} changed during the copy");
+                        await AddWarning(backupFile, $"File {sourceFile.FullPath} changed during the copy: the backed up copy may be inconsistent");
+                    }
+                    break;
+            }
+        } catch {
+            // Don't leave a partial file in the destination (retry, cancellation or error)
+            await TryDeleteFile(BackupFm, destFilePath);
+            throw;
         }
 
         backupFile.BackupItems.Add(backupItem);
@@ -583,8 +652,8 @@ public class BackupJob : BaseJob
             OriginalLastModified = sourceFile.LastModified,
             OriginalName = sourceFile.Name,
             OriginalPath = sourceFile.FullPath,
+            OriginalRelativePath = sourceFile.RelativePath,
             OriginalSize = sourceFile.Size,
-
         };
         backupFile.BackupItems.Add(item);
         await backupFile.SaveChangesAsync();
@@ -640,6 +709,113 @@ public class BackupJob : BaseJob
         if (!await BackupFm.DirectoryExists(volumePath))
             await BackupFm.CreateDirectory(volumePath);
         return res;
+    }
+
+    /// <summary>
+    /// Get the GUIDs of the full backups of the chains older than the last <see cref="BackupJobSettings.KeepChains"/> completed full backups
+    /// </summary>
+    private async Task<List<string>> GetChainsToDelete(BackupFile backupFile)
+    {
+        var keptFullIds = await backupFile.Backups.AsNoTracking()
+            .Where(b => b.Type == Backup.BackupTypes.Full && (b.Result == Backup.Results.Completed || b.Result == Backup.Results.CompletedWithWarnings))
+            .OrderByDescending(b => b.Id)
+            .Select(b => b.Id)
+            .Take(Settings.KeepChains)
+            .ToListAsync();
+        if (keptFullIds.Count < Settings.KeepChains)
+            return new List<string>();
+
+        var oldestKeptId = keptFullIds.Last();
+        return await backupFile.Backups.AsNoTracking()
+            .Where(b => b.Type == Backup.BackupTypes.Full && b.Id < oldestKeptId)
+            .OrderBy(b => b.Id)
+            .Select(b => b.Guid)
+            .ToListAsync();
+    }
+
+    /// <summary>
+    /// Delete the old chains: deleting a full backup deletes also its incremental or differential backups.
+    /// The backup is already completed, so a failure is logged as a warning.
+    /// </summary>
+    private async Task DeleteOldChains()
+    {
+        Step?.Invoke(this, Steps.DeleteOldBackups);
+        foreach (var guid in _chainsToDelete) {
+            if (_cancellationToken?.IsCancellationRequested == true) {
+                LogInfo("Cancelled by user");
+                return;
+            }
+
+            LogInfo($"Deleting old backup chain {guid}");
+            try {
+                using var job = new DeleteJob(new DeleteJobSettings()
+                {
+                    BackupPath = Settings.Destination,
+                    BackupPathUser = Settings.DestinationUser,
+                    BackupPathPassword = Settings.DestinationPassword,
+                    BackupOauthSettings = Settings.DestinationOauthSettings,
+                    BackupGuid = guid,
+                    EncryptPassword = Settings.EncryptPassword,
+                    LogLevel = BaseJobSettings.LogLevels.Warning
+                });
+                job.LogEmitted += (_, level, message) =>
+                {
+                    if (level == BaseJobSettings.LogLevels.Error)
+                        LogError(message);
+                    else
+                        LogWarning(message);
+                };
+                await job.Run(_cancellationToken ?? CancellationToken.None);
+            } catch (Exception ex) {
+                LogWarning($"Failed to delete old backup chain {guid}: {ex.Message}");
+                return;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Delete the files of a backup not referenced by the database in the destination
+    /// </summary>
+    private async Task DeleteOrphanBackupDirectory()
+    {
+        if (_backup == null || BackupFm == null)
+            return;
+
+        var backupDirectory = BackupFm.CombinePath(BackupPath!, _backup.Guid);
+        try {
+            if (await BackupFm.DirectoryExists(backupDirectory)) {
+                LogWarning($"Deleting the files of the failed backup {backupDirectory}");
+                await DeleteDirectoryRecursive(BackupFm, backupDirectory);
+            }
+        } catch (Exception ex) {
+            LogWarning($"Cannot delete {backupDirectory}: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Log a warning and save it in the backup
+    /// </summary>
+    private async Task AddWarning(BackupFile backupFile, string message)
+    {
+        LogWarning(message);
+        _hasWarnings = true;
+        backupFile.BackupWarnings.Add(new BackupWarning()
+        {
+            BackupId = _backup!.Id,
+            Message = message.Length > 2048 ? message[..2048] : message
+        });
+        await backupFile.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Errors accessing a source file: access denied, file locked by another process (sharing or lock violation)
+    /// </summary>
+    private static bool IsSourceAccessError(Exception ex)
+    {
+        const int sharingViolation = 32;
+        const int lockViolation = 33;
+        return ex is UnauthorizedAccessException ||
+               (ex is IOException && (ex.HResult & 0xFFFF) is sharingViolation or lockViolation);
     }
 
     private async Task<bool> SetBackupResult(BackupFile bkpFile, Backup.Results result)

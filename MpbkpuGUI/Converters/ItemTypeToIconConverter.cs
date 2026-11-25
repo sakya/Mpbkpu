@@ -2,6 +2,7 @@
 using System.Globalization;
 using Avalonia.Data.Converters;
 using MpbkpuLib.DataModel;
+using Material.Icons;
 
 namespace MpbkpuGUI.Converters;
 
@@ -13,9 +14,9 @@ public class ItemTypeToIconConverter : IValueConverter
         if (result != null) {
             switch (result) {
                 case File.FileTyes.Directory:
-                    return "fas fa-folder";
+                    return MaterialIconKind.Folder;
                 case File.FileTyes.File:
-                    return "fas fa-file";
+                    return MaterialIconKind.File;
             }
         }
 

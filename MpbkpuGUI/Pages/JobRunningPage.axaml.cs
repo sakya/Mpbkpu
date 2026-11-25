@@ -18,7 +18,7 @@ using BackupJob = MpbkpuGUI.Models.BackupJob;
 
 namespace MpbkpuGUI.Pages;
 
-public class JobRunningPage : BasePage
+public partial class JobRunningPage : BasePage
 {
     private readonly JobRunningPageModel _model = new();
     private readonly Job _job;
@@ -119,7 +119,9 @@ public class JobRunningPage : BasePage
 
                 SkipHashCheck = bkp.SkipHashCheck,
                 RetryOnError = bkp.RetryOnError,
-                CompressionLevel = bkp.CompressionLevel
+                CompressionLevel = bkp.CompressionLevel,
+                FullBackupEveryDays = bkp.FullBackupEveryDays,
+                KeepChains = bkp.KeepChains
             };
 
             var backupJob = new MpbkpuLib.Jobs.BackupJob(settings);
