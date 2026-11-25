@@ -10,6 +10,7 @@ namespace MpbkpuLib.Context
         public DbSet<DataModel.BackupVolume> BackupVolumes => Set<DataModel.BackupVolume>();
         public DbSet<DataModel.BackupWarning> BackupWarnings => Set<DataModel.BackupWarning>();
         public DbSet<DataModel.File> Files => Set<DataModel.File>();
+        public DbSet<DataModel.Destination> Destinations => Set<DataModel.Destination>();
 
         public BackupContext()
         {
@@ -48,6 +49,12 @@ namespace MpbkpuLib.Context
             modelBuilder.Entity<DataModel.BackupVolume>(entity =>
             {
                 entity.HasIndex(e => new { e.BackupId, e.Name })
+                    .IsUnique();
+            });
+
+            modelBuilder.Entity<DataModel.Destination>(entity =>
+            {
+                entity.HasIndex(e => e.Key)
                     .IsUnique();
             });
 

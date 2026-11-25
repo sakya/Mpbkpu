@@ -81,8 +81,7 @@ public abstract class BaseJob : IDisposable
     public BaseJobSettings Settings { get; private set; }
     #endregion
 
-    private StorageSpace? _space;
-    private long _spaceWritten;
+    private readonly SpaceEstimate _space = new();
 
     /// <summary>
     /// Read the space of the destination (<see cref="BackupFm"/>). Never fails the job.
@@ -91,14 +90,29 @@ public abstract class BaseJob : IDisposable
     {
         if (BackupFm == null || string.IsNullOrEmpty(BackupPath))
             return;
+        await ReadSpace(_space, BackupFm, BackupPath);
+        OnSpaceChanged(_space.Current);
+    }
+
+    /// <summary>
+    /// Read the space of a destination into <paramref name="space"/>. Never fails the job.
+    /// </summary>
+    protected async Task ReadSpace(SpaceEstimate space, IFileManager fm, string path)
+    {
         try {
-            _space = await BackupFm.GetSpace(BackupPath);
-            _spaceWritten = 0;
-            if (_space != null)
-                SpaceChanged?.Invoke(this, _space);
+            await space.Read(fm, path);
         } catch (Exception ex) {
             LogWarning($"Cannot read the space of the destination: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Raise <see cref="SpaceChanged"/> when the space is known
+    /// </summary>
+    protected void OnSpaceChanged(StorageSpace? space)
+    {
+        if (space != null)
+            SpaceChanged?.Invoke(this, space);
     }
 
     /// <summary>
@@ -106,11 +120,8 @@ public abstract class BaseJob : IDisposable
     /// </summary>
     protected void DestinationSpaceUsed(long bytes)
     {
-        if (_space == null)
-            return;
-        _spaceWritten += bytes;
-        var available = Math.Max(0, _space.Available - _spaceWritten);
-        SpaceChanged?.Invoke(this, _space with { Available = _space.Total.HasValue ? Math.Min(available, _space.Total.Value) : available });
+        _space.Used(bytes);
+        OnSpaceChanged(_space.Current);
     }
 
     public virtual void Dispose()
@@ -129,52 +140,6 @@ public abstract class BaseJob : IDisposable
     /// Validate the job settings
     /// </summary>
     protected abstract void ValidateSettings();
-
-    protected async Task CopyDatabaseToDestination(BackupFile.OpenResult openRes, string? password, Action<long, long>? progressAction = null)
-    {
-        if (BackupFm == null)
-            throw new Exception("Backup file manager not initialized");
-
-        using var sourceFm = FileManagerFactory.GetFileManager(openRes.TempFilePath, out _);
-        var info = await sourceFm.GetFileInfo(openRes.TempFilePath);
-        progressAction?.Invoke(0, info.Size);
-
-        var parent = BackupFm is BaseLocalFileSystem ?
-            Path.GetDirectoryName(openRes.BackupFilePath) :
-            Files.GetParent(BackupFm.PathSeparator, openRes.BackupFilePath!, out _, BackupFm.GetScheme());
-        var dbPath = Files.CombinePath(BackupFm.PathSeparator, parent!, BackupFile.DefaultDatabaseFileName);
-        var backupDbPath = Files.CombinePath(BackupFm.PathSeparator, parent!, BackupFile.DatabaseBackupFileName);
-        var tempDbPath = Files.CombinePath(BackupFm.PathSeparator, parent!, BackupFile.DatabaseTempFileName);
-
-        // Write the new database to a temporary file: the current database is untouched until the copy is complete
-        if (await BackupFm.FileExists(tempDbPath))
-            await BackupFm.DeleteFile(tempDbPath);
-        await using (var sourceStream = await sourceFm.OpenFile(openRes.TempFilePath)) {
-            var destFileSize = Files.GetDestinationFileSize(sourceStream.Length, BackupFm.SupportCompression ? CompressionLevel.SmallestSize : CompressionLevel.NoCompression,
-                !string.IsNullOrEmpty(password));
-            await using var destStream = await BackupFm.OpenFile(tempDbPath, true, destFileSize);
-
-            var action = new Action<long>((copied) =>
-            {
-                progressAction?.Invoke(copied, info.Size);
-            });
-            if (string.IsNullOrEmpty(password))
-                await Files.Copy(sourceStream, destStream, action);
-            else {
-                var encrypt = new EncryptDecrypt(password);
-                await encrypt.Encrypt(sourceStream, destStream, BackupFm.SupportCompression ? CompressionLevel.SmallestSize : CompressionLevel.NoCompression, action);
-            }
-        }
-
-        // Keep the current database as backup, then move the new one in place.
-        // If interrupted between the two renames the database is missing and OpenBackupFile falls back to the backup copy.
-        if (await BackupFm.FileExists(dbPath)) {
-            if (await BackupFm.FileExists(backupDbPath))
-                await BackupFm.DeleteFile(backupDbPath);
-            await BackupFm.RenameFile(dbPath, BackupFile.DatabaseBackupFileName);
-        }
-        await BackupFm.RenameFile(tempDbPath, BackupFile.DefaultDatabaseFileName);
-    }
 
     /// <summary>
     /// Get the full path of a backup item

@@ -15,7 +15,7 @@ namespace MpbkpuLib.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "6.0.8");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.15");
 
             modelBuilder.Entity("MpbkpuLib.DataModel.Backup", b =>
                 {
@@ -135,11 +135,16 @@ namespace MpbkpuLib.Migrations
                     b.Property<int>("BackupId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("DestinationId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DestinationId");
 
                     b.HasIndex("BackupId", "Name")
                         .IsUnique();
@@ -165,6 +170,29 @@ namespace MpbkpuLib.Migrations
                     b.HasIndex("BackupId");
 
                     b.ToTable("BackupWarnings");
+                });
+
+            modelBuilder.Entity("MpbkpuLib.DataModel.Destination", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Path")
+                        .HasMaxLength(4096)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
+
+                    b.ToTable("Destinations");
                 });
 
             modelBuilder.Entity("MpbkpuLib.DataModel.File", b =>
@@ -255,7 +283,13 @@ namespace MpbkpuLib.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("MpbkpuLib.DataModel.Destination", "Destination")
+                        .WithMany("Volumes")
+                        .HasForeignKey("DestinationId");
+
                     b.Navigation("Backup");
+
+                    b.Navigation("Destination");
                 });
 
             modelBuilder.Entity("MpbkpuLib.DataModel.BackupWarning", b =>
@@ -288,6 +322,11 @@ namespace MpbkpuLib.Migrations
             modelBuilder.Entity("MpbkpuLib.DataModel.BackupVolume", b =>
                 {
                     b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("MpbkpuLib.DataModel.Destination", b =>
+                {
+                    b.Navigation("Volumes");
                 });
 #pragma warning restore 612, 618
         }

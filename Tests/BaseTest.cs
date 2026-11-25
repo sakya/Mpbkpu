@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace Tests;
 
@@ -11,6 +13,22 @@ public class BaseTest
     protected const string EncryptionPassword = "password";
     protected readonly Random Random = new();
 
+    /// <summary>
+    /// The backup destinations of the tests: <see cref="BackupDestination"/> only
+    /// </summary>
+    protected static List<MpbkpuLib.Jobs.BackupDestination> BackupDestinations() => Destinations(BackupDestination);
+
+    /// <summary>
+    /// Backup destinations with the given paths
+    /// </summary>
+    protected static List<MpbkpuLib.Jobs.BackupDestination> Destinations(params string[] paths) =>
+        paths.Select(p => new MpbkpuLib.Jobs.BackupDestination() { Path = p }).ToList();
+
+    /// <summary>
+    /// More backup destinations for the tests with multiple destinations (created empty by PrepareSourceDirectory)
+    /// </summary>
+    protected static readonly string[] ExtraDestinations = ["./Mpbkpu_Test/backup2", "./Mpbkpu_Test/backup3"];
+
     protected void PrepareSourceDirectory()
     {
         if (Directory.Exists(BackupSource))
@@ -19,6 +37,7 @@ public class BaseTest
             Directory.Delete(BackupDestination, true);
         if (Directory.Exists(RestoreDestination))
             Directory.Delete(RestoreDestination, true);
+        DeleteExtraDestinations();
 
         Directory.CreateDirectory(BackupSource);
         Directory.CreateDirectory(Path.Combine(BackupSource, "SubDirectory1"));
@@ -55,6 +74,15 @@ public class BaseTest
             Directory.Delete(BackupDestination, true);
         if (Directory.Exists(RestoreDestination))
             Directory.Delete(RestoreDestination, true);
+        DeleteExtraDestinations();
+    }
+
+    private static void DeleteExtraDestinations()
+    {
+        foreach (var destination in ExtraDestinations) {
+            if (Directory.Exists(destination))
+                Directory.Delete(destination, true);
+        }
     }
 
     protected void CreateFile(string path, long size)

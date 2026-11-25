@@ -70,7 +70,45 @@
 - **GUI credentials in the OS secure storage**: `Job.Position.Password` and `OauthAppSecret` are `[JsonIgnore]` and
   saved by `AppSettings.Save` in `SecretStore` (MSAL extensions storage, already a dependency: DPAPI / Keychain /
   libsecret), keys `{jobId}.{Source|Destination}.{field}`. Old plain-text values are read through private
-  `Legacy*` setters and removed at startup. The backup encryption password is still never stored (asked on each run).
+  `Legacy*` setters and removed at startup.
+
+## Multiple destinations (in progress, see TODO.md)
+- **Split, not mirrored**: every file of a backup is stored in one destination only; every destination holds a copy
+  of the database (needed to find the files). A file goes to the destination with the fewest assigned bytes among
+  those with enough estimated space.
+- **A destination that fails** fails the job after `RetryOnError` tries (no reassignment to another destination).
+- **`ParallelFiles`** (default 1) is the total number of files copied at the same time, further limited by what each
+  file manager (source included) supports; FTP, SFTP, SMB and MEGA copy one file at a time per destination until
+  they are proven safe with concurrent transfers (one connection per instance; more connections would mean more
+  logins and concurrent OAuth refreshes).
+- **Settings**: `BackupJobSettings.Destinations` (`BackupDestination`: `Id`, `Path`, `User`, `Password`
+  `[JsonIgnore]`, `OauthSettings`). The old single-destination keys (`Destination`, `DestinationUser`,
+  `DestinationOauthSettings`) are read by private write-only properties into the first destination and never written
+  again: the settings saved in old backup databases still deserialize.
+- **Database**: table `Destinations` (`Key` = `BackupDestination.Id`, unique; `Path` with masked credentials) and
+  nullable `BackupVolume.DestinationId` (migration `MultipleDestinations`). Null = a volume created before multiple
+  destinations, stored in the destination the database was read from: the backup job must assign those volumes to
+  that destination before it writes the database to other destinations.
+- **`DestinationSet`** (shared by the jobs): one file manager per destination; the database is read from the newest
+  copy (modification date of `mpbkpu.db`, or of `mpbkpu.db.bak` when missing), always through a temporary file when
+  there is more than one destination (`OpenBackupFile(copyToTemp)`); `Register` matches the destinations with the
+  `Destinations` records by id, then by masked path, so a destination whose id is not persisted (CLI, GUI today)
+  keeps its record as long as its path does not change; it records new destinations and assigns the legacy volumes
+  (null `DestinationId`) to the destination the database was read from.
+- **Database written to every destination** with `BackupFile.SaveBackupFile` (moved from `BaseJob`): with more than
+  one destination a failure is a warning (job result `CompletedWithWarnings`, the database inside still says
+  `Completed`) as long as one copy succeeds; when all fail the job fails and the new files are deleted. A stale copy
+  is replaced by the next run, which reads the newest one.
+- **Risk not handled**: a destination holding the database of another backup set would be read if newer. There is no
+  backup set identifier to detect it.
+- **Space**: `Utility/SpaceEstimate` (read + estimated use) per destination; `SpaceChanged` reports the sum of the
+  known spaces until the GUI shows one bar per destination.
+- **The backup directory `{guid}`** is created in a destination only when its first file goes there; volumes have
+  their destination, so a volume never mixes destinations.
+- **`BackupDestination.Id` should still be stable** (GUI: persisted per destination): matching by path does not survive
+  a destination moved to a new path.
+- **`KeepChains` with more than one destination** is refused (`NotSupportedException`) until `DeleteJob` supports
+  multiple destinations (phase 4).
 
 ## GUI
 - **SingleWindow navigation unchanged** (pages animated in `Container`, back arrow in the TitleBar); the sidebar is
@@ -80,6 +118,11 @@
 - **Centralized styling** in `App.axaml` through Fluent resource overrides and classes (`card`, `chip`, `h1`, `accent`,
   `danger`, `icon`, `nav`, `log`…).
 - **Result of the last run** saved in the job (`LastResult`) on every run, also on error or cancellation.
+- **Message dialogs**: buttons on the right, secondary before primary. A Yes/No confirmation with the warning icon is
+  destructive and its confirm button uses `danger`: every delete/abort confirmation already used that icon, so no
+  extra parameter is needed.
+- **File system types** in the job settings are sorted by their name in the current language; a new position is a
+  local folder.
 - **Windows animations with the custom title bar**: a Win32 window styles callback adds `WS_CAPTION` (DWM needs it for
   the open/minimize/maximize/restore animations) and removes `WS_SYSMENU` (native caption buttons);
   `WindowDecorations.BorderOnly` still hides the native caption. Same fix as Darsena (commit `1fdf4834`).

@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Text;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -111,13 +112,22 @@ public class BackupFile : IDisposable
         }
     }
 
+    public DbSet<Destination> Destinations
+    {
+        get
+        {
+            EnsureDbOpen();
+            return _context!.Destinations;
+        }
+    }
+
     public void Dispose()
     {
         _context?.Dispose();
     }
 
     public static async Task<OpenResult> OpenBackupFile(IFileManager backupFm, string backupPath, string? password = null,
-        bool create = false, Action<long, long>? progressAction = null, CancellationToken? token = null)
+        bool create = false, Action<long, long>? progressAction = null, CancellationToken? token = null, bool copyToTemp = false)
     {
         if (!await backupFm.DirectoryExists(backupPath))
             throw new Exception($"Directory {backupPath} does not exists");
@@ -148,7 +158,7 @@ public class BackupFile : IDisposable
                 }
             }
 
-            if (!string.IsNullOrEmpty(password) || !backupFm.CanOpenDatabase) {
+            if (copyToTemp || !string.IsNullOrEmpty(password) || !backupFm.CanOpenDatabase) {
                 var action = new Action<long>((copied) =>
                 {
                     progressAction?.Invoke(copied, info.Size);
@@ -177,7 +187,7 @@ public class BackupFile : IDisposable
             if (!create)
                 throw new Exception($"Database file not found in {backupPath}");
 
-            if (!string.IsNullOrEmpty(password) || !backupFm.CanOpenDatabase)
+            if (copyToTemp || !string.IsNullOrEmpty(password) || !backupFm.CanOpenDatabase)
                 tempDbPath = TempFile.GetTempFileName();
         }
 
@@ -192,6 +202,55 @@ public class BackupFile : IDisposable
             throw new Exception("Failed to open the database");
         }
         return new OpenResult(backupFile, backupDbPath, tempDbPath);
+    }
+
+    /// <summary>
+    /// Write a local database file to a backup destination, keeping the previous database as backup copy
+    /// </summary>
+    /// <param name="localDbPath">The local database file (see <see cref="OpenResult.TempFilePath"/>)</param>
+    /// <param name="backupFm">The <see cref="IFileManager"/> of the destination</param>
+    /// <param name="backupPath">The destination directory</param>
+    /// <param name="password">The encryption password, if any</param>
+    /// <param name="progressAction">Progress (bytes, total bytes)</param>
+    public static async Task SaveBackupFile(string localDbPath, IFileManager backupFm, string backupPath, string? password,
+        Action<long, long>? progressAction = null)
+    {
+        using var sourceFm = FileManagerFactory.GetFileManager(localDbPath, out _);
+        var info = await sourceFm.GetFileInfo(localDbPath);
+        progressAction?.Invoke(0, info.Size);
+
+        var dbPath = backupFm.CombinePath(backupPath, DefaultDatabaseFileName);
+        var backupDbPath = backupFm.CombinePath(backupPath, DatabaseBackupFileName);
+        var tempDbPath = backupFm.CombinePath(backupPath, DatabaseTempFileName);
+
+        // Write the new database to a temporary file: the current database is untouched until the copy is complete
+        if (await backupFm.FileExists(tempDbPath))
+            await backupFm.DeleteFile(tempDbPath);
+        await using (var sourceStream = await sourceFm.OpenFile(localDbPath)) {
+            var destFileSize = Utility.Files.GetDestinationFileSize(sourceStream.Length, backupFm.SupportCompression ? CompressionLevel.SmallestSize : CompressionLevel.NoCompression,
+                !string.IsNullOrEmpty(password));
+            await using var destStream = await backupFm.OpenFile(tempDbPath, true, destFileSize);
+
+            var action = new Action<long>((copied) =>
+            {
+                progressAction?.Invoke(copied, info.Size);
+            });
+            if (string.IsNullOrEmpty(password))
+                await Utility.Files.Copy(sourceStream, destStream, action);
+            else {
+                var encrypt = new EncryptDecrypt(password);
+                await encrypt.Encrypt(sourceStream, destStream, backupFm.SupportCompression ? CompressionLevel.SmallestSize : CompressionLevel.NoCompression, action);
+            }
+        }
+
+        // Keep the current database as backup, then move the new one in place.
+        // If interrupted between the two renames the database is missing and OpenBackupFile falls back to the backup copy.
+        if (await backupFm.FileExists(dbPath)) {
+            if (await backupFm.FileExists(backupDbPath))
+                await backupFm.DeleteFile(backupDbPath);
+            await backupFm.RenameFile(dbPath, BackupFile.DatabaseBackupFileName);
+        }
+        await backupFm.RenameFile(tempDbPath, DefaultDatabaseFileName);
     }
 
     public async Task Open(string? path)

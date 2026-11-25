@@ -100,10 +100,16 @@ public partial class JobRunningPage : BasePage
                 SourcePassword = bkp.Source.Password,
                 SourceOauthSettings = bkp.Source.GetOAuth2Settings(),
 
-                Destination = bkp.Destination!.FullPath,
-                DestinationUser = bkp.Destination.User,
-                DestinationPassword = bkp.Destination.Password,
-                DestinationOauthSettings = bkp.Destination.GetOAuth2Settings(),
+                Destinations =
+                [
+                    new BackupDestination()
+                    {
+                        Path = bkp.Destination!.FullPath,
+                        User = bkp.Destination.User,
+                        Password = bkp.Destination.Password,
+                        OauthSettings = bkp.Destination.GetOAuth2Settings(),
+                    }
+                ],
 
                 SkipHashCheck = bkp.SkipHashCheck,
                 RetryOnError = bkp.RetryOnError,

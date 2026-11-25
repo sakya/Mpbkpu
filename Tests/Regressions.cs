@@ -3,10 +3,14 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using MpbkpuLib;
 using MpbkpuLib.Abstracts;
 using MpbkpuLib.DataModel;
 using MpbkpuLib.Jobs;
+using Newtonsoft.Json;
 using NUnit.Framework;
 using File = System.IO.File;
 
@@ -437,7 +441,7 @@ public class Regressions : BaseTest
         {
             BackupType = Backup.BackupTypes.Full,
             Source = BackupSource,
-            Destination = BackupDestination,
+            Destinations = BackupDestinations(),
         });
         job.Progress += (_, _) => throw new IOException("Simulated failure");
         using var cts = new CancellationTokenSource();
@@ -467,6 +471,143 @@ public class Regressions : BaseTest
         Assert.That(MpbkpuLib.Utility.Files.IsSameOrSubPath("data", "DATA/sub"), Is.True);
     }
 
+    [Test]
+    public void LegacySingleDestinationSettingsAreRead()
+    {
+        // Settings saved in the backup databases before multiple destinations
+        var json = "{\"Source\":\"src\",\"Destination\":\"ftp://user:***@host/backup\",\"DestinationUser\":\"user\"," +
+                   "\"DestinationOauthSettings\":{\"AppName\":\"app\"}}";
+        var settings = JsonConvert.DeserializeObject<BackupJobSettings>(json)!;
+        Assert.That(settings.Destinations, Has.Count.EqualTo(1));
+        Assert.That(settings.Destinations[0].Path, Is.EqualTo("ftp://user:***@host/backup"));
+        Assert.That(settings.Destinations[0].User, Is.EqualTo("user"));
+        Assert.That(settings.Destinations[0].OauthSettings?.AppName, Is.EqualTo("app"));
+        Assert.That(settings.ParallelFiles, Is.EqualTo(1));
+
+        // Saved again only in the new form, without the password
+        settings.Destinations[0].Password = "secret";
+        var saved = JsonConvert.SerializeObject(settings);
+        Assert.That(saved, Does.Not.Contain("\"Destination\"").And.Not.Contain("secret"));
+        var reloaded = JsonConvert.DeserializeObject<BackupJobSettings>(saved)!;
+        Assert.That(reloaded.Destinations.Select(d => d.Id), Is.EqualTo(settings.Destinations.Select(d => d.Id)));
+
+        var noDestination = JsonConvert.DeserializeObject<BackupJobSettings>("{\"Source\":\"src\",\"Destination\":null}")!;
+        Assert.That(noDestination.Destinations, Is.Empty);
+    }
+
+    [Test]
+    public async Task InvalidDestinationSettingsAreRejected()
+    {
+        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            new BackupJob(new BackupJobSettings() { Source = BackupSource }).Run(CancellationToken.None));
+        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            new BackupJob(new BackupJobSettings() { Source = BackupSource, Destinations = [new()] }).Run(CancellationToken.None));
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            new BackupJob(new BackupJobSettings() { Source = BackupSource, Destinations = BackupDestinations(), ParallelFiles = 0 }).Run(CancellationToken.None));
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            new BackupJob(new BackupJobSettings() { Source = BackupSource, Destinations = Destinations(BackupDestination, BackupDestination + "/sub") }).Run(CancellationToken.None));
+        var duplicateIds = Destinations(BackupDestination, ExtraDestinations[0]);
+        duplicateIds[1].Id = duplicateIds[0].Id;
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            new BackupJob(new BackupJobSettings() { Source = BackupSource, Destinations = duplicateIds }).Run(CancellationToken.None));
+    }
+
+    [Test]
+    public async Task DatabaseBeforeMultipleDestinationsIsMigrated()
+    {
+        var dbPath = Path.Combine(BackupDestination, "old.db");
+        var options = new DbContextOptionsBuilder().UseSqlite($"Data Source={dbPath};Pooling=false").Options;
+        await using (var context = new MpbkpuLib.Context.BackupContext(options)) {
+            await context.GetService<IMigrator>().MigrateAsync("20220819143400_Initial");
+            await context.Database.ExecuteSqlRawAsync("INSERT INTO Backups (Id, Guid, Type, Result) VALUES (1, 'old', 0, 1)");
+            await context.Database.ExecuteSqlRawAsync("INSERT INTO BackupVolumes (Id, BackupId, Name) VALUES (1, 1, 'volume')");
+        }
+
+        using var backupFile = new BackupFile();
+        await backupFile.Open(dbPath);
+        var volume = await backupFile.BackupVolumes.SingleAsync();
+        Assert.That(volume.Name, Is.EqualTo("volume"));
+        Assert.That(volume.DestinationId, Is.Null);
+        Assert.That(await backupFile.Destinations.CountAsync(), Is.Zero);
+        backupFile.Close();
+    }
+
+    [Test]
+    public async Task FilesAreSplitAmongDestinationsAndDatabaseIsInAll()
+    {
+        string[] all = [BackupDestination, ..ExtraDestinations];
+        // New ids on every run (like the CLI): the destinations are matched by path
+        var guid = await RunBackup(Backup.BackupTypes.Full, configure: s => s.Destinations = Destinations(all));
+        foreach (var destination in all) {
+            Assert.That(File.Exists(Path.Combine(destination, BackupFile.DefaultDatabaseFileName)), Is.True, destination);
+            Assert.That(Directory.Exists(Path.Combine(destination, guid)), Is.True, $"No files in {destination}");
+            await AssertItemsInTheirDestinations(destination, all.Length);
+        }
+
+        File.WriteAllText(Path.Combine(BackupSource, "changed.txt"), "changed");
+        await RunBackup(Backup.BackupTypes.Incremental, configure: s => s.Destinations = Destinations(all));
+        foreach (var destination in all)
+            Assert.That(await AssertItemsInTheirDestinations(destination, all.Length), Is.EqualTo(2), destination);
+    }
+
+    [Test]
+    public async Task LegacyVolumesBelongToTheDestinationOfTheDatabase()
+    {
+        await RunBackup(Backup.BackupTypes.Full);
+        // Turn the database into one created before multiple destinations
+        using (var fm = MpbkpuLib.FileManagers.FileManagerFactory.GetFileManager(BackupDestination, out var path))
+        using (var openRes = await BackupFile.OpenBackupFile(fm, path)) {
+            await openRes.BackupFile.BackupVolumes.ExecuteUpdateAsync(s => s.SetProperty(v => v.DestinationId, (int?)null));
+            await openRes.BackupFile.Destinations.ExecuteDeleteAsync();
+        }
+
+        // The new destination comes first: the database must still be read from the old one
+        File.WriteAllText(Path.Combine(BackupSource, "new.txt"), "new");
+        await RunBackup(Backup.BackupTypes.Incremental, configure: s => s.Destinations = Destinations(ExtraDestinations[0], BackupDestination));
+        Assert.That(await AssertItemsInTheirDestinations(ExtraDestinations[0], 2), Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task DatabaseCopyFailureOnOneDestinationIsAWarning()
+    {
+        // A directory in place of the temporary database file makes the copy fail
+        Directory.CreateDirectory(Path.Combine(ExtraDestinations[0], BackupFile.DatabaseTempFileName));
+        using var job = new BackupJob(new BackupJobSettings()
+        {
+            BackupType = Backup.BackupTypes.Full,
+            Source = BackupSource,
+            Destinations = Destinations(BackupDestination, ExtraDestinations[0]),
+        });
+        var res = (BackupJobJobResult)await job.Run(CancellationToken.None);
+        Assert.That(res.Success, Is.True);
+        Assert.That(res.Result, Is.EqualTo(Backup.Results.CompletedWithWarnings));
+        Assert.That(File.Exists(Path.Combine(ExtraDestinations[0], BackupFile.DefaultDatabaseFileName)), Is.False);
+        await AssertItemsInTheirDestinations(BackupDestination, 2);
+    }
+
+    /// <summary>
+    /// Check that every backed up item of the database in <paramref name="databaseDestination"/> is in the destination
+    /// recorded for its volume
+    /// </summary>
+    /// <returns>The number of backups</returns>
+    private static async Task<int> AssertItemsInTheirDestinations(string databaseDestination, int destinations)
+    {
+        using var fm = MpbkpuLib.FileManagers.FileManagerFactory.GetFileManager(databaseDestination, out var path);
+        using var openRes = await BackupFile.OpenBackupFile(fm, path);
+        var backupFile = openRes.BackupFile;
+        var records = await backupFile.Destinations.ToDictionaryAsync(d => d.Id, d => d.Path);
+        Assert.That(records, Has.Count.EqualTo(destinations));
+        var items = await backupFile.BackupItems.Include(i => i.Backup).Include(i => i.Volume)
+            .Where(i => i.VolumeId != null).ToListAsync();
+        Assert.That(items, Is.Not.Empty);
+        foreach (var item in items) {
+            var destination = records[item.Volume!.DestinationId!.Value]!;
+            var itemPath = Path.Combine(destination, item.Backup!.Guid, item.Volume.Name!, item.Name!);
+            Assert.That(File.Exists(itemPath), Is.True, $"{item.OriginalPath} not found in {destination}");
+        }
+        return await backupFile.Backups.CountAsync();
+    }
+
     private async Task<string> RunBackup(Backup.BackupTypes type, string? password = null,
         System.Action<BackupJobSettings>? configure = null, BackupJob.ConfirmHandler? confirm = null,
         System.Action<string, long>? fileProgress = null)
@@ -475,7 +616,7 @@ public class Regressions : BaseTest
         {
             BackupType = type,
             Source = BackupSource,
-            Destination = BackupDestination,
+            Destinations = BackupDestinations(),
             EncryptPassword = password,
         };
         configure?.Invoke(settings);

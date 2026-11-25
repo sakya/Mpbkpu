@@ -46,25 +46,14 @@ public class BackupJobSettings : BaseJobSettings
     public OAuth2Settings? SourceOauthSettings { get; set; }
 
     /// <summary>
-    /// The backup destination
+    /// The backup destinations: the files are split among them and every one holds a copy of the database
     /// </summary>
-    /// <value></value>
-    public string? Destination { get; set; }
+    public List<BackupDestination> Destinations { get; set; } = new();
+
     /// <summary>
-    /// The user to access to the destination
+    /// Maximum number of files copied at the same time
     /// </summary>
-    /// <value></value>
-    public string? DestinationUser { get; set; }
-    /// <summary>
-    /// The password to access to the destination
-    /// </summary>
-    /// <value></value>
-    [JsonIgnore] // Never logged or saved in the backup database
-    public string? DestinationPassword { get; set; }
-    /// <summary>
-    /// OAuth settings to access to the destination
-    /// </summary>
-    public OAuth2Settings? DestinationOauthSettings { get; set; }
+    public int ParallelFiles { get; set; } = 1;
 
     /// <summary>
     /// A list of files/directories to exclude from the backup
@@ -107,4 +96,49 @@ public class BackupJobSettings : BaseJobSettings
     /// Older chains are deleted after a full backup completes.
     /// </summary>
     public int KeepChains { get; set; }
+
+    #region legacy settings
+    // Settings saved before multiple destinations (in the backup databases) had a single destination:
+    // these write-only properties read it into Destinations and are never serialized
+
+    [JsonProperty("Destination")]
+    private string? LegacyDestination
+    {
+        set
+        {
+            if (value != null)
+                LegacyDestinationEntry.Path = value;
+        }
+    }
+
+    [JsonProperty("DestinationUser")]
+    private string? LegacyDestinationUser
+    {
+        set
+        {
+            if (value != null)
+                LegacyDestinationEntry.User = value;
+        }
+    }
+
+    [JsonProperty("DestinationOauthSettings")]
+    private OAuth2Settings? LegacyDestinationOauthSettings
+    {
+        set
+        {
+            if (value != null)
+                LegacyDestinationEntry.OauthSettings = value;
+        }
+    }
+
+    private BackupDestination LegacyDestinationEntry
+    {
+        get
+        {
+            if (Destinations.Count == 0)
+                Destinations.Add(new BackupDestination());
+            return Destinations[0];
+        }
+    }
+    #endregion
 }

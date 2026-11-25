@@ -29,7 +29,7 @@ public class BackupAndRestore : BaseTest
         {
             BackupType = Backup.BackupTypes.Full,
             Source = BackupSource,
-            Destination = BackupDestination,
+            Destinations = BackupDestinations(),
         };
         var bJob = new BackupJob(bSettings);
         using var bCts = new CancellationTokenSource();
@@ -60,7 +60,7 @@ public class BackupAndRestore : BaseTest
             BackupType = Backup.BackupTypes.Full,
             Source = BackupSource,
             CompressionLevel = CompressionLevel.SmallestSize,
-            Destination = BackupDestination,
+            Destinations = BackupDestinations(),
         };
         var bJob = new BackupJob(bSettings);
         using var bCts = new CancellationTokenSource();
@@ -91,7 +91,7 @@ public class BackupAndRestore : BaseTest
             BackupType = Backup.BackupTypes.Full,
             Source = BackupSource,
             EncryptPassword = EncryptionPassword,
-            Destination = BackupDestination,
+            Destinations = BackupDestinations(),
         };
         var bJob = new BackupJob(bSettings);
         using var bCts = new CancellationTokenSource();
@@ -124,7 +124,7 @@ public class BackupAndRestore : BaseTest
             Source = BackupSource,
             CompressionLevel = CompressionLevel.SmallestSize,
             EncryptPassword = EncryptionPassword,
-            Destination = BackupDestination,
+            Destinations = BackupDestinations(),
         };
         var bJob = new BackupJob(bSettings);
         using var bCts = new CancellationTokenSource();

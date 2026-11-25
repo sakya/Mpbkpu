@@ -31,17 +31,23 @@ public class BackupAction : BaseAction
                 AppSecret = pArgs.SourceOauthAppSecret,
             },
 
-            Destination = pArgs.DestinationPath,
-            DestinationUser = pArgs.DestinationUser,
-            DestinationPassword = pArgs.DestinationPassword,
-            DestinationOauthSettings = new OAuth2Settings()
-            {
-                ServerUrl = pArgs.DestinationOauthServerUrl,
-                RedirectUrl = pArgs.DestinationOauthRedirectUrl,
-                AppName = pArgs.DestinationOauthAppName,
-                AppId = pArgs.DestinationOauthAppId,
-                AppSecret = pArgs.DestinationOauthAppSecret,
-            },
+            Destinations =
+            [
+                new BackupDestination()
+                {
+                    Path = pArgs.DestinationPath,
+                    User = pArgs.DestinationUser,
+                    Password = pArgs.DestinationPassword,
+                    OauthSettings = new OAuth2Settings()
+                    {
+                        ServerUrl = pArgs.DestinationOauthServerUrl,
+                        RedirectUrl = pArgs.DestinationOauthRedirectUrl,
+                        AppName = pArgs.DestinationOauthAppName,
+                        AppId = pArgs.DestinationOauthAppId,
+                        AppSecret = pArgs.DestinationOauthAppSecret,
+                    },
+                }
+            ],
 
             SkipHashCheck = pArgs.SkipHashCheck,
 

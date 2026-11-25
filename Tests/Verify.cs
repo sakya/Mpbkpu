@@ -28,7 +28,7 @@ public class Verify : BaseTest
         {
             BackupType = Backup.BackupTypes.Full,
             Source = BackupSource,
-            Destination = BackupDestination,
+            Destinations = BackupDestinations(),
         };
         var bJob = new BackupJob(bSettings);
         using var bCts = new CancellationTokenSource();
@@ -58,7 +58,7 @@ public class Verify : BaseTest
             BackupType = Backup.BackupTypes.Full,
             Source = BackupSource,
             CompressionLevel = CompressionLevel.SmallestSize,
-            Destination = BackupDestination,
+            Destinations = BackupDestinations(),
         };
         var bJob = new BackupJob(bSettings);
         using var bCts = new CancellationTokenSource();
@@ -88,7 +88,7 @@ public class Verify : BaseTest
             BackupType = Backup.BackupTypes.Full,
             Source = BackupSource,
             EncryptPassword = EncryptionPassword,
-            Destination = BackupDestination,
+            Destinations = BackupDestinations(),
         };
         var bJob = new BackupJob(bSettings);
         using var bCts = new CancellationTokenSource();
@@ -120,7 +120,7 @@ public class Verify : BaseTest
             Source = BackupSource,
             CompressionLevel = CompressionLevel.SmallestSize,
             EncryptPassword = EncryptionPassword,
-            Destination = BackupDestination,
+            Destinations = BackupDestinations(),
         };
         var bJob = new BackupJob(bSettings);
         using var bCts = new CancellationTokenSource();

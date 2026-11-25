@@ -42,11 +42,34 @@ public class BackupJob : BaseJob
         public string? Name { get; set; }
         public int? ItemsCount { get; set; }
     }
+
+    /// <summary>
+    /// What the job wrote to a destination
+    /// </summary>
+    private class DestinationState
+    {
+        public DestinationState(DestinationSet.Entry entry)
+        {
+            Entry = entry;
+        }
+
+        public DestinationSet.Entry Entry { get; }
+        public LastUsedVolume? LastUsedVolume { get; set; }
+        /// <summary>
+        /// Bytes assigned to the destination in this run (to balance the destinations)
+        /// </summary>
+        public long AssignedBytes { get; set; }
+        /// <summary>
+        /// True when the job created the directory of the backup in the destination
+        /// </summary>
+        public bool BackupDirectoryCreated { get; set; }
+    }
     #endregion
 
     #region private members
     private Backup? _backup;
-    private LastUsedVolume? _lastUsedVolume;
+    private DestinationSet? _destinations;
+    private List<DestinationState> _states = new();
     private CancellationToken? _cancellationToken;
     private IFileManager? _sourceFm;
     private string? _sourcePath;
@@ -115,14 +138,15 @@ public class BackupJob : BaseJob
         LogInfo("Starting with settings:");
         LogInfo(SerializeSettings());
 
-        BackupFm = FileManagerFactory.GetFileManager(Settings.Destination, out BackupPath, Settings.DestinationUser, Settings.DestinationPassword, Settings.DestinationOauthSettings);
+        _destinations = new DestinationSet(Settings.Destinations);
+        _states = _destinations.Entries.Select(e => new DestinationState(e)).ToList();
         _sourceFm = FileManagerFactory.GetFileManager(Settings.Source, out _sourcePath, Settings.SourceUser, Settings.SourcePassword, Settings.SourceOauthSettings);
 
         LogInfo("Opening database");
         Step?.Invoke(this, Steps.OpenDatabase);
-        await CheckDestination();
-        await ReadDestinationSpace();
-        using (var openRes = await BackupFile.OpenBackupFile(BackupFm, BackupPath, Settings.EncryptPassword, true, OnOpenBackup, _cancellationToken)) {
+        await CheckDestinations();
+        await ReadDestinationsSpace();
+        using (var openRes = await _destinations.OpenDatabase(Settings.EncryptPassword, true, OnOpenBackup, _cancellationToken)) {
             var backupFile = openRes.BackupFile;
             // True when the database in the destination references this backup
             var persisted = false;
@@ -147,14 +171,14 @@ public class BackupJob : BaseJob
                     if (!string.IsNullOrEmpty(openRes.TempFilePath)) {
                         LogInfo("Copying database");
                         Step?.Invoke(this, Steps.CopyDatabase);
-                        await CopyDatabaseToDestination(openRes, Settings.EncryptPassword, OnCopyBackup);
+                        await CopyDatabaseToDestinations(openRes.TempFilePath);
                         persisted = true;
                     }
                 }
             } catch (Exception ex) {
                 LogError(ex);
                 if (!persisted)
-                    await DeleteOrphanBackupDirectory();
+                    await DeleteOrphanBackupDirectories();
                 throw;
             }
         }
@@ -162,7 +186,7 @@ public class BackupJob : BaseJob
         if (_chainsToDelete.Count > 0)
             await DeleteOldChains();
         // The real space after the backup (compression and deletions make the estimate approximate)
-        await ReadDestinationSpace();
+        await ReadDestinationsSpace();
 
         return new BackupJobJobResult()
         {
@@ -178,6 +202,7 @@ public class BackupJob : BaseJob
     public override void Dispose()
     {
         _sourceFm?.Dispose();
+        _destinations?.Dispose();
         base.Dispose();
     }
     #endregion
@@ -190,12 +215,12 @@ public class BackupJob : BaseJob
     /// <returns>True on success</returns>
     private async Task RunPrimitive(BackupFile backupFile)
     {
-        if (BackupFm == null)
-            throw new Exception("Backup file manager not initialized");
+        if (_destinations == null)
+            throw new Exception("Destinations not initialized");
         if (_sourceFm == null)
             throw new Exception("Source file manager not initialized");
 
-        _lastUsedVolume = null;
+        await _destinations.Register(backupFile);
         Backup? lastBackup = await backupFile.LastBackup();
         // A chain is a full backup followed by backups of the same type: start a new chain when needed
         if (Settings.BackupType != Backup.BackupTypes.Full) {
@@ -341,12 +366,6 @@ public class BackupJob : BaseJob
             }
         }
 
-        // Create the backup directory
-        var backupDirectory = BackupFm.CombinePath(BackupPath!, _backup.Guid);
-        if (await BackupFm.DirectoryExists(backupDirectory))
-            throw new Exception($"The backup destination {backupDirectory} exist");
-        await BackupFm.CreateDirectory(backupDirectory);
-
         // Backup files
         LogInfo("Backing up files");
         Step?.Invoke(this, Steps.BackupFiles);
@@ -357,7 +376,7 @@ public class BackupJob : BaseJob
 
         _progressData = new ProgressData()
         {
-            Eta = StartEta(cArgs.BytesToBackup, cArgs.FilesToBackup, _sourceFm, BackupFm),
+            Eta = StartEta(cArgs.BytesToBackup, cArgs.FilesToBackup, _states.Select(s => s.Entry.Fm).Prepend(_sourceFm).ToArray()),
             TotalBytes = cArgs.BytesToBackup,
             TotalFiles = cArgs.FilesToBackup
         };
@@ -391,6 +410,8 @@ public class BackupJob : BaseJob
                     }
                 }
 
+                // Every try goes to the same destination
+                var destination = ChooseDestination(Files.GetDestinationFileSize(fileToBackup.Size, Settings.CompressionLevel, encryptor != null) ?? fileToBackup.Size);
                 var tryCount = 0;
                 while (++tryCount <= Settings.RetryOnError) {
                     if (_cancellationToken?.IsCancellationRequested == true) {
@@ -403,8 +424,8 @@ public class BackupJob : BaseJob
                         // Compute file size of the backup file if possible
                         long? backupFileSize = Files.GetDestinationFileSize(fileToBackup.Size, Settings.CompressionLevel, encryptor != null);
                         // On the last try accept a file changed during the copy (with a warning)
-                        await BackupFileFromSource(backupFile, fileToBackup, encryptor, backupFileSize, tryCount == Settings.RetryOnError);
-                        DestinationSpaceUsed(backupFileSize ?? fileToBackup.Size);
+                        await BackupFileFromSource(backupFile, destination, fileToBackup, encryptor, backupFileSize, tryCount == Settings.RetryOnError);
+                        DestinationSpaceUsed(destination, backupFileSize ?? fileToBackup.Size);
                         _progressData.Bytes += fileToBackup.Size;
                         _progressData.FileIndex++;
                         Progress?.Invoke(this, new ProgressHandlerArgs(_progressData.FileIndex, cArgs.FilesToBackup, _progressData.Bytes, _progressData.TotalBytes, _progressData.Eta!.Update(_progressData.Bytes, _progressData.FileIndex)));
@@ -446,14 +467,37 @@ public class BackupJob : BaseJob
         if (string.IsNullOrEmpty(Settings.Source))
             throw new ArgumentNullException(nameof(Settings.Source), "Source cannot be empty");
 
-        if (string.IsNullOrEmpty(Settings.Destination))
-            throw new ArgumentNullException(nameof(Settings.Destination), "Destination cannot be empty");
+        if (Settings.Destinations.Count == 0)
+            throw new ArgumentNullException(nameof(Settings.Destinations), "At least one destination is required");
+        // TODO: remove when DeleteJob supports multiple destinations
+        if (Settings.Destinations.Count > 1 && Settings.KeepChains > 0)
+            throw new NotSupportedException("KeepChains is not supported yet with multiple destinations");
 
-        if (Utility.Files.IsSameOrSubPath(Settings.Source, Settings.Destination)) {
-            throw new ArgumentException(Utility.Files.IsSameOrSubPath(Settings.Destination, Settings.Source) ?
-                "Source and Destination cannot be the same" :
-                "Destination cannot be a subdirectory of Source");
+        for (var i = 0; i < Settings.Destinations.Count; i++) {
+            var destination = Settings.Destinations[i];
+            if (string.IsNullOrEmpty(destination.Path))
+                throw new ArgumentNullException(nameof(Settings.Destinations), "Destination cannot be empty");
+            if (string.IsNullOrEmpty(destination.Id))
+                throw new ArgumentNullException(nameof(Settings.Destinations), "Destination id cannot be empty");
+
+            if (Utility.Files.IsSameOrSubPath(Settings.Source, destination.Path)) {
+                throw new ArgumentException(Utility.Files.IsSameOrSubPath(destination.Path, Settings.Source) ?
+                    "Source and Destination cannot be the same" :
+                    "Destination cannot be a subdirectory of Source");
+            }
+
+            for (var j = i + 1; j < Settings.Destinations.Count; j++) {
+                var other = Settings.Destinations[j];
+                if (other.Id == destination.Id)
+                    throw new ArgumentException($"Duplicate destination id {destination.Id}");
+                if (!string.IsNullOrEmpty(other.Path) &&
+                    (Utility.Files.IsSameOrSubPath(destination.Path, other.Path) || Utility.Files.IsSameOrSubPath(other.Path, destination.Path)))
+                    throw new ArgumentException($"Destinations {destination.Path} and {other.Path} overlap");
+            }
         }
+
+        if (Settings.ParallelFiles <= 0)
+            throw new ArgumentException("ParallelFiles must be greater than zero");
 
         if (Settings.MaxFilesPerDirectory <= 0)
             throw new ArgumentException("MaxFilesPerDirectory must be greater than zero");
@@ -472,30 +516,89 @@ public class BackupJob : BaseJob
     }
 
     /// <summary>
-    /// Check the destination directory.
+    /// Check the destination directories, creating the missing ones
     /// </summary>
-    private async Task CheckDestination()
+    private async Task CheckDestinations()
     {
-        if (BackupFm == null)
-            throw new Exception("Backup file manager not initialized");
+        foreach (var state in _states) {
+            var fm = state.Entry.Fm;
+            if (Settings.CompressionLevel != CompressionLevel.NoCompression && !fm.SupportCompression)
+                throw new Exception($"Destination {DestinationSet.MaskedPath(state.Entry)} doesn't support compression");
 
-        if (Settings.CompressionLevel != CompressionLevel.NoCompression && !BackupFm.SupportCompression)
-            throw new Exception("Destination doesn't support compression");
+            if (!await fm.DirectoryExists(state.Entry.Path))
+                await fm.CreateDirectory(state.Entry.Path);
+        }
+    }
 
-        if (!await BackupFm.DirectoryExists(BackupPath))
-            await BackupFm.CreateDirectory(BackupPath);
+    /// <summary>
+    /// Read the space of every destination. Never fails the job.
+    /// </summary>
+    private async Task ReadDestinationsSpace()
+    {
+        foreach (var state in _states)
+            await ReadSpace(state.Entry.Space, state.Entry.Fm, state.Entry.Path);
+        OnSpaceChanged(SpaceEstimate.Sum(_states.Select(s => s.Entry.Space)));
+    }
+
+    /// <summary>
+    /// Update the estimated space of a destination after writing a file
+    /// </summary>
+    private void DestinationSpaceUsed(DestinationState destination, long bytes)
+    {
+        destination.Entry.Space.Used(bytes);
+        OnSpaceChanged(SpaceEstimate.Sum(_states.Select(s => s.Entry.Space)));
+    }
+
+    /// <summary>
+    /// Choose the destination of a file: the one with the fewest bytes assigned in this run among the ones with
+    /// enough estimated space (unknown space counts as enough). When none has enough space the one with the most
+    /// space is chosen anyway: the estimate is approximate and the file manager reports a real lack of space.
+    /// </summary>
+    private DestinationState ChooseDestination(long size)
+    {
+        var res = _states.Where(s => s.Entry.Space.Current == null || s.Entry.Space.Current.Available >= size)
+                      .MinBy(s => s.AssignedBytes) ??
+                  _states.MaxBy(s => s.Entry.Space.Current!.Available)!;
+        res.AssignedBytes += size;
+        return res;
+    }
+
+    /// <summary>
+    /// Write the database to every destination. With more than one destination a failure is only a warning, as long
+    /// as one destination holds the new database.
+    /// </summary>
+    private async Task CopyDatabaseToDestinations(string localDbPath)
+    {
+        var failed = 0;
+        Exception? lastError = null;
+        foreach (var state in _states) {
+            try {
+                await BackupFile.SaveBackupFile(localDbPath, state.Entry.Fm, state.Entry.Path, Settings.EncryptPassword, OnCopyBackup);
+            } catch (Exception ex) when (_states.Count > 1) {
+                LogWarning($"Cannot copy the database to {DestinationSet.MaskedPath(state.Entry)}: {ex.Message}");
+                failed++;
+                lastError = ex;
+            }
+        }
+
+        if (failed == _states.Count)
+            throw new Exception("Cannot copy the database to any destination", lastError);
+        if (failed > 0 && _result == Backup.Results.Completed)
+            _result = Backup.Results.CompletedWithWarnings;
     }
 
     /// <summary>
     /// Backup a <see cref="DataModel.File"/>
     /// </summary>
     /// <param name="backupFile">The <see cref="BackupFile"/></param>
+    /// <param name="destination">The destination of the file</param>
     /// <param name="sourceFile">The <see cref="DataModel.File"/> to backup</param>
     /// <param name="encryptor">The optional <see cref="Utility.EncryptDecrypt"/> to encrypt the file</param>
     /// <param name="backupFileSize">The size of the backup file, if known</param>
     /// <param name="acceptChanges">If false a file changed during the copy throws an exception (to retry)</param>
     /// <exception cref="ArgumentNullException"></exception>
     private async Task BackupFileFromSource(BackupFile? backupFile,
+        DestinationState destination,
         File? sourceFile,
         EncryptDecrypt? encryptor,
         long? backupFileSize,
@@ -503,14 +606,12 @@ public class BackupJob : BaseJob
     {
         if (_sourceFm == null)
             throw new Exception("Source file manager not initialized");
-        if (BackupFm == null)
-            throw new Exception("Backup file manager not initialized");
         if (backupFile == null)
             throw new ArgumentNullException(nameof(backupFile));
         if (sourceFile == null)
             throw new ArgumentNullException(nameof(sourceFile));
 
-        var backupItem = await GetNextBackupItem(backupFile);
+        var backupItem = await GetNextBackupItem(backupFile, destination);
         backupItem.BackupId = _backup!.Id;
         backupItem.Action = sourceFile.Modified ? BackupItem.Actions.Modified : BackupItem.Actions.Added;
         backupItem.Type = sourceFile.Type;
@@ -523,7 +624,8 @@ public class BackupJob : BaseJob
         backupItem.OriginalRelativePath = sourceFile.RelativePath;
         backupItem.OriginalSize = sourceFile.Size;
 
-        var destFilePath = BackupFm.CombinePath(BackupPath!, _backup.Guid, _lastUsedVolume!.Name!, backupItem.Name!);
+        var destFm = destination.Entry.Fm;
+        var destFilePath = destFm.CombinePath(destination.Entry.Path, _backup.Guid, destination.LastUsedVolume!.Name!, backupItem.Name!);
         try {
             switch (sourceFile.Type) {
                 case File.FileTyes.Directory:
@@ -537,7 +639,7 @@ public class BackupJob : BaseJob
                     var size = 9;
                     FileProgress?.Invoke(this, sourceFile.RelativePath!, 0, size);
                     using (var sourceStream = new MemoryStream(Encoding.ASCII.GetBytes("DIRECTORY"))) {
-                        await using (var destStream = await BackupFm.OpenFile(destFilePath, true, size)) {
+                        await using (var destStream = await destFm.OpenFile(destFilePath, true, size)) {
                             await sourceStream.CopyToAsync(destStream);
                         }
                     }
@@ -549,7 +651,7 @@ public class BackupJob : BaseJob
                     FileProgress?.Invoke(this, sourceFile.RelativePath!, 0, sourceFile.Size);
                     DateTime? lastFileProgress = null;
                     using (var sourceStream = await _sourceFm.OpenFile(sourceFile.FullPath)) {
-                        using (var destStream = await BackupFm.OpenFile(destFilePath, true, backupFileSize)) {
+                        using (var destStream = await destFm.OpenFile(destFilePath, true, backupFileSize)) {
                             var progressAction = new Action<long>((copied) =>
                             {
                                 if (lastFileProgress == null || copied == sourceFile.Size ||
@@ -583,7 +685,7 @@ public class BackupJob : BaseJob
             }
         } catch {
             // Don't leave a partial file in the destination (retry, cancellation or error)
-            await TryDeleteFile(BackupFm, destFilePath);
+            await TryDeleteFile(destFm, destFilePath);
             throw;
         }
 
@@ -670,27 +772,37 @@ public class BackupJob : BaseJob
     /// Find the first free <see cref="BackupVolume"/> or create a new one for the file
     /// </summary>
     /// <param name="backupFile">The <see cref="BackupFile"/> to backup</param>
+    /// <param name="destination">The destination of the item</param>
     /// <returns>A <see cref="DataModel.BackupItem"/></returns>
-    private async Task<BackupItem> GetNextBackupItem(BackupFile backupFile)
+    private async Task<BackupItem> GetNextBackupItem(BackupFile backupFile, DestinationState destination)
     {
-        if (BackupFm == null)
-            throw new Exception("Backup file manager not initialized");
+        var fm = destination.Entry.Fm;
+        if (!destination.BackupDirectoryCreated) {
+            var backupDirectory = fm.CombinePath(destination.Entry.Path, _backup!.Guid);
+            if (await fm.DirectoryExists(backupDirectory))
+                throw new Exception($"The backup destination {backupDirectory} exist");
+            await fm.CreateDirectory(backupDirectory);
+            destination.BackupDirectoryCreated = true;
+        }
 
         int? volumeId;
         string? volumeName;
-        if (_lastUsedVolume?.ItemsCount < Settings.MaxFilesPerDirectory) {
-            volumeId = _lastUsedVolume.Id;
-            volumeName = _lastUsedVolume.Name;
-            _lastUsedVolume.ItemsCount++;
+        var lastUsedVolume = destination.LastUsedVolume;
+        if (lastUsedVolume?.ItemsCount < Settings.MaxFilesPerDirectory) {
+            volumeId = lastUsedVolume.Id;
+            volumeName = lastUsedVolume.Name;
+            lastUsedVolume.ItemsCount++;
         } else {
+            var destinationId = destination.Entry.RecordId;
             var volume = await backupFile.BackupVolumes.AsNoTracking()
-                .Where(v => v.BackupId == _backup!.Id && v.Items!.Count() < Settings.MaxFilesPerDirectory)
+                .Where(v => v.BackupId == _backup!.Id && v.DestinationId == destinationId && v.Items!.Count() < Settings.MaxFilesPerDirectory)
                 .FirstOrDefaultAsync();
             if (volume == null) {
                 volume = new BackupVolume()
                 {
                     BackupId = _backup!.Id,
                     Name = Guid.NewGuid().ToString("N"),
+                    DestinationId = destinationId,
                 };
                 backupFile.BackupVolumes.Add(volume);
                 await backupFile.SaveChangesAsync();
@@ -698,7 +810,7 @@ public class BackupJob : BaseJob
 
             volumeId = volume.Id;
             volumeName = volume.Name;
-            _lastUsedVolume = new LastUsedVolume()
+            destination.LastUsedVolume = new LastUsedVolume()
             {
                 Id = volume.Id,
                 Name = volume.Name,
@@ -711,9 +823,9 @@ public class BackupJob : BaseJob
             Name = Guid.NewGuid().ToString("N"),
             VolumeId = volumeId!.Value
         };
-        var volumePath = BackupFm.CombinePath(BackupPath!, _backup!.Guid, volumeName!);
-        if (!await BackupFm.DirectoryExists(volumePath))
-            await BackupFm.CreateDirectory(volumePath);
+        var volumePath = fm.CombinePath(destination.Entry.Path, _backup!.Guid, volumeName!);
+        if (!await fm.DirectoryExists(volumePath))
+            await fm.CreateDirectory(volumePath);
         return res;
     }
 
@@ -756,10 +868,10 @@ public class BackupJob : BaseJob
             try {
                 using var job = new DeleteJob(new DeleteJobSettings()
                 {
-                    BackupPath = Settings.Destination,
-                    BackupPathUser = Settings.DestinationUser,
-                    BackupPathPassword = Settings.DestinationPassword,
-                    BackupOauthSettings = Settings.DestinationOauthSettings,
+                    BackupPath = Settings.Destinations[0].Path,
+                    BackupPathUser = Settings.Destinations[0].User,
+                    BackupPathPassword = Settings.Destinations[0].Password,
+                    BackupOauthSettings = Settings.Destinations[0].OauthSettings,
                     BackupGuid = guid,
                     EncryptPassword = Settings.EncryptPassword,
                     LogLevel = BaseJobSettings.LogLevels.Warning
@@ -780,21 +892,24 @@ public class BackupJob : BaseJob
     }
 
     /// <summary>
-    /// Delete the files of a backup not referenced by the database in the destination
+    /// Delete the files of a backup not referenced by the database in any destination
     /// </summary>
-    private async Task DeleteOrphanBackupDirectory()
+    private async Task DeleteOrphanBackupDirectories()
     {
-        if (_backup == null || BackupFm == null)
+        if (_backup == null)
             return;
 
-        var backupDirectory = BackupFm.CombinePath(BackupPath!, _backup.Guid);
-        try {
-            if (await BackupFm.DirectoryExists(backupDirectory)) {
-                LogWarning($"Deleting the files of the failed backup {backupDirectory}");
-                await DeleteDirectoryRecursive(BackupFm, backupDirectory);
+        foreach (var state in _states.Where(s => s.BackupDirectoryCreated)) {
+            var fm = state.Entry.Fm;
+            var backupDirectory = fm.CombinePath(state.Entry.Path, _backup.Guid);
+            try {
+                if (await fm.DirectoryExists(backupDirectory)) {
+                    LogWarning($"Deleting the files of the failed backup {backupDirectory}");
+                    await DeleteDirectoryRecursive(fm, backupDirectory);
+                }
+            } catch (Exception ex) {
+                LogWarning($"Cannot delete {backupDirectory}: {ex.Message}");
             }
-        } catch (Exception ex) {
-            LogWarning($"Cannot delete {backupDirectory}: {ex.Message}");
         }
     }
 

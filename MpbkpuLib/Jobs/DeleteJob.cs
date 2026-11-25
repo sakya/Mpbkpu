@@ -129,7 +129,7 @@ public class DeleteJob : BaseJob
                 if (!_skipDatabaseCopy && !string.IsNullOrEmpty(openRes.TempFilePath)) {
                     LogInfo("Copying database");
                     Step?.Invoke(this, Steps.CopyDatabase);
-                    await CopyDatabaseToDestination(openRes, Settings.EncryptPassword, OnCopyBackup);
+                    await BackupFile.SaveBackupFile(openRes.TempFilePath, BackupFm!, BackupPath!, Settings.EncryptPassword, OnCopyBackup);
                 }
 
                 // Delete the files only now that the database no longer references them:
