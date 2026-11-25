@@ -107,8 +107,8 @@ public partial class DeleteBackupPage : BasePage
             _model.Step = Localizer.Localizer.Instance[$"Step_{step}"]);
         deleteJob.Progress += (_, args) => Dispatcher.UIThread.Post(() =>
         {
-            _model.Progress = args.TotalBytes > 0 ? Math.Floor(args.Bytes / (double)args.TotalBytes * 100.0) : 100;
-            _model.ProgressMessageEta = MpbkpuLib.Utility.String.TimeSpanToString(args.Eta);
+            _model.Progress = Math.Floor(args.Percentage);
+            _model.ProgressMessageEta = MpbkpuLib.Utility.String.EtaToString(args.Eta);
             _model.ProgressMessageFiles = $"{args.File}/{args.TotalFiles}";
             _model.ProgressMessageBytes = $"{MpbkpuLib.Utility.String.BytesToString(args.Bytes)}/{MpbkpuLib.Utility.String.BytesToString(args.TotalBytes)}";
         });

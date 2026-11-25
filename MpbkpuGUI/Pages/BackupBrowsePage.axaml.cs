@@ -52,6 +52,8 @@ public partial class BackupBrowsePage : BasePage
         _model.SpinnerMessage = Localizer.Localizer.Instance["Step_OpenBackup"];
         try {
             await Task.Run(OpenBackup);
+            // Back on the UI thread: show the files of the backed up folder at once
+            this.FindControl<TreeView>("TreeView")!.SelectedItem = _model.Directories?.FirstOrDefault();
         } catch (Exception ex) {
             await MessageDialog.ShowMessage(App.GetMainWindow(),
                 $"{Localizer.Localizer.Instance["AnErrorOccurred"]}{ex.Message}", MessageDialog.Icons.Error);

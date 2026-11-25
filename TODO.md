@@ -12,6 +12,7 @@
 - [ ] Service picker with chips in the settings (today a ComboBox).
 
 ## Fixes
+- [ ] Publish MediaFireApi 0.2.2 to NuGet (`../MediaFireApi`, not committed): without it Mpbkpu does not restore on other machines.
 - [ ] Try the MEGA, MediaFire, Nextcloud, OneDrive, Dropbox, FTP, SFTP and SMB fixes with real accounts (not covered by the offline
   tests). OneDrive: check that `LargeFileUploadTask` reads the upload stream sequentially (`UploadStream` rejects
   backward seeks, so a slice retry fails the upload instead of corrupting it).

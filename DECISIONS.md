@@ -54,6 +54,9 @@
   bytes reading in order and does not truncate (existing files are deleted first), folders are deleted only when
   empty (recursion done by `Smb.DeleteDirectory`), `GetList` already skips "."/"..". EzSmb resolves host names
   to IP addresses, so full paths are built from the requested path.
+- **Time left** (`EtaEstimator`): work = bytes + items x fixed cost (256 KiB local, 2 MiB when a remote file
+  manager is involved), speed over the last 30 s, null (`--:--:--`) during the first 3 s or when nothing moves.
+  Every phase (copy, deletion, verification) starts its own estimate with `BaseJob.StartEta`.
 - **Credentials in paths** (`ftp://user:password@host`, `mega://user:password/path`, ...) are masked by
   `BaseJob.SerializeSettings` before the settings are logged or saved in the backup database.
 - **GUI credentials in the OS secure storage**: `Job.Position.Password` and `OauthAppSecret` are `[JsonIgnore]` and

@@ -3,6 +3,7 @@ using MpbkpuLib.Abstracts;
 using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
 using MpbkpuLib.Interfaces;
+using MpbkpuLib.Utility;
 using Newtonsoft.Json;
 using File = MpbkpuLib.DataModel.File;
 
@@ -19,7 +20,7 @@ public class VerifyJob: BaseJob
     #region classes
     private class ProgressData
     {
-        public DateTime? Started { get; set; }
+        public EtaEstimator? Eta { get; set; }
         public int TotalFiles { get; set; }
         public int FileIndex { get; set; }
         public long TotalBytes { get; set; }
@@ -150,12 +151,11 @@ public class VerifyJob: BaseJob
             // Verify backup items
             _progressData = new ProgressData()
             {
-                Started = DateTime.UtcNow,
+                Eta = StartEta(bkpSize, bkpItemsCount, BackupFm),
                 TotalBytes = bkpSize,
                 TotalFiles = bkpItemsCount
             };
 
-            var started = DateTime.UtcNow;
             var filesError = 0;
             Step?.Invoke(this, Steps.VerifyFiles);
             await foreach (var item in backupFile.GetBackupItems(bkp.Id)) {
@@ -173,7 +173,7 @@ public class VerifyJob: BaseJob
                     filesError++;
                 _progressData.FileIndex++;
                 _progressData.Bytes += item.Size;
-                Progress?.Invoke(this, new ProgressHandlerArgs(_progressData.FileIndex, bkpItemsCount, _progressData.Bytes, bkpSize, GetEta(started, _progressData.Bytes, bkpSize)));
+                Progress?.Invoke(this, new ProgressHandlerArgs(_progressData.FileIndex, bkpItemsCount, _progressData.Bytes, bkpSize, _progressData.Eta!.Update(_progressData.Bytes, _progressData.FileIndex)));
             }
 
             if (filesError > 0)
@@ -222,7 +222,7 @@ public class VerifyJob: BaseJob
                 if (lastFileProgress == null || copied == item.Size ||
                     (DateTime.UtcNow - lastFileProgress.Value).TotalMilliseconds >= 500) {
                     FileProgress?.Invoke(this, item.OriginalRelativePath!, copied, item.Size);
-                    Progress?.Invoke(this, new ProgressHandlerArgs(_progressData!.FileIndex, _progressData.TotalFiles, _progressData.Bytes + copied, _progressData.TotalBytes, GetEta(_progressData.Started, _progressData.Bytes + copied, _progressData.TotalBytes)));
+                    Progress?.Invoke(this, new ProgressHandlerArgs(_progressData!.FileIndex, _progressData.TotalFiles, _progressData.Bytes + copied, _progressData.TotalBytes, _progressData.Eta!.Update(_progressData.Bytes + copied, _progressData.FileIndex)));
                     lastFileProgress = DateTime.UtcNow;
                 }
             });

@@ -27,6 +27,7 @@ public partial class PositionDetail : UserControl, IValidate
             Type = _model.Type,
             Path = _model.Path,
             User = _model.User,
+            Password = _model.Password,
 
             OauthServerUrl = _model.OauthServerUrl,
             OauthAppId = _model.OauthAppId,

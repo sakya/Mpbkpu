@@ -29,7 +29,7 @@ public class BackupJob : BaseJob
     #region classes
     private class ProgressData
     {
-        public DateTime? Started { get; set; }
+        public EtaEstimator? Eta { get; set; }
         public int TotalFiles { get; set; }
         public int FileIndex { get; set; }
         public long TotalBytes { get; set; }
@@ -354,7 +354,7 @@ public class BackupJob : BaseJob
 
         _progressData = new ProgressData()
         {
-            Started = DateTime.UtcNow,
+            Eta = StartEta(cArgs.BytesToBackup, cArgs.FilesToBackup, _sourceFm, BackupFm),
             TotalBytes = cArgs.BytesToBackup,
             TotalFiles = cArgs.FilesToBackup
         };
@@ -383,7 +383,7 @@ public class BackupJob : BaseJob
 
                         _progressData.Bytes += fileToBackup.Size;
                         _progressData.FileIndex++;
-                        Progress?.Invoke(this, new ProgressHandlerArgs(_progressData.FileIndex, cArgs.FilesToBackup, _progressData.Bytes, _progressData.TotalBytes, GetEta(_progressData.Started, _progressData.Bytes, _progressData.TotalBytes)));
+                        Progress?.Invoke(this, new ProgressHandlerArgs(_progressData.FileIndex, cArgs.FilesToBackup, _progressData.Bytes, _progressData.TotalBytes, _progressData.Eta!.Update(_progressData.Bytes, _progressData.FileIndex)));
                         continue;
                     }
                 }
@@ -403,14 +403,14 @@ public class BackupJob : BaseJob
                         await BackupFileFromSource(backupFile, fileToBackup, encryptor, backupFileSize, tryCount == Settings.RetryOnError);
                         _progressData.Bytes += fileToBackup.Size;
                         _progressData.FileIndex++;
-                        Progress?.Invoke(this, new ProgressHandlerArgs(_progressData.FileIndex, cArgs.FilesToBackup, _progressData.Bytes, _progressData.TotalBytes, GetEta(_progressData.Started, _progressData.Bytes, _progressData.TotalBytes)));
+                        Progress?.Invoke(this, new ProgressHandlerArgs(_progressData.FileIndex, cArgs.FilesToBackup, _progressData.Bytes, _progressData.TotalBytes, _progressData.Eta!.Update(_progressData.Bytes, _progressData.FileIndex)));
                         break;
                     } catch (Exception ex) when (tryCount == Settings.RetryOnError && IsSourceAccessError(ex)) {
                         // A locked or protected file must not abort the whole backup
                         await AddWarning(backupFile, $"File {fileToBackup.FullPath} has not been backed up: {ex.Message}");
                         _progressData.Bytes += fileToBackup.Size;
                         _progressData.FileIndex++;
-                        Progress?.Invoke(this, new ProgressHandlerArgs(_progressData.FileIndex, cArgs.FilesToBackup, _progressData.Bytes, _progressData.TotalBytes, GetEta(_progressData.Started, _progressData.Bytes, _progressData.TotalBytes)));
+                        Progress?.Invoke(this, new ProgressHandlerArgs(_progressData.FileIndex, cArgs.FilesToBackup, _progressData.Bytes, _progressData.TotalBytes, _progressData.Eta!.Update(_progressData.Bytes, _progressData.FileIndex)));
                         break;
                     } catch (Exception ex) {
                         if (tryCount == Settings.RetryOnError)
@@ -551,7 +551,7 @@ public class BackupJob : BaseJob
                                 if (lastFileProgress == null || copied == sourceFile.Size ||
                                     (DateTime.UtcNow - lastFileProgress.Value).TotalMilliseconds >= 500) {
                                     FileProgress?.Invoke(this, sourceFile.RelativePath!, copied, sourceFile.Size);
-                                    Progress?.Invoke(this, new ProgressHandlerArgs(_progressData!.FileIndex, _progressData.TotalFiles, _progressData.Bytes + copied, _progressData.TotalBytes, GetEta(_progressData.Started, _progressData.Bytes + copied, _progressData.TotalBytes)));
+                                    Progress?.Invoke(this, new ProgressHandlerArgs(_progressData!.FileIndex, _progressData.TotalFiles, _progressData.Bytes + copied, _progressData.TotalBytes, _progressData.Eta!.Update(_progressData.Bytes + copied, _progressData.FileIndex)));
                                     lastFileProgress = DateTime.UtcNow;
                                 }
                             });

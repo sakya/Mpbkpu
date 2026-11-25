@@ -12,7 +12,7 @@ public abstract class BaseJob : IDisposable
     #region region classes
     public class ProgressHandlerArgs : EventArgs
     {
-        public ProgressHandlerArgs(int file, int totalFiles, long bytes, long totalBytes, TimeSpan eta)
+        public ProgressHandlerArgs(int file, int totalFiles, long bytes, long totalBytes, TimeSpan? eta)
         {
             File = file;
             TotalFiles = totalFiles;
@@ -24,7 +24,17 @@ public abstract class BaseJob : IDisposable
         public int TotalFiles { get; set; }
         public long Bytes { get; set; }
         public long TotalBytes { get; set; }
-        public TimeSpan Eta { get; set; }
+        /// <summary>
+        /// Time left, null while it cannot be estimated
+        /// </summary>
+        public TimeSpan? Eta { get; set; }
+
+        /// <summary>
+        /// Percentage done: by bytes, or by files when there are no bytes (empty files, directories)
+        /// </summary>
+        public double Percentage =>
+            TotalBytes > 0 ? Bytes * 100.0 / TotalBytes :
+            TotalFiles > 0 ? File * 100.0 / TotalFiles : 100;
     }
     #endregion
 
@@ -399,15 +409,15 @@ public abstract class BaseJob : IDisposable
         }
     }
 
-    protected TimeSpan GetEta(DateTime? started, long done, long total)
+    /// <summary>
+    /// Start the time-left estimate of a job phase. Deletions pass 0 bytes: their cost does not depend on the size.
+    /// </summary>
+    /// <param name="totalBytes">Total bytes of the phase</param>
+    /// <param name="totalItems">Total items of the phase</param>
+    /// <param name="fileManagers">The file managers used by the phase: remote ones have a higher cost per item</param>
+    protected static EtaEstimator StartEta(long totalBytes, long totalItems, params IFileManager?[] fileManagers)
     {
-        if (started == null)
-            throw new ArgumentNullException(nameof(started));
-
-        if (done == 0)
-            return TimeSpan.Zero;
-
-        var secs = (DateTime.UtcNow - started.Value).TotalSeconds;
-        return TimeSpan.FromSeconds(secs / done * total - secs);
+        var remote = fileManagers.Any(fm => fm is not null and not BaseLocalFileSystem);
+        return new EtaEstimator(totalBytes, totalItems, remote ? EtaEstimator.RemoteItemCost : EtaEstimator.LocalItemCost);
     }
 }

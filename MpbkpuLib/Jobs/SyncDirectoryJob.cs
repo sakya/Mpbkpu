@@ -22,7 +22,7 @@ public class SyncDirectoryJob : BaseJob
     #region classes
     private class ProgressData
     {
-        public DateTime? Started { get; set; }
+        public EtaEstimator? Eta { get; set; }
         public int DeleteTotalFiles { get; set; }
         public int DeleteFileIndex { get; set; }
         public long DeleteTotalBytes { get; set; }
@@ -228,7 +228,7 @@ public class SyncDirectoryJob : BaseJob
 
         _progressData = new ProgressData()
         {
-            Started = DateTime.UtcNow,
+            Eta = StartEta(0, cArgs.FilesToDelete, BackupFm),
             BackupTotalFiles = cArgs.FilesToBackup,
             BackupTotalBytes = cArgs.BytesToBackup,
             DeleteTotalFiles = cArgs.FilesToDelete,
@@ -251,11 +251,12 @@ public class SyncDirectoryJob : BaseJob
                 _progressData.DeleteBytes += item.Size;
                 _progressData.DeleteFileIndex++;
                 DeleteProgress?.Invoke(this, new ProgressHandlerArgs(_progressData.DeleteFileIndex, _progressData.DeleteTotalFiles,
-                    _progressData.DeleteBytes, _progressData.DeleteTotalBytes, GetEta(_progressData.Started, _progressData.DeleteBytes, _progressData.DeleteTotalBytes)));
+                    _progressData.DeleteBytes, _progressData.DeleteTotalBytes, _progressData.Eta!.Update(0, _progressData.DeleteFileIndex)));
             }
         }
 
-        // Backup files
+        // Backup files: the time left of this phase does not include the deletions
+        _progressData.Eta = StartEta(cArgs.BytesToBackup, cArgs.FilesToBackup, _sourceFm, BackupFm);
         Step?.Invoke(this, Steps.BackupFiles);
         var itemsToBackup = await backupFile.Files.AsNoTracking()
             .Where(f => f.FileAction == File.FileActions.Backup)
@@ -275,7 +276,7 @@ public class SyncDirectoryJob : BaseJob
             _progressData.BackupBytes += item.Size;
             _progressData.BackupFileIndex++;
             Progress?.Invoke(this, new ProgressHandlerArgs(_progressData.BackupFileIndex, _progressData.BackupTotalFiles,
-                _progressData.BackupBytes, _progressData.BackupTotalBytes, GetEta(_progressData.Started, _progressData.BackupBytes, _progressData.BackupTotalBytes)));
+                _progressData.BackupBytes, _progressData.BackupTotalBytes, _progressData.Eta!.Update(_progressData.BackupBytes, _progressData.BackupFileIndex)));
         }
 
         return _hasWarnings ? Backup.Results.CompletedWithWarnings : Backup.Results.Completed;
@@ -414,7 +415,7 @@ public class SyncDirectoryJob : BaseJob
                             if (lastFileProgress == null || copied == fileToBackup.Size ||
                                 (DateTime.UtcNow - lastFileProgress.Value).TotalMilliseconds >= 500) {
                                 FileProgress?.Invoke(this, fileToBackup.RelativePath!, copied, fileToBackup.Size);
-                                Progress?.Invoke(this, new ProgressHandlerArgs(_progressData!.BackupFileIndex, _progressData.BackupTotalFiles, _progressData.BackupBytes + copied, _progressData.BackupTotalBytes, GetEta(_progressData.Started, _progressData.BackupBytes + copied, _progressData.BackupTotalBytes)));
+                                Progress?.Invoke(this, new ProgressHandlerArgs(_progressData!.BackupFileIndex, _progressData.BackupTotalFiles, _progressData.BackupBytes + copied, _progressData.BackupTotalBytes, _progressData.Eta!.Update(_progressData.BackupBytes + copied, _progressData.BackupFileIndex)));
                                 lastFileProgress = DateTime.UtcNow;
                             }
                         }

@@ -218,6 +218,39 @@ public class Utilities
             o.GetType().GetField(name, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(o);
     }
 
+    [Test]
+    public void EtaFollowsTheRecentSpeedAndCountsItems()
+    {
+        const long mb = 1024 * 1024;
+        var now = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        // No estimate during the warm-up
+        var eta = new EtaEstimator(1000 * mb, 0, EtaEstimator.LocalItemCost, () => now);
+        now = now.AddSeconds(1);
+        Assert.That(eta.Update(mb, 0), Is.Null);
+
+        // 1 MB/s for 60 s, then 10 MB/s for 30 s: the estimate uses the recent speed
+        long done = mb;
+        for (var s = 2; s <= 60; s++) {
+            now = now.AddSeconds(1);
+            done += mb;
+            eta.Update(done, 0);
+        }
+        Assert.That(eta.Update(done, 0)!.Value.TotalSeconds, Is.EqualTo((1000 - 60) / 1.0).Within(1));
+        for (var s = 0; s < 30; s++) {
+            now = now.AddSeconds(1);
+            done += 10 * mb;
+            eta.Update(done, 0);
+        }
+        Assert.That(eta.Update(done, 0)!.Value.TotalSeconds, Is.EqualTo((1000 - 360) / 10.0).Within(2));
+
+        // Items without bytes (empty files, deletions) are estimated by count
+        now = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var items = new EtaEstimator(0, 1000, EtaEstimator.RemoteItemCost, () => now);
+        now = now.AddSeconds(10);
+        Assert.That(items.Update(0, 100)!.Value.TotalSeconds, Is.EqualTo(90).Within(0.5));
+    }
+
     [TestCase("mega://user@mail.com:secret/backups", "mega://user@mail.com:***/backups")]
     [TestCase("\"Destination\": \"mediafire://user:secret\"", "\"Destination\": \"mediafire://user:***\"")]
     [TestCase("ftp://user:p4ss@host:21/path", "ftp://user:***@host:21/path")]

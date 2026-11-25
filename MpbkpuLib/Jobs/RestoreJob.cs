@@ -28,7 +28,7 @@ public class RestoreJob : BaseJob
     #region classes
     private class ProgressData
     {
-        public DateTime? Started { get; set; }
+        public EtaEstimator? Eta { get; set; }
         public int DeleteTotalFiles { get; set; }
         public int DeleteFileIndex { get; set; }
         public long DeleteTotalBytes { get; set; }
@@ -266,7 +266,7 @@ public class RestoreJob : BaseJob
 
         _progressData = new ProgressData()
         {
-            Started = DateTime.UtcNow,
+            Eta = StartEta(0, cArgs.FilesToDelete, _destinationFm),
             DeleteTotalBytes = cArgs.BytesToDelete,
             DeleteTotalFiles = cArgs.FilesToDelete,
 
@@ -300,7 +300,7 @@ public class RestoreJob : BaseJob
                         _progressData.DeleteBytes += fileToDelete.Size;
                         _progressData.DeleteFileIndex++;
                         DeleteProgress?.Invoke(this, new ProgressHandlerArgs(_progressData.DeleteFileIndex, _progressData.DeleteTotalFiles,
-                            _progressData.DeleteBytes, _progressData.DeleteTotalBytes, GetEta(_progressData.Started, _progressData.DeleteBytes, _progressData.DeleteTotalBytes)));
+                            _progressData.DeleteBytes, _progressData.DeleteTotalBytes, _progressData.Eta!.Update(0, _progressData.DeleteFileIndex)));
                         break;
                     } catch (Exception ex) {
                         if (tryCount == Settings.RetryOnError)
@@ -312,7 +312,7 @@ public class RestoreJob : BaseJob
             }
         }
 
-        _progressData.Started = DateTime.UtcNow;
+        _progressData.Eta = StartEta(_progressData.RestoreTotalBytes, cArgs.FilesToRestore, BackupFm, _destinationFm);
         LogInfo("Restoring files");
         Step?.Invoke(this, Steps.RestoreFiles);
         var filesToRestore = backupFile.Files
@@ -336,7 +336,7 @@ public class RestoreJob : BaseJob
 
                     _progressData.RestoreBytes += fileToRestore.Size;
                     _progressData.RestoreFileIndex++;
-                    RestoreProgress?.Invoke(this, new ProgressHandlerArgs(_progressData.RestoreFileIndex, cArgs.FilesToRestore, _progressData.RestoreBytes, _progressData.RestoreTotalBytes, GetEta(_progressData.Started, _progressData.RestoreBytes, _progressData.RestoreTotalBytes)));
+                    RestoreProgress?.Invoke(this, new ProgressHandlerArgs(_progressData.RestoreFileIndex, cArgs.FilesToRestore, _progressData.RestoreBytes, _progressData.RestoreTotalBytes, _progressData.Eta!.Update(_progressData.RestoreBytes, _progressData.RestoreFileIndex)));
                     break;
                 } catch (Exception ex) {
                     if (tryCount == Settings.RetryOnError)

@@ -448,7 +448,7 @@ public class BackupFile : IDisposable
     }
 
     /// <summary>
-    /// Get the directory tree of a backup
+    /// Get the directory tree of a backup: a single root node (the backed up folder, path "") with its subdirectories
     /// </summary>
     /// <param name="backupId">The backup id</param>
     /// <returns></returns>
@@ -456,8 +456,14 @@ public class BackupFile : IDisposable
     {
         IFileManager? fm = null;
         Dictionary<string, Directory> directories = new();
-        List<Directory> res = new();
-        await foreach (var item in GetBackupItems(backupId, File.FileTyes.Directory)) {
+        // Files directly in the backed up folder have "" as parent path: they are shown under the root node
+        var root = new Directory() { Path = string.Empty };
+        directories[root.Path] = root;
+        await foreach (var item in GetBackupItems(backupId)) {
+            root.Name ??= GetRootName(item);
+            if (item.Type != File.FileTyes.Directory)
+                continue;
+
             var dir = new Directory()
             {
                 Name = item.OriginalName,
@@ -466,15 +472,26 @@ public class BackupFile : IDisposable
 
             fm ??= FileManagerFactory.GetFileManager(item.OriginalPath, out _);
             var parentPath = MpbkpuLib.Utility.Files.GetParent(fm.PathSeparator, item.OriginalRelativePath!, out _, addStartingSeparator: false);
-            if (directories.TryGetValue(parentPath, out var parent)) {
-                parent.Children.Add(dir);
-            } else {
-                res.Add(dir);
-            }
+            (directories.TryGetValue(parentPath, out var parent) ? parent : root).Children.Add(dir);
             directories[dir.Path!] = dir;
         }
 
-        return res;
+        root.Name ??= "/";
+        return new List<Directory> { root };
+    }
+
+    /// <summary>
+    /// Name of the backed up folder: the original path of an item without its relative path
+    /// </summary>
+    private static string? GetRootName(BackupItem item)
+    {
+        if (string.IsNullOrEmpty(item.OriginalPath) || string.IsNullOrEmpty(item.OriginalRelativePath) ||
+            !item.OriginalPath.EndsWith(item.OriginalRelativePath, StringComparison.Ordinal))
+            return null;
+        var rootPath = item.OriginalPath[..^item.OriginalRelativePath.Length].TrimEnd('/', '\\');
+        var idx = rootPath.LastIndexOfAny(new[] { '/', '\\' });
+        var name = idx >= 0 ? rootPath[(idx + 1)..] : rootPath;
+        return string.IsNullOrEmpty(name) ? rootPath : name;
     }
 
     #region private operations

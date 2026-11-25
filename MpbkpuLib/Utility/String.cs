@@ -16,6 +16,14 @@ public static class String
         return size.ToString("0 bytes");
     }
 
+    /// <summary>
+    /// Format a time left: "--:--:--" while it cannot be estimated
+    /// </summary>
+    public static string EtaToString(TimeSpan? eta)
+    {
+        return eta.HasValue ? TimeSpanToString(eta.Value) : "--:--:--";
+    }
+
     public static string TimeSpanToString(TimeSpan ts)
     {
         return ts.ToString(ts.Days > 0 ? @"d\.hh\:mm\:ss" : @"hh\:mm\:ss");

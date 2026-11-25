@@ -264,7 +264,7 @@ public class DeleteJob : BaseJob
         if (!await BackupFm.DirectoryExists(bkpPath))
             return;
 
-        var started = DateTime.UtcNow;
+        var eta = StartEta(0, deleted.Files.Count, BackupFm);
         var totalSize = deleted.Files.Sum(f => f.Size);
         var fileIdx = 0;
         long bytes = 0;
@@ -281,7 +281,7 @@ public class DeleteJob : BaseJob
             fileIdx++;
             bytes += size;
             Progress?.Invoke(this,
-                new ProgressHandlerArgs(fileIdx, deleted.Files.Count, bytes, totalSize, GetEta(started, bytes, totalSize)));
+                new ProgressHandlerArgs(fileIdx, deleted.Files.Count, bytes, totalSize, eta.Update(0, fileIdx)));
         }
         // Delete backup directory
         await DeleteDirectoryRecursive(BackupFm, bkpPath);

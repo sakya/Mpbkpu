@@ -8,7 +8,7 @@ public class SyncAction : BaseAction
 {
     private Arguments? _pArgs;
     private double _totalPerc;
-    private TimeSpan _eta = TimeSpan.Zero;
+    private TimeSpan? _eta;
 
     public override async Task<bool> Run(Arguments pArgs)
     {
@@ -135,7 +135,7 @@ public class SyncAction : BaseAction
     private void OnFileProgress(object sender, string filePath, long bytes, long totalBytes)
     {
         var perc = GetPercentage(bytes, totalBytes);
-        var progress = $"[{_totalPerc,5:0.0}% {MpbkpuLib.Utility.String.TimeSpanToString(_eta)}][{perc,5:0.0}%]";
+        var progress = $"[{_totalPerc,5:0.0}% {MpbkpuLib.Utility.String.EtaToString(_eta)}][{perc,5:0.0}%]";
         if (filePath.Length > Console.WindowWidth - progress.Length - 1)
             filePath = $"...{ filePath.Substring(filePath.Length - (Console.WindowWidth - progress.Length) + 4) }";
         progress = $"{progress}{filePath}";
@@ -149,7 +149,7 @@ public class SyncAction : BaseAction
         _totalPerc = GetPercentage(args.Bytes, args.TotalBytes);
         _eta = args.Eta;
         Console.CursorLeft = 0;
-        Console.Write($"[{_totalPerc,5:0.0}% {MpbkpuLib.Utility.String.TimeSpanToString(_eta)}]");
+        Console.Write($"[{_totalPerc,5:0.0}% {MpbkpuLib.Utility.String.EtaToString(_eta)}]");
     }
     #endregion
 }

@@ -318,6 +318,25 @@ public class Regressions : BaseTest
         return openRes.BackupFile.Backups.OrderBy(b => b.Id).ToArray();
     }
 
+    [Test]
+    public async Task DirectoryTreeHasTheBackedUpFolderAsRoot()
+    {
+        var guid = await RunBackup(Backup.BackupTypes.Full);
+
+        using var fm = MpbkpuLib.FileManagers.FileManagerFactory.GetFileManager(BackupDestination, out var path);
+        using var openRes = await BackupFile.OpenBackupFile(fm, path);
+        var id = openRes.BackupFile.Backups.First(b => b.Guid == guid).Id;
+        var tree = await openRes.BackupFile.GetDirectoryTree(id);
+
+        // The files directly in the source folder belong to the root node (path ""), shown in the browse page
+        Assert.That(tree, Has.Count.EqualTo(1));
+        Assert.That(tree[0].Path, Is.EqualTo(string.Empty));
+        Assert.That(tree[0].Name, Is.EqualTo("source"));
+        Assert.That(tree[0].Children.Select(c => c.Name), Is.EquivalentTo(new[] { "SubDirectory1", "SubDirectory2" }));
+        Assert.That(tree[0].Children.First(c => c.Name == "SubDirectory1").Children.Select(c => c.Name),
+            Is.EquivalentTo(new[] { "SubDirectory1" }));
+    }
+
     private static async Task<string?[]> GetBackupItemPaths(string guid)
     {
         using var fm = MpbkpuLib.FileManagers.FileManagerFactory.GetFileManager(BackupDestination, out var path);
