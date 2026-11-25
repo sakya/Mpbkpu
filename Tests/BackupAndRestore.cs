@@ -39,7 +39,7 @@ public class BackupAndRestore : BaseTest
 
         var rSettings = new RestoreJobSettings()
         {
-            BackupPath = BackupDestination,
+            BackupDestinations = BackupDestinations(),
             BackupGuid = ((BackupJobJobResult)jobRes).Guid,
             Destination = RestoreDestination,
         };
@@ -70,7 +70,7 @@ public class BackupAndRestore : BaseTest
 
         var rSettings = new RestoreJobSettings()
         {
-            BackupPath = BackupDestination,
+            BackupDestinations = BackupDestinations(),
             BackupGuid = ((BackupJobJobResult)jobRes).Guid,
             Destination = RestoreDestination,
         };
@@ -101,7 +101,7 @@ public class BackupAndRestore : BaseTest
 
         var rSettings = new RestoreJobSettings()
         {
-            BackupPath = BackupDestination,
+            BackupDestinations = BackupDestinations(),
             BackupGuid = ((BackupJobJobResult)jobRes).Guid,
             EncryptPassword = EncryptionPassword,
             Destination = RestoreDestination,
@@ -134,7 +134,7 @@ public class BackupAndRestore : BaseTest
 
         var rSettings = new RestoreJobSettings()
         {
-            BackupPath = BackupDestination,
+            BackupDestinations = BackupDestinations(),
             BackupGuid = ((BackupJobJobResult)jobRes).Guid,
             EncryptPassword = EncryptionPassword,
             Destination = RestoreDestination,

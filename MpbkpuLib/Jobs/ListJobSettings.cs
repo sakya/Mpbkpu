@@ -4,25 +4,6 @@ using MpbkpuLib.FileManagers;
 
 namespace MpbkpuLib.Jobs;
 
-public class ListJobSettings : BaseJobSettings
+public class ListJobSettings : BackupDestinationsJobSettings
 {
-    /// <summary>
-    /// The path containing the backup
-    /// </summary>
-    public string? BackupPath { get; set; }
-    /// <summary>
-    /// The user to access to the backup path
-    /// </summary>
-    /// <value></value>
-    public string? BackupPathUser { get; set; }
-    /// <summary>
-    /// The password to access to the backup path
-    /// </summary>
-    /// <value></value>
-    [JsonIgnore] // Never logged or saved in the backup database
-    public string? BackupPathPassword { get; set; }
-    /// <summary>
-    /// OAuth settings to access to the backup path
-    /// </summary>
-    public OAuth2Settings? BackupOauthSettings { get; set; }
 }

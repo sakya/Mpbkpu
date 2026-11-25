@@ -85,9 +85,6 @@ namespace MpbkpuLib.FileManagers
 
         public bool SupportCompression => false;
 
-        // Thread-safe HTTP client; a small limit avoids the rate limits of the service
-        public int MaxParallelTransfers => 4;
-
         public string CombinePath(params string[] paths)
         {
             return Utility.Files.CombinePath(PathSeparator, paths);

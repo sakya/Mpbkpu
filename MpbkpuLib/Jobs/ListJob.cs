@@ -46,9 +46,8 @@ public class ListJob : BaseJob
         LogInfo(SerializeSettings());
 
         LogInfo("Opening database");
-        BackupFm = FileManagerFactory.GetFileManager(Settings.BackupPath, out BackupPath, Settings.BackupPathUser, Settings.BackupPathPassword, Settings.BackupOauthSettings);
         Step?.Invoke(this, Steps.OpenDatabase);
-        using (var openRes = await BackupFile.OpenBackupFile(BackupFm, BackupPath, Settings.EncryptPassword, progressAction: OnOpenBackup, token: _cancellationToken)) {
+        using (var openRes = await OpenBackupDestinations(Settings.BackupDestinations, false, _cancellationToken)) {
             var backupFile = openRes.BackupFile;
             try {
                 await RunPrimitive(backupFile);
@@ -73,8 +72,7 @@ public class ListJob : BaseJob
     /// <exception cref="ArgumentException"></exception>
     protected override void ValidateSettings()
     {
-        if (string.IsNullOrEmpty(Settings.BackupPath))
-            throw new ArgumentNullException(nameof(Settings.BackupPath), "Backup path cannot be empty");
+        DestinationSet.Validate(Settings.BackupDestinations, nameof(Settings.BackupDestinations));
     }
 
     #region private operations

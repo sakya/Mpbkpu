@@ -81,7 +81,6 @@ public class BackupJob : BaseJob
 
     #region private members
     private Backup? _backup;
-    private DestinationSet? _destinations;
     /// <summary>
     /// The database is used by the copy workers one at a time
     /// </summary>
@@ -159,15 +158,15 @@ public class BackupJob : BaseJob
         LogInfo("Starting with settings:");
         LogInfo(SerializeSettings());
 
-        _destinations = new DestinationSet(Settings.Destinations);
-        _states = _destinations.Entries.Select(e => new DestinationState(e)).ToList();
+        _states = CreateBackupDestinations(Settings.Destinations).Entries.Select(e => new DestinationState(e)).ToList();
+        // The destination directories must exist before the database is searched in them
+        await CheckDestinations();
+        await ReadDestinationsSpace();
         _sourceFm = FileManagerFactory.GetFileManager(Settings.Source, out _sourcePath, Settings.SourceUser, Settings.SourcePassword, Settings.SourceOauthSettings);
 
         LogInfo("Opening database");
         Step?.Invoke(this, Steps.OpenDatabase);
-        await CheckDestinations();
-        await ReadDestinationsSpace();
-        using (var openRes = await _destinations.OpenDatabase(Settings.EncryptPassword, true, OnOpenBackup, _cancellationToken)) {
+        using (var openRes = await BackupDestinations!.OpenDatabase(Settings.EncryptPassword, true, OnOpenBackup, _cancellationToken)) {
             var backupFile = openRes.BackupFile;
             // True when the database in the destination references this backup
             var persisted = false;
@@ -192,7 +191,8 @@ public class BackupJob : BaseJob
                     if (!string.IsNullOrEmpty(openRes.TempFilePath)) {
                         LogInfo("Copying database");
                         Step?.Invoke(this, Steps.CopyDatabase);
-                        await CopyDatabaseToDestinations(openRes.TempFilePath);
+                        if (!await SaveDatabaseToDestinations(openRes.TempFilePath) && _result == Backup.Results.Completed)
+                            _result = Backup.Results.CompletedWithWarnings;
                         persisted = true;
                     }
                 }
@@ -223,7 +223,6 @@ public class BackupJob : BaseJob
     public override void Dispose()
     {
         _sourceFm?.Dispose();
-        _destinations?.Dispose();
         base.Dispose();
     }
     #endregion
@@ -236,12 +235,12 @@ public class BackupJob : BaseJob
     /// <returns>True on success</returns>
     private async Task RunPrimitive(BackupFile backupFile)
     {
-        if (_destinations == null)
+        if (BackupDestinations == null)
             throw new Exception("Destinations not initialized");
         if (_sourceFm == null)
             throw new Exception("Source file manager not initialized");
 
-        await _destinations.Register(backupFile);
+        await BackupDestinations.Register(backupFile);
         Backup? lastBackup = await backupFile.LastBackup();
         // A chain is a full backup followed by backups of the same type: start a new chain when needed
         if (Settings.BackupType != Backup.BackupTypes.Full) {
@@ -622,32 +621,12 @@ public class BackupJob : BaseJob
         if (string.IsNullOrEmpty(Settings.Source))
             throw new ArgumentNullException(nameof(Settings.Source), "Source cannot be empty");
 
-        if (Settings.Destinations.Count == 0)
-            throw new ArgumentNullException(nameof(Settings.Destinations), "At least one destination is required");
-        // TODO: remove when DeleteJob supports multiple destinations
-        if (Settings.Destinations.Count > 1 && Settings.KeepChains > 0)
-            throw new NotSupportedException("KeepChains is not supported yet with multiple destinations");
-
-        for (var i = 0; i < Settings.Destinations.Count; i++) {
-            var destination = Settings.Destinations[i];
-            if (string.IsNullOrEmpty(destination.Path))
-                throw new ArgumentNullException(nameof(Settings.Destinations), "Destination cannot be empty");
-            if (string.IsNullOrEmpty(destination.Id))
-                throw new ArgumentNullException(nameof(Settings.Destinations), "Destination id cannot be empty");
-
+        DestinationSet.Validate(Settings.Destinations, nameof(Settings.Destinations));
+        foreach (var destination in Settings.Destinations) {
             if (Utility.Files.IsSameOrSubPath(Settings.Source, destination.Path)) {
                 throw new ArgumentException(Utility.Files.IsSameOrSubPath(destination.Path, Settings.Source) ?
                     "Source and Destination cannot be the same" :
                     "Destination cannot be a subdirectory of Source");
-            }
-
-            for (var j = i + 1; j < Settings.Destinations.Count; j++) {
-                var other = Settings.Destinations[j];
-                if (other.Id == destination.Id)
-                    throw new ArgumentException($"Duplicate destination id {destination.Id}");
-                if (!string.IsNullOrEmpty(other.Path) &&
-                    (Utility.Files.IsSameOrSubPath(destination.Path, other.Path) || Utility.Files.IsSameOrSubPath(other.Path, destination.Path)))
-                    throw new ArgumentException($"Destinations {destination.Path} and {other.Path} overlap");
             }
         }
 
@@ -730,30 +709,6 @@ public class BackupJob : BaseJob
         lock (_states) {
             destination.Active--;
         }
-    }
-
-    /// <summary>
-    /// Write the database to every destination. With more than one destination a failure is only a warning, as long
-    /// as one destination holds the new database.
-    /// </summary>
-    private async Task CopyDatabaseToDestinations(string localDbPath)
-    {
-        var failed = 0;
-        Exception? lastError = null;
-        foreach (var state in _states) {
-            try {
-                await BackupFile.SaveBackupFile(localDbPath, state.Entry.Fm, state.Entry.Path, Settings.EncryptPassword, OnCopyBackup);
-            } catch (Exception ex) when (_states.Count > 1) {
-                LogWarning($"Cannot copy the database to {DestinationSet.MaskedPath(state.Entry)}: {ex.Message}");
-                failed++;
-                lastError = ex;
-            }
-        }
-
-        if (failed == _states.Count)
-            throw new Exception("Cannot copy the database to any destination", lastError);
-        if (failed > 0 && _result == Backup.Results.Completed)
-            _result = Backup.Results.CompletedWithWarnings;
     }
 
     /// <summary>
@@ -1036,10 +991,7 @@ public class BackupJob : BaseJob
             try {
                 using var job = new DeleteJob(new DeleteJobSettings()
                 {
-                    BackupPath = Settings.Destinations[0].Path,
-                    BackupPathUser = Settings.Destinations[0].User,
-                    BackupPathPassword = Settings.Destinations[0].Password,
-                    BackupOauthSettings = Settings.Destinations[0].OauthSettings,
+                    BackupDestinations = Settings.Destinations,
                     BackupGuid = guid,
                     EncryptPassword = Settings.EncryptPassword,
                     LogLevel = BaseJobSettings.LogLevels.Warning

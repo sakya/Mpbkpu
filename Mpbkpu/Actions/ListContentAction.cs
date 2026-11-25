@@ -13,17 +13,7 @@ public class ListContentAction : BaseAction
         var settings = new ListContentJobSettings()
         {
             LogLevel = pArgs.LogLevel,
-            BackupPath = pArgs.BackupPath,
-            BackupPathUser = pArgs.BackupUser,
-            BackupPathPassword = pArgs.BackupPassword,
-            BackupOauthSettings = new OAuth2Settings()
-            {
-                ServerUrl = pArgs.BackupOauthServerUrl,
-                RedirectUrl = pArgs.BackupOauthRedirectUrl,
-                AppName = pArgs.BackupOauthAppName,
-                AppId = pArgs.BackupOauthAppId,
-                AppSecret = pArgs.BackupOauthAppSecret,
-            },
+            BackupDestinations = pArgs.GetBackupDestinations(),
             BackupGuid = pArgs.BackupGuid,
             EncryptPassword = pArgs.Password,
             Filter = pArgs.Filter,

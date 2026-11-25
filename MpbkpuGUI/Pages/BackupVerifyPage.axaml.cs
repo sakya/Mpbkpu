@@ -83,18 +83,14 @@ public partial class BackupVerifyPage : BasePage
     private async void DoWork()
     {
         var backupSettings = JsonConvert.DeserializeObject<BackupJobSettings>(_backup.Settings!);
-        var destination = backupSettings?.Destinations.Count > 0 ? backupSettings.Destinations[0] : null;
-        if (destination == null)
+        if (backupSettings == null || backupSettings.Destinations.Count == 0)
             return;
 
         var settings = new VerifyJobSettings()
         {
             EncryptPassword = _password,
             BackupGuid = _backup.Guid,
-            BackupPath = destination.Path,
-            BackupPathUser = destination.User,
-            BackupPathPassword = destination.Password,
-            BackupOauthSettings = destination.OauthSettings,
+            BackupDestinations = backupSettings.Destinations,
         };
 
         var verifyJob = new VerifyJob(settings);

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using MpbkpuLib.FileManagers;
+using MpbkpuLib.Jobs;
 using MpbkpuLib.Interfaces;
 using Newtonsoft.Json;
 
@@ -60,6 +61,20 @@ public abstract class Job
         /// </summary>
         [JsonIgnore]
         public bool IsLocal => Type == FileSystemTypes.FileSystem;
+
+        /// <summary>
+        /// The position as a destination of a backup
+        /// </summary>
+        public BackupDestination ToBackupDestination()
+        {
+            return new BackupDestination()
+            {
+                Path = FullPath,
+                User = User,
+                Password = Password,
+                OauthSettings = GetOAuth2Settings(),
+            };
+        }
 
         public OAuth2Settings GetOAuth2Settings()
         {

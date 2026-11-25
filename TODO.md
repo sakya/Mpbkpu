@@ -10,9 +10,12 @@
   - [x] Phase 3: parallel copies (`Channel` + workers, `IFileManager.MaxParallelTransfers`, database writes serialized,
     thread-safe progress and logging). Not verified: that copies really overlap (tests check results, not timing),
     remote file managers in parallel (OneDrive, Dropbox, Nextcloud allow 4).
-  - [ ] Phase 4: Restore, Verify, Delete, List, ListContent read the volumes from their destination (reuse
-    `DestinationSet`); then `KeepChains` with multiple destinations.
-  - [ ] Phase 5: CLI (repeatable `--destination`, `--parallel-files`, stable ids).
+  - [x] Phase 4: Restore, Verify, Delete, List, ListContent read the volumes from their destination
+    (`BackupDestinations` settings, `DestinationSet.Match`/`GetEntry`, `MissingDestinationException`); `KeepChains`
+    with multiple destinations.
+  - [ ] Raise `MaxParallelTransfers` (now 1 everywhere, so no parallel copies) once verified: local file systems
+    first, then OneDrive, Dropbox, Nextcloud.
+  - [x] Phase 5: CLI (repeatable `-d` and `-b`, `--parallelFiles`, single destination checked for restore and sync).
   - [ ] Phase 6: GUI (destination list with persisted ids, secrets per destination, space per destination, active
     files on the running page, open/browse/verify/delete pages).
 - [ ] Try MEGA, Nextcloud, OneDrive, Dropbox, FTP, SFTP and SMB with real accounts (backup, sync, history, restore).
@@ -31,7 +34,11 @@
 ## Fixes and improvements
 - [ ] Warn before a backup/sync when the destination has less space than the bytes to copy (`GetSpace`).
 - [ ] `BackupJob` ignores `Exclude` (CLI `--exclude`): reuse `ReadPathContent(..., exclude)` as the sync job does.
-- [ ] CLI: `RestoreAction` and `SyncAction` ignore the job result, so failures are not reported.
+- [ ] CLI: `RestoreAction` and `SyncAction` ignore the job result, so failures are not reported; the exit code is
+  always 0.
+- [ ] CLI: crashes with "The handle is invalid" when the output is redirected (scripts, scheduled tasks, pipes):
+  `Console.CursorVisible`, `CursorLeft` and `WindowWidth` are used without checking `Console.IsOutputRedirected`.
+- [ ] CLI: `List`, `ListContent` and `Verify` ignore `--log` (their actions do not pass `LogFile`).
 - [ ] `FileManagers` tests: make them explicit/skippable without credentials (today they block the suite).
 - [ ] FTP: self-signed certificates are rejected; plain FTP sends the password in clear when the server has no TLS.
   Consider options to trust a certificate fingerprint and to require TLS.

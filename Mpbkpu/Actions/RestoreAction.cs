@@ -13,34 +13,18 @@ public class RestoreAction : BaseAction
     public override async Task<bool> Run(Arguments pArgs)
     {
         _pArgs = pArgs;
+        var destination = pArgs.GetSingleDestination();
         var settings = new RestoreJobSettings()
         {
             LogLevel = pArgs.LogLevel,
-            BackupPath = pArgs.BackupPath,
-            BackupPathUser = pArgs.BackupUser,
-            BackupPathPassword = pArgs.BackupPassword,
-            BackupOauthSettings = new OAuth2Settings()
-            {
-                ServerUrl = pArgs.BackupOauthServerUrl,
-                RedirectUrl = pArgs.BackupOauthRedirectUrl,
-                AppName = pArgs.BackupOauthAppName,
-                AppId = pArgs.BackupOauthAppId,
-                AppSecret = pArgs.BackupOauthAppSecret,
-            },
+            BackupDestinations = pArgs.GetBackupDestinations(),
             BackupGuid = pArgs.BackupGuid,
             EncryptPassword = pArgs.Password,
 
-            Destination = pArgs.DestinationPath,
-            DestinationUser = pArgs.DestinationUser,
-            DestinationPassword = pArgs.DestinationPassword,
-            DestinationOauthSettings = new OAuth2Settings()
-            {
-                ServerUrl = pArgs.DestinationOauthServerUrl,
-                RedirectUrl = pArgs.DestinationOauthRedirectUrl,
-                AppName = pArgs.DestinationOauthAppName,
-                AppId = pArgs.DestinationOauthAppId,
-                AppSecret = pArgs.DestinationOauthAppSecret,
-            },
+            Destination = destination.Path,
+            DestinationUser = destination.User,
+            DestinationPassword = destination.Password,
+            DestinationOauthSettings = destination.OauthSettings,
 
             SkipHashCheck = pArgs.SkipHashCheck,
             RetryOnError = pArgs.RetryOnError ?? 3,

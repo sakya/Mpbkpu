@@ -50,10 +50,9 @@ public class ListContentJob : BaseJob
         LogInfo(SerializeSettings());
 
         LogInfo("Opening database");
-        BackupFm = FileManagerFactory.GetFileManager(Settings.BackupPath, out BackupPath, Settings.BackupPathUser, Settings.BackupPathPassword, Settings.BackupOauthSettings);
         Step?.Invoke(this, Steps.OpenDatabase);
         ListContentJobResult? res;
-        using (var openRes = await BackupFile.OpenBackupFile(BackupFm, BackupPath, Settings.EncryptPassword, progressAction: OnOpenBackup, token: _cancellationToken)) {
+        using (var openRes = await OpenBackupDestinations(Settings.BackupDestinations, false, _cancellationToken)) {
             var backupFile = openRes.BackupFile;
             try {
                 res = await RunPrimitive(backupFile);
@@ -78,9 +77,6 @@ public class ListContentJob : BaseJob
     /// <returns>True on success</returns>
     private async Task<ListContentJobResult> RunPrimitive(BackupFile backupFile)
     {
-        if (BackupFm == null)
-            throw new Exception("Backup file manager not initialized");
-
         var res = new ListContentJobResult();
         var bkp = await backupFile.Backups.AsNoTracking()
             .Where(b => b.Guid == Settings.BackupGuid)
@@ -117,8 +113,7 @@ public class ListContentJob : BaseJob
 
     protected override void ValidateSettings()
     {
-        if (string.IsNullOrEmpty(Settings.BackupPath))
-            throw new ArgumentNullException(nameof(Settings.BackupPath), "Backup path cannot be empty");
+        DestinationSet.Validate(Settings.BackupDestinations, nameof(Settings.BackupDestinations));
         if (string.IsNullOrEmpty(Settings.BackupGuid))
             throw new ArgumentNullException(nameof(Settings.BackupGuid), "Backup GUID cannot be empty");
 

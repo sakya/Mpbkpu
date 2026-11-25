@@ -39,11 +39,14 @@ public static class Program
         }
 
         var pArgs = new Parser().Parse<Arguments>(args, out var errors);
-        if (errors.Count > 0) {
+        var messages = errors.Select(e => e.Message).ToList();
+        if (messages.Count == 0 && pArgs.Validate() is { } error)
+            messages.Add(error);
+        if (messages.Count > 0) {
             PrintInfo();
             Console.ForegroundColor = Utility.Console.ErrorColor;
-            foreach (var e in errors) {
-                Console.WriteLine(e.Message);
+            foreach (var message in messages) {
+                Console.WriteLine(message);
             }
             Console.ForegroundColor = Utility.Console.DefaultColor;
             Console.WriteLine();

@@ -111,14 +111,13 @@ public class RestoreJob : BaseJob
         LogInfo("Starting with settings:");
         LogInfo(SerializeSettings());
 
-        BackupFm = FileManagerFactory.GetFileManager(Settings.BackupPath, out BackupPath, Settings.BackupPathUser, Settings.BackupPathPassword, Settings.BackupOauthSettings);
         _destinationFm = FileManagerFactory.GetFileManager(Settings.Destination, out _destinationPath, Settings.DestinationUser, Settings.DestinationPassword, Settings.DestinationOauthSettings);
 
         LogInfo("Opening database");
         Step?.Invoke(this, Steps.OpenDatabase);
         await CheckDestination();
         bool success;
-        using (var openRes = await BackupFile.OpenBackupFile(BackupFm, BackupPath, Settings.EncryptPassword, progressAction: OnOpenBackup, token: _cancellationToken)) {
+        using (var openRes = await OpenBackupDestinations(Settings.BackupDestinations, false, _cancellationToken)) {
             var backupFile = openRes.BackupFile;
             await backupFile.EmptyFiles();
             try {
@@ -154,9 +153,6 @@ public class RestoreJob : BaseJob
     /// <returns>True on success</returns>
     private async Task<bool> RunPrimitive(BackupFile backupFile)
     {
-        if (BackupFm == null)
-            throw new Exception("Backup file manager not initialized");
-
         var bkp = await backupFile.Backups.AsNoTracking()
             .Where(b => b.Guid == Settings.BackupGuid)
             .FirstOrDefaultAsync();
@@ -312,7 +308,8 @@ public class RestoreJob : BaseJob
             }
         }
 
-        _progressData.Eta = StartEta(_progressData.RestoreTotalBytes, cArgs.FilesToRestore, BackupFm, _destinationFm);
+        _progressData.Eta = StartEta(_progressData.RestoreTotalBytes, cArgs.FilesToRestore,
+            BackupDestinations!.Entries.Select(e => e.Fm).Append(_destinationFm).ToArray());
         LogInfo("Restoring files");
         Step?.Invoke(this, Steps.RestoreFiles);
         var filesToRestore = backupFile.Files
@@ -338,7 +335,8 @@ public class RestoreJob : BaseJob
                     _progressData.RestoreFileIndex++;
                     RestoreProgress?.Invoke(this, new ProgressHandlerArgs(_progressData.RestoreFileIndex, cArgs.FilesToRestore, _progressData.RestoreBytes, _progressData.RestoreTotalBytes, _progressData.Eta!.Update(_progressData.RestoreBytes, _progressData.RestoreFileIndex)));
                     break;
-                } catch (Exception ex) {
+                } catch (Exception ex) when (ex is not MissingDestinationException) {
+                    // A missing destination does not appear by retrying
                     if (tryCount == Settings.RetryOnError)
                         throw;
 
@@ -358,12 +356,11 @@ public class RestoreJob : BaseJob
     /// <exception cref="ArgumentException"></exception>
     protected override void ValidateSettings()
     {
-        if (string.IsNullOrEmpty(Settings.BackupPath))
-            throw new ArgumentNullException(nameof(Settings.BackupPath), "Backup path cannot be empty");
+        DestinationSet.Validate(Settings.BackupDestinations, nameof(Settings.BackupDestinations));
         if (string.IsNullOrEmpty(Settings.BackupGuid))
             throw new ArgumentNullException(nameof(Settings.BackupGuid), "Backup GUID cannot be empty");
         if (string.IsNullOrEmpty(Settings.Destination))
-            throw new ArgumentNullException(nameof(Settings.BackupPath), "Destination path cannot be empty");
+            throw new ArgumentNullException(nameof(Settings.Destination), "Destination path cannot be empty");
         if (Settings.RetryOnError <= 0)
             throw new ArgumentException("RetryOnError must be greater than zero");
     }
@@ -384,8 +381,6 @@ public class RestoreJob : BaseJob
     {
         if (_destinationFm == null)
             throw new Exception("Destination file manager not initialized");
-        if (BackupFm == null)
-            throw new Exception("Backup file manager not initialized");
         if (fileToRestore == null)
             throw new ArgumentNullException(nameof(fileToRestore));
 
@@ -408,7 +403,8 @@ public class RestoreJob : BaseJob
                 // Write to a temporary file: the existing file is replaced only after the hash has been verified
                 var tempFilePath = $"{destFilePath}{TempFileSuffix}";
                 try {
-                    using (var backupStream = await BackupFm.OpenFile(GetBackupItemPath(BackupFm, BackupPath, fileToRestore.BackupItem))) {
+                    var backupItem = GetBackupItemLocation(fileToRestore.BackupItem);
+                    using (var backupStream = await backupItem.Fm.OpenFile(backupItem.Path)) {
                         using (var destStream = await _destinationFm.OpenFile(tempFilePath, true)) {
                             var progressAction = new Action<long>((copied) =>
                             {

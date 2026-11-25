@@ -28,20 +28,33 @@ Tests: 73 non-remote tests pass (`dotnet test Tests/Tests.csproj --filter "Fully
 
 ## Current state
 Working on **multiple destinations per backup** (files split among the destinations, database in all of them,
-parallel copies; design in DECISIONS.md, phases in TODO.md). Phases 1, 2 and 3 done, not committed:
+parallel copies; design in DECISIONS.md, phases in TODO.md). Phases 1 to 5 done, not committed:
 - Phase 1: settings (`BackupDestination`, `Destinations`, `ParallelFiles`, old single-destination keys still read),
   validation, table `Destinations` and `BackupVolume.DestinationId` (migration `MultipleDestinations`).
 - Phase 2: `BackupJob` splits the files among the destinations (sequential) through `DestinationSet`, reads the
   newest database and writes it to every destination (`BackupFile.SaveBackupFile`), space per destination
   (`SpaceEstimate`).
 - Phase 3: parallel copies with `ParallelFiles` (reader + workers on a `Channel`), `IFileManager.MaxParallelTransfers`,
-  database, progress and logging thread-safe, `NextcloudClient` token refresh under a lock.
+  database, progress and logging thread-safe, `NextcloudClient` token refresh under a lock. Every file manager has
+  limit 1 for now, so the copies run one at a time.
+- Phase 4: list, list content, restore, verify and delete read every destination (`BackupDestinations`), find each
+  volume in its destination, report a missing one (`MissingDestinationException`); delete and `KeepChains` work on
+  all destinations.
+- Phase 5: CLI with repeatable `-d` (backup) and `-b` (other actions), `--parallelFiles`; restore and sync refuse
+  more than one destination; restore no longer retries a missing destination. Verified end to end in a real console
+  (backup to 3 folders, list, verify, restore identical to the source, missing destination reported without retries,
+  delete from every folder).
 - Verified by the tests `LegacySingleDestinationSettingsAreRead`, `InvalidDestinationSettingsAreRejected`,
   `DatabaseBeforeMultipleDestinationsIsMigrated`, `FilesAreSplitAmongDestinationsAndDatabaseIsInAll`,
   `LegacyVolumesBelongToTheDestinationOfTheDatabase`, `DatabaseCopyFailureOnOneDestinationIsAWarning`,
   `ParallelBackupRestoresTheSource`, `ParallelProgressReachesTheTotal`, `FailedParallelBackupLeavesNoFiles`,
-  `ParallelBackupCanBeCancelled` and the existing suite (local folders only).
-- Restore, verify, delete and history still read one destination: the CLI and the GUI pass one destination only.
+  `ParallelBackupCanBeCancelled`, `BackupsSplitAmongDestinationsAreRestoredVerifiedAndDeleted`,
+  `MissingDestinationIsReported`, `KeepChainsDeletesOlderChainsInEveryDestination` and the existing suite (local
+  folders only).
+- The GUI still passes one destination only (phase 6); its history page (`BackupOpenPage`) opens the database of
+  the job destination directly.
+- CLI problems found while testing (TODO.md): crash when the output is redirected, `--log` ignored by list, list
+  content and verify, exit code always 0.
 
 ## Open issues and attempts so far
 - Remote file managers other than MediaFire never tried with real accounts: the fixes are verified only offline
@@ -53,8 +66,8 @@ parallel copies; design in DECISIONS.md, phases in TODO.md). Phases 1, 2 and 3 d
   dates restored shifted by the UTC offset (change detection is not affected).
 
 ## Next step
-Phase 4 of multiple destinations: Restore, Verify, Delete, List and ListContent read the volumes from their
-destination (reusing `DestinationSet`), then `KeepChains` with multiple destinations.
+Phase 6 of multiple destinations: GUI (destination list with persisted ids, secrets per destination, space per
+destination, parallel files setting, history/verify/delete pages on every destination).
 
 Afterwards: try a backup and a sync on each remote service with a real account (upload, rename of `.mpbkpu-tmp`, database copy,
 history, download/restore), starting with the ones used in practice.

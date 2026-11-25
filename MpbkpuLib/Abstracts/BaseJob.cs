@@ -2,6 +2,7 @@
 using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
 using MpbkpuLib.Interfaces;
+using MpbkpuLib.Jobs;
 using MpbkpuLib.Utility;
 using File = MpbkpuLib.DataModel.File;
 
@@ -41,8 +42,15 @@ public abstract class BaseJob : IDisposable
     #region private members
     private readonly StreamWriter? _logWriter;
     private readonly object _logLock = new();
+    /// <summary>
+    /// The destination of the synchronization
+    /// </summary>
     protected IFileManager? BackupFm;
     protected string? BackupPath;
+    /// <summary>
+    /// The destinations of the backups, opened by <see cref="OpenBackupDestinations"/>
+    /// </summary>
+    protected DestinationSet? BackupDestinations;
     /// <summary>
     /// Relative paths of the directories that could not be read by <see cref="ReadPathContent"/>
     /// </summary>
@@ -128,6 +136,7 @@ public abstract class BaseJob : IDisposable
     public virtual void Dispose()
     {
         BackupFm?.Dispose();
+        BackupDestinations?.Dispose();
     }
 
     /// <summary>
@@ -143,19 +152,14 @@ public abstract class BaseJob : IDisposable
     protected abstract void ValidateSettings();
 
     /// <summary>
-    /// Get the full path of a backup item
+    /// The file manager and the full path of a backup item, in the destination holding its volume
     /// </summary>
-    /// <param name="fm">The <see cref="IFileManager"/></param>
-    /// <param name="backupPath">The backup path</param>
-    /// <param name="item">The <see cref="BackupItem"/></param>
-    /// <returns></returns>
-    /// <exception cref="ArgumentNullException"></exception>
-    protected string GetBackupItemPath(IFileManager? fm, string? backupPath, BackupItem? item)
+    /// <param name="item">The <see cref="BackupItem"/>, with its <see cref="BackupItem.Backup"/> and <see cref="BackupItem.Volume"/></param>
+    /// <exception cref="MissingDestinationException">The destination of the item has not been given to the job</exception>
+    protected (IFileManager Fm, string Path) GetBackupItemLocation(BackupItem? item)
     {
-        if (fm == null)
-            throw new ArgumentNullException(nameof(fm));
-        if (string.IsNullOrEmpty(backupPath))
-            throw new ArgumentNullException(nameof(backupPath));
+        if (BackupDestinations == null)
+            throw new Exception("Backup destinations not opened");
         if (item == null)
             throw new ArgumentNullException(nameof(item));
         if (item.Backup == null)
@@ -163,7 +167,54 @@ public abstract class BaseJob : IDisposable
         if (item.Volume == null)
             throw new ArgumentException("The item must contain Volume information", nameof(item));
 
-        return fm.CombinePath(backupPath, item.Backup.Guid, item.Volume.Name!, item.Name!);
+        var entry = BackupDestinations.GetEntry(item.Volume);
+        return (entry.Fm, entry.Fm.CombinePath(entry.Path, item.Backup.Guid, item.Volume.Name!, item.Name!));
+    }
+
+    /// <summary>
+    /// Open the destinations of the backups (<see cref="BackupDestinations"/>) and the newest copy of the database
+    /// </summary>
+    protected async Task<BackupFile.OpenResult> OpenBackupDestinations(IEnumerable<BackupDestination> destinations, bool create,
+        CancellationToken? token)
+    {
+        return await CreateBackupDestinations(destinations).OpenDatabase(Settings.EncryptPassword, create, OnOpenBackup, token);
+    }
+
+    /// <summary>
+    /// Create the file managers of the destinations of the backups (<see cref="BackupDestinations"/>)
+    /// </summary>
+    protected DestinationSet CreateBackupDestinations(IEnumerable<BackupDestination> destinations)
+    {
+        BackupDestinations?.Dispose();
+        return BackupDestinations = new DestinationSet(destinations);
+    }
+
+    /// <summary>
+    /// Write the database to every destination of <see cref="BackupDestinations"/>. With more than one destination a
+    /// failure is only a warning, as long as one destination holds the new database.
+    /// </summary>
+    /// <returns>False when the database could not be written to some destinations</returns>
+    protected async Task<bool> SaveDatabaseToDestinations(string localDbPath)
+    {
+        if (BackupDestinations == null)
+            throw new Exception("Backup destinations not opened");
+
+        var entries = BackupDestinations.Entries;
+        var failed = 0;
+        Exception? lastError = null;
+        foreach (var entry in entries) {
+            try {
+                await BackupFile.SaveBackupFile(localDbPath, entry.Fm, entry.Path, Settings.EncryptPassword, OnCopyBackup);
+            } catch (Exception ex) when (entries.Count > 1) {
+                LogWarning($"Cannot copy the database to {DestinationSet.MaskedPath(entry)}: {ex.Message}");
+                failed++;
+                lastError = ex;
+            }
+        }
+
+        if (failed == entries.Count)
+            throw new Exception("Cannot copy the database to any destination", lastError);
+        return failed == 0;
     }
 
     protected void OnOpenBackup(long bytes, long totalBytes)

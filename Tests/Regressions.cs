@@ -84,7 +84,7 @@ public class Regressions : BaseTest
 
         var job = new RestoreJob(new RestoreJobSettings()
         {
-            BackupPath = BackupDestination,
+            BackupDestinations = BackupDestinations(),
             BackupGuid = guid,
             Destination = RestoreDestination,
         });
@@ -110,7 +110,7 @@ public class Regressions : BaseTest
 
         var job = new DeleteJob(new DeleteJobSettings()
         {
-            BackupPath = BackupDestination,
+            BackupDestinations = BackupDestinations(),
             BackupGuid = fullGuid,
             EncryptPassword = EncryptionPassword,
         });
@@ -663,6 +663,75 @@ public class Regressions : BaseTest
         Assert.That((await GetBackups()).Single().Result, Is.EqualTo(Backup.Results.Cancelled));
     }
 
+    [Test]
+    public async Task BackupsSplitAmongDestinationsAreRestoredVerifiedAndDeleted()
+    {
+        string[] all = [BackupDestination, ..ExtraDestinations];
+        var full = await RunBackup(Backup.BackupTypes.Full, configure: s => s.Destinations = Destinations(all));
+        CreateFile(Path.Combine(BackupSource, "newFile"), 100 * 1024);
+        var incremental = await RunBackup(Backup.BackupTypes.Incremental, configure: s => s.Destinations = Destinations(all));
+
+        // The database is read from any destination, the files from their own destination
+        Assert.That((await Restore(incremental, destinations: [..all.Reverse()])).Success, Is.True, "Restore failed");
+        AssertSameContent(BackupSource, RestoreDestination);
+
+        using (var verify = new VerifyJob(new VerifyJobSettings() { BackupDestinations = Destinations(all), BackupGuid = full })) {
+            var res = (VerifyJobResult)await verify.Run(CancellationToken.None);
+            Assert.That(res.Success, Is.True);
+            Assert.That(res.Errors, Is.Empty);
+        }
+
+        // Deleting the full backup deletes its chain in every destination
+        using (var delete = new DeleteJob(new DeleteJobSettings() { BackupDestinations = Destinations(all), BackupGuid = full })) {
+            Assert.That((await delete.Run(CancellationToken.None)).Success, Is.True);
+        }
+        foreach (var destination in all) {
+            Assert.That(Directory.GetDirectories(destination), Is.Empty, destination);
+            using var fm = MpbkpuLib.FileManagers.FileManagerFactory.GetFileManager(destination, out var path);
+            using var openRes = await BackupFile.OpenBackupFile(fm, path);
+            Assert.That(await openRes.BackupFile.Backups.CountAsync(), Is.Zero, destination);
+        }
+    }
+
+    [Test]
+    public async Task MissingDestinationIsReported()
+    {
+        string[] all = [BackupDestination, ..ExtraDestinations];
+        var guid = await RunBackup(Backup.BackupTypes.Full, configure: s => s.Destinations = Destinations(all));
+
+        Assert.That(async () => await Restore(guid, destinations: [BackupDestination]),
+            Throws.TypeOf<MissingDestinationException>().With.Property(nameof(MissingDestinationException.Path)).EqualTo(ExtraDestinations[0])
+                .Or.Property(nameof(MissingDestinationException.Path)).EqualTo(ExtraDestinations[1]));
+
+        using var verify = new VerifyJob(new VerifyJobSettings() { BackupDestinations = BackupDestinations(), BackupGuid = guid });
+        var res = (VerifyJobResult)await verify.Run(CancellationToken.None);
+        Assert.That(res.Errors, Is.Not.Empty);
+        Assert.That(res.Errors!.All(e => e.Code == VerifyJobResult.Error.ErrorCodes.FileNotFound), Is.True);
+    }
+
+    [Test]
+    public async Task KeepChainsDeletesOlderChainsInEveryDestination()
+    {
+        string[] all = [BackupDestination, ..ExtraDestinations];
+        var oldFull = await RunBackup(Backup.BackupTypes.Full, configure: s =>
+        {
+            s.Destinations = Destinations(all);
+            s.KeepChains = 1;
+        });
+        CreateFile(Path.Combine(BackupSource, "newFile"), 100 * 1024);
+        var newFull = await RunBackup(Backup.BackupTypes.Full, configure: s =>
+        {
+            s.Destinations = Destinations(all);
+            s.KeepChains = 1;
+        });
+
+        foreach (var destination in all)
+            Assert.That(Directory.Exists(Path.Combine(destination, oldFull)), Is.False, destination);
+        Assert.That(await AssertItemsInTheirDestinations(ExtraDestinations[1], all.Length), Is.EqualTo(1));
+        Assert.That((await Restore(newFull, destinations: all)).Success, Is.True, "Restore failed");
+        AssertSameContent(BackupSource, RestoreDestination);
+    }
+
     /// <summary>
     /// Check that every backed up item of the database in <paramref name="databaseDestination"/> is in the destination
     /// recorded for its volume
@@ -714,11 +783,11 @@ public class Regressions : BaseTest
         Assert.That((await Restore(guid)).Success, Is.True, "Restore failed");
     }
 
-    private async Task<BaseJobResult> Restore(string guid, string? password = null)
+    private async Task<BaseJobResult> Restore(string guid, string? password = null, string[]? destinations = null)
     {
         var job = new RestoreJob(new RestoreJobSettings()
         {
-            BackupPath = BackupDestination,
+            BackupDestinations = destinations != null ? Destinations(destinations) : BackupDestinations(),
             BackupGuid = guid,
             Destination = RestoreDestination,
             EncryptPassword = password,

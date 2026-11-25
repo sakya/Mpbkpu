@@ -31,23 +31,7 @@ public class BackupAction : BaseAction
                 AppSecret = pArgs.SourceOauthAppSecret,
             },
 
-            Destinations =
-            [
-                new BackupDestination()
-                {
-                    Path = pArgs.DestinationPath,
-                    User = pArgs.DestinationUser,
-                    Password = pArgs.DestinationPassword,
-                    OauthSettings = new OAuth2Settings()
-                    {
-                        ServerUrl = pArgs.DestinationOauthServerUrl,
-                        RedirectUrl = pArgs.DestinationOauthRedirectUrl,
-                        AppName = pArgs.DestinationOauthAppName,
-                        AppId = pArgs.DestinationOauthAppId,
-                        AppSecret = pArgs.DestinationOauthAppSecret,
-                    },
-                }
-            ],
+            Destinations = pArgs.GetDestinations(),
 
             SkipHashCheck = pArgs.SkipHashCheck,
 
@@ -56,6 +40,7 @@ public class BackupAction : BaseAction
             RetryOnError = pArgs.RetryOnError ?? 3,
             FullBackupEveryDays = pArgs.FullBackupEveryDays ?? 0,
             KeepChains = pArgs.KeepChains ?? 0,
+            ParallelFiles = pArgs.ParallelFiles ?? 1,
             EncryptPassword = pArgs.Password,
             CompressionLevel = pArgs.CompressionLevel,
             LogToConsole = false,

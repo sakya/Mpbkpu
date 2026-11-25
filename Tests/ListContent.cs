@@ -37,7 +37,7 @@ public class ListContent : BaseTest
 
         var lSettings = new ListContentJobSettings()
         {
-            BackupPath = BackupDestination,
+            BackupDestinations = BackupDestinations(),
             BackupGuid = ((BackupJobJobResult)jobRes).Guid,
         };
         var lJob = new ListContentJob(lSettings);
@@ -66,7 +66,7 @@ public class ListContent : BaseTest
 
         var lSettings = new ListContentJobSettings()
         {
-            BackupPath = BackupDestination,
+            BackupDestinations = BackupDestinations(),
             EncryptPassword = EncryptionPassword,
             BackupGuid = ((BackupJobJobResult)jobRes).Guid,
         };
@@ -96,7 +96,7 @@ public class ListContent : BaseTest
 
         var lSettings = new ListContentJobSettings()
         {
-            BackupPath = BackupDestination,
+            BackupDestinations = BackupDestinations(),
             EncryptPassword = EncryptionPassword,
             BackupGuid = ((BackupJobJobResult)jobRes).Guid,
             Filter = ".*SubDirectory1.*"

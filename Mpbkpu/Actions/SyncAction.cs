@@ -13,6 +13,7 @@ public class SyncAction : BaseAction
     public override async Task<bool> Run(Arguments pArgs)
     {
         _pArgs = pArgs;
+        var destination = pArgs.GetSingleDestination();
         var settings = new SyncDirectoryJobSettings()
         {
             LogLevel = pArgs.LogLevel,
@@ -29,17 +30,10 @@ public class SyncAction : BaseAction
                 AppSecret = pArgs.SourceOauthAppSecret,
             },
 
-            Destination = pArgs.DestinationPath,
-            DestinationUser = pArgs.DestinationUser,
-            DestinationPassword = pArgs.DestinationPassword,
-            DestinationOauthSettings = new OAuth2Settings()
-            {
-                ServerUrl = pArgs.DestinationOauthServerUrl,
-                RedirectUrl = pArgs.DestinationOauthRedirectUrl,
-                AppName = pArgs.DestinationOauthAppName,
-                AppId = pArgs.DestinationOauthAppId,
-                AppSecret = pArgs.DestinationOauthAppSecret,
-            },
+            Destination = destination.Path,
+            DestinationUser = destination.User,
+            DestinationPassword = destination.Password,
+            DestinationOauthSettings = destination.OauthSettings,
 
             IncludeHiddenFiles = true,
             SkipHashCheck = pArgs.SkipHashCheck,

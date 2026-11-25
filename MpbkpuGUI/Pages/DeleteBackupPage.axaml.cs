@@ -84,13 +84,9 @@ public partial class DeleteBackupPage : BasePage
         _model.ButtonText = Localizer.Localizer.Instance["Cancel"];
         _model.Log = new ObservableCollection<JobRunningPageModel.LogMessage>();
 
-        var destination = _job.Destination!;
         var settings = new DeleteJobSettings()
         {
-            BackupPath = destination.FullPath,
-            BackupPathUser = destination.User,
-            BackupPathPassword = destination.Password,
-            BackupOauthSettings = destination.GetOAuth2Settings(),
+            BackupDestinations = [_job.Destination!.ToBackupDestination()],
             BackupGuid = _backup.Guid,
             EncryptPassword = _job.Password
         };

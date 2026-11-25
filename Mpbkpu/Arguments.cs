@@ -3,6 +3,8 @@ using CmdLineArgsParser;
 using CmdLineArgsParser.Attributes;
 using MpbkpuLib.Abstracts;
 using MpbkpuLib.DataModel;
+using MpbkpuLib.Jobs;
+using MpbkpuLib.FileManagers;
 
 namespace Mpbkpu;
 
@@ -70,9 +72,10 @@ public class Arguments : IOptions
     #region destination
     [Option("destination", ShortName = 'd',
         Required = true,
-        Description = "The destination path of a backup",
+        Description = "The destination path. A backup can be split among more destinations: repeat the option " +
+                      "(the user, password and OAuth options apply to the first one, the others take the credentials in the path)",
         OnlyForVerbs = "Backup;Restore;SyncDirectory")]
-    public string? DestinationPath { get; set; }
+    public List<string>? DestinationPaths { get; set; }
 
     [Option("destinationUser",
         Description = "The user for accessing the destination file system",
@@ -103,14 +106,49 @@ public class Arguments : IOptions
         Description = "The OAuth app secret for accessing the destination file system",
         OnlyForVerbs = "Backup;Restore;SyncDirectory")]
     public string? DestinationOauthAppSecret { get; set; }
+
+    /// <summary>
+    /// The destinations of a backup
+    /// </summary>
+    public List<BackupDestination> GetDestinations()
+    {
+        return GetDestinations(DestinationPaths, DestinationUser, DestinationPassword, new OAuth2Settings()
+        {
+            ServerUrl = DestinationOauthServerUrl,
+            RedirectUrl = DestinationOauthRedirectUrl,
+            AppName = DestinationOauthAppName,
+            AppId = DestinationOauthAppId,
+            AppSecret = DestinationOauthAppSecret,
+        });
+    }
+
+    /// <summary>
+    /// The destination of a restore or of a synchronization, which take only one (see <see cref="Validate"/>)
+    /// </summary>
+    public BackupDestination GetSingleDestination()
+    {
+        return GetDestinations()[0];
+    }
+
+    /// <summary>
+    /// Checks the parser cannot do
+    /// </summary>
+    /// <returns>The error message, null when the arguments are valid</returns>
+    public string? Validate()
+    {
+        if (Action is Actions.Restore or Actions.SyncDirectory && DestinationPaths?.Count > 1)
+            return $"{Action} takes one destination";
+        return null;
+    }
     #endregion
 
     #region backup
     [Option("backup", ShortName = 'b',
         Required = true,
-        Description = "The path containing the backup",
+        Description = "The path containing the backup. Repeat the option for a backup split among more destinations " +
+                      "(the user, password and OAuth options apply to the first one, the others take the credentials in the path)",
         OnlyForVerbs = "Restore;Delete;List;ListContent;Verify")]
-    public string? BackupPath { get; set; }
+    public List<string>? BackupPaths { get; set; }
 
     [Option("backupUser",
         Description = "The user for accessing the backup file system",
@@ -141,7 +179,33 @@ public class Arguments : IOptions
         Description = "The OAuth app secret for accessing the backup file system",
         OnlyForVerbs = "Restore;Delete;List;ListContent;Verify")]
     public string? BackupOauthAppSecret { get; set; }
+
+    /// <summary>
+    /// The destinations holding the backups
+    /// </summary>
+    public List<BackupDestination> GetBackupDestinations()
+    {
+        return GetDestinations(BackupPaths, BackupUser, BackupPassword, new OAuth2Settings()
+        {
+            ServerUrl = BackupOauthServerUrl,
+            RedirectUrl = BackupOauthRedirectUrl,
+            AppName = BackupOauthAppName,
+            AppId = BackupOauthAppId,
+            AppSecret = BackupOauthAppSecret,
+        });
+    }
     #endregion
+
+    /// <summary>
+    /// Destinations from repeated path options: the user, password and OAuth options apply to the first path.
+    /// The ids are not persisted by the CLI: the jobs match the destinations recorded in the database by path.
+    /// </summary>
+    private static List<BackupDestination> GetDestinations(List<string>? paths, string? user, string? password, OAuth2Settings oauthSettings)
+    {
+        return (paths ?? new List<string>()).Select((path, i) => i == 0 ?
+            new BackupDestination() { Path = path, User = user, Password = password, OauthSettings = oauthSettings } :
+            new BackupDestination() { Path = path }).ToList();
+    }
 
     [Option("exclude", 'e',
         Description = "File or directory to exclude from the backup",
@@ -196,6 +260,12 @@ public class Arguments : IOptions
         OnlyForVerbs = "Backup",
         DefaultValue = "0")]
     public int? FullBackupEveryDays { get; set; }
+
+    [Option("parallelFiles",
+        Description = "Maximum number of files copied at the same time (each file system can lower it)",
+        OnlyForVerbs = "Backup",
+        DefaultValue = "1")]
+    public int? ParallelFiles { get; set; }
 
     [Option("keepChains",
         Description = "Number of backup chains (a full backup and its incremental or differential backups) to keep, older chains are deleted (0 = keep all)",

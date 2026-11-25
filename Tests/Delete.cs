@@ -37,7 +37,7 @@ public class Delete  : BaseTest
 
         var dSettings = new DeleteJobSettings()
         {
-            BackupPath = BackupDestination,
+            BackupDestinations = BackupDestinations(),
             BackupGuid = ((BackupJobJobResult)jobRes).Guid,
         };
         var rJob = new DeleteJob(dSettings);

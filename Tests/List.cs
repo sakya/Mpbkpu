@@ -38,7 +38,7 @@ public class List : BaseTest
 
         var lSettings = new ListJobSettings()
         {
-            BackupPath = BackupDestination,
+            BackupDestinations = BackupDestinations(),
         };
         var lJob = new ListJob(lSettings);
         jobRes = await lJob.Run(bCts.Token);
@@ -66,7 +66,7 @@ public class List : BaseTest
 
         var lSettings = new ListJobSettings()
         {
-            BackupPath = BackupDestination,
+            BackupDestinations = BackupDestinations(),
             EncryptPassword = EncryptionPassword
         };
         var lJob = new ListJob(lSettings);

@@ -25,8 +25,6 @@ namespace MpbkpuLib.Abstracts
 
         public bool SupportCompression => true;
 
-        public int MaxParallelTransfers => int.MaxValue;
-
         public string CombinePath(params string[] paths)
         {
             return Utility.Files.CombinePath(PathSeparator, paths);

@@ -2,6 +2,7 @@
 using MpbkpuLib.Abstracts;
 using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
+using MpbkpuLib.Interfaces;
 
 namespace MpbkpuLib.Jobs;
 
@@ -23,7 +24,7 @@ public class DeleteJob : BaseJob
         }
 
         public string Guid { get; }
-        public List<(string Path, long Size)> Files { get; } = new();
+        public List<(IFileManager Fm, string Path, long Size)> Files { get; } = new();
     }
     #endregion
 
@@ -106,9 +107,8 @@ public class DeleteJob : BaseJob
 
 
         LogInfo("Opening database");
-        BackupFm = FileManagerFactory.GetFileManager(Settings.BackupPath, out BackupPath, Settings.BackupPathUser, Settings.BackupPathPassword, Settings.BackupOauthSettings);
         Step?.Invoke(this, Steps.OpenDatabase);
-        using (var openRes = await BackupFile.OpenBackupFile(BackupFm, BackupPath, Settings.EncryptPassword, progressAction: OnOpenBackup, token: _cancellationToken)) {
+        using (var openRes = await OpenBackupDestinations(Settings.BackupDestinations, false, _cancellationToken)) {
             var backupFile = openRes.BackupFile;
             try {
                 await backupFile.EmptyFiles();
@@ -129,7 +129,7 @@ public class DeleteJob : BaseJob
                 if (!_skipDatabaseCopy && !string.IsNullOrEmpty(openRes.TempFilePath)) {
                     LogInfo("Copying database");
                     Step?.Invoke(this, Steps.CopyDatabase);
-                    await BackupFile.SaveBackupFile(openRes.TempFilePath, BackupFm!, BackupPath!, Settings.EncryptPassword, OnCopyBackup);
+                    await SaveDatabaseToDestinations(openRes.TempFilePath);
                 }
 
                 // Delete the files only now that the database no longer references them:
@@ -160,9 +160,6 @@ public class DeleteJob : BaseJob
     /// <returns>True on success</returns>
     private async Task RunPrimitive(BackupFile backupFile)
     {
-        if (BackupFm == null)
-            throw new Exception("Backup file manager not initialized");
-
         var bkp = await backupFile.Backups
             .Include(b => b.Items)
             .AsNoTracking()
@@ -228,9 +225,6 @@ public class DeleteJob : BaseJob
     /// </summary>
     private async Task DeleteBackup(BackupFile backupFile, int backupId)
     {
-        if (BackupFm == null)
-            throw new Exception("Backup file manager not initialized");
-
         var bkp = await backupFile.Backups.AsNoTracking()
             .Where(b => b.Id == backupId)
             .FirstOrDefaultAsync();
@@ -244,7 +238,8 @@ public class DeleteJob : BaseJob
             .AsNoTracking()
             .Where(i => i.BackupId == backupId);
         foreach (var item in items) {
-            deleted.Files.Add((GetBackupItemPath(BackupFm, BackupPath, item), item.Size));
+            var (fm, path) = GetBackupItemLocation(item);
+            deleted.Files.Add((fm, path, item.Size));
         }
 
         await backupFile.DeleteBackup(backupId);
@@ -256,35 +251,34 @@ public class DeleteJob : BaseJob
     /// </summary>
     private async Task DeleteBackupFiles(DeletedBackup deleted)
     {
-        if (BackupFm == null)
-            throw new Exception("Backup file manager not initialized");
-
         Delete?.Invoke(this, deleted.Guid);
-        var bkpPath = BackupFm.CombinePath(BackupPath!, deleted.Guid);
-        if (!await BackupFm.DirectoryExists(bkpPath))
-            return;
-
-        var eta = StartEta(0, deleted.Files.Count, BackupFm);
+        var entries = BackupDestinations!.Entries;
+        var eta = StartEta(0, deleted.Files.Count, entries.Select(e => e.Fm).ToArray());
         var totalSize = deleted.Files.Sum(f => f.Size);
         var fileIdx = 0;
         long bytes = 0;
-        foreach (var (filePath, size) in deleted.Files) {
+        foreach (var (fm, filePath, size) in deleted.Files) {
             if (_cancellationToken?.IsCancellationRequested == true) {
-                LogWarning($"Cancelled by user: the remaining files in {bkpPath} have not been deleted");
+                LogWarning($"Cancelled by user: the remaining files of the backup {deleted.Guid} have not been deleted");
                 return;
             }
 
-            if (!await BackupFm.FileExists(filePath))
+            if (!await fm.FileExists(filePath))
                 LogWarning($"File {filePath} not found");
             else
-                await BackupFm.DeleteFile(filePath);
+                await fm.DeleteFile(filePath);
             fileIdx++;
             bytes += size;
             Progress?.Invoke(this,
                 new ProgressHandlerArgs(fileIdx, deleted.Files.Count, bytes, totalSize, eta.Update(0, fileIdx)));
         }
-        // Delete backup directory
-        await DeleteDirectoryRecursive(BackupFm, bkpPath);
+
+        // Delete the backup directory in every destination holding part of the backup
+        foreach (var entry in entries) {
+            var bkpPath = entry.Fm.CombinePath(entry.Path, deleted.Guid);
+            if (await entry.Fm.DirectoryExists(bkpPath))
+                await DeleteDirectoryRecursive(entry.Fm, bkpPath);
+        }
     }
 
     /// <summary>
@@ -294,8 +288,7 @@ public class DeleteJob : BaseJob
     /// <exception cref="ArgumentException"></exception>
     protected override void ValidateSettings()
     {
-        if (string.IsNullOrEmpty(Settings.BackupPath))
-            throw new ArgumentNullException(nameof(Settings.BackupPath), "Backup path cannot be empty");
+        DestinationSet.Validate(Settings.BackupDestinations, nameof(Settings.BackupDestinations));
 
         if (string.IsNullOrEmpty(Settings.BackupGuid))
             throw new ArgumentNullException(nameof(Settings.BackupGuid), "Backup GUID cannot be empty");

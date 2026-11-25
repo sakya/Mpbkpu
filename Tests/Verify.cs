@@ -38,7 +38,7 @@ public class Verify : BaseTest
 
         var rSettings = new VerifyJobSettings()
         {
-            BackupPath = BackupDestination,
+            BackupDestinations = BackupDestinations(),
             BackupGuid = ((BackupJobJobResult)jobRes).Guid,
         };
         var rJob = new VerifyJob(rSettings);
@@ -68,7 +68,7 @@ public class Verify : BaseTest
 
         var rSettings = new VerifyJobSettings()
         {
-            BackupPath = BackupDestination,
+            BackupDestinations = BackupDestinations(),
             BackupGuid = ((BackupJobJobResult)jobRes).Guid,
         };
         var rJob = new VerifyJob(rSettings);
@@ -98,7 +98,7 @@ public class Verify : BaseTest
 
         var rSettings = new VerifyJobSettings()
         {
-            BackupPath = BackupDestination,
+            BackupDestinations = BackupDestinations(),
             BackupGuid = ((BackupJobJobResult)jobRes).Guid,
             EncryptPassword = EncryptionPassword,
         };
@@ -130,7 +130,7 @@ public class Verify : BaseTest
 
         var rSettings = new VerifyJobSettings()
         {
-            BackupPath = BackupDestination,
+            BackupDestinations = BackupDestinations(),
             BackupGuid = ((BackupJobJobResult)jobRes).Guid,
             EncryptPassword = EncryptionPassword,
         };

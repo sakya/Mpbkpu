@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MpbkpuLib.Abstracts;
+using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
 using MpbkpuLib.Interfaces;
 using MpbkpuLib.Utility;
@@ -31,11 +32,16 @@ public sealed class DestinationSet : IDisposable
         /// </summary>
         public string Path { get; }
         /// <summary>
-        /// The id of the <see cref="DataModel.Destination"/> record, set by <see cref="Register"/>
+        /// The id of the <see cref="DataModel.Destination"/> record, set by <see cref="Match"/> and <see cref="Register"/>
         /// </summary>
         public int? RecordId { get; internal set; }
         public SpaceEstimate Space { get; } = new();
     }
+
+    /// <summary>
+    /// Paths of the destinations recorded in the database, by record id
+    /// </summary>
+    private Dictionary<int, string?> _recordPaths = new();
 
     public DestinationSet(IEnumerable<BackupDestination> destinations)
     {
@@ -58,8 +64,36 @@ public sealed class DestinationSet : IDisposable
     public Entry? DatabaseSource { get; private set; }
 
     /// <summary>
-    /// Open the newest copy of the database (by modification date). With more than one destination the database is
-    /// always copied to a temporary file, to be written to every destination with <see cref="BackupFile.SaveBackupFile"/>.
+    /// Check a list of destinations: at least one, every one with a path and an id, no duplicate ids, no destination
+    /// inside another one
+    /// </summary>
+    public static void Validate(IReadOnlyList<BackupDestination> destinations, string name)
+    {
+        if (destinations.Count == 0)
+            throw new ArgumentNullException(name, "At least one destination is required");
+
+        for (var i = 0; i < destinations.Count; i++) {
+            var destination = destinations[i];
+            if (string.IsNullOrEmpty(destination.Path))
+                throw new ArgumentNullException(name, "Destination cannot be empty");
+            if (string.IsNullOrEmpty(destination.Id))
+                throw new ArgumentNullException(name, "Destination id cannot be empty");
+
+            for (var j = i + 1; j < destinations.Count; j++) {
+                var other = destinations[j];
+                if (other.Id == destination.Id)
+                    throw new ArgumentException($"Duplicate destination id {destination.Id}");
+                if (!string.IsNullOrEmpty(other.Path) &&
+                    (Files.IsSameOrSubPath(destination.Path, other.Path) || Files.IsSameOrSubPath(other.Path, destination.Path)))
+                    throw new ArgumentException($"Destinations {destination.Path} and {other.Path} overlap");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Open the newest copy of the database (by modification date) and match the destinations with the ones recorded
+    /// in it (<see cref="Match"/>). With more than one destination the database is always copied to a temporary file,
+    /// to be written to every destination with <see cref="BackupFile.SaveBackupFile"/>.
     /// </summary>
     public async Task<BackupFile.OpenResult> OpenDatabase(string? password, bool create, Action<long, long>? progressAction, CancellationToken? token)
     {
@@ -74,49 +108,72 @@ public sealed class DestinationSet : IDisposable
         }
 
         var source = DatabaseSource ?? Entries[0];
-        return await BackupFile.OpenBackupFile(source.Fm, source.Path, password, create, progressAction, token, Entries.Count > 1);
+        var res = await BackupFile.OpenBackupFile(source.Fm, source.Path, password, create, progressAction, token, Entries.Count > 1);
+        try {
+            await Match(res.BackupFile);
+        } catch {
+            res.Dispose();
+            throw;
+        }
+        return res;
     }
 
     /// <summary>
-    /// Match the destinations with the ones recorded in the database (by id, then by path, so that a destination
-    /// keeps its record when its id is not persisted), record the new ones and assign the volumes created before
-    /// multiple destinations to the destination the database was read from.
+    /// Match the destinations with the ones recorded in the database, without changing it: by id, then by path, so
+    /// that a destination keeps its record when its id is not persisted
+    /// </summary>
+    public async Task Match(BackupFile backupFile)
+    {
+        var records = await backupFile.Destinations.AsNoTracking().ToListAsync();
+        _recordPaths = records.ToDictionary(r => r.Id, r => r.Path);
+        foreach (var entry in Entries)
+            entry.RecordId = null;
+        foreach (var (entry, record) in MatchRecords(records))
+            entry.RecordId = record.Id;
+    }
+
+    /// <summary>
+    /// Record the destinations in the database (new ones added, ids and paths updated) and assign the volumes created
+    /// before multiple destinations to the destination the database was read from
     /// </summary>
     public async Task Register(BackupFile backupFile)
     {
         var records = await backupFile.Destinations.ToListAsync();
-        var matched = new Dictionary<Entry, DataModel.Destination>();
+        var matched = MatchRecords(records);
         foreach (var entry in Entries) {
-            var record = records.FirstOrDefault(r => r.Key == entry.Settings.Id);
-            if (record != null) {
-                matched[entry] = record;
-                records.Remove(record);
-            }
-        }
-
-        foreach (var entry in Entries) {
-            var path = MaskedPath(entry);
             if (!matched.TryGetValue(entry, out var record)) {
-                record = records.FirstOrDefault(r => r.Path == path);
-                if (record != null)
-                    records.Remove(record);
-                else
-                    backupFile.Destinations.Add(record = new DataModel.Destination());
+                backupFile.Destinations.Add(record = new Destination());
                 matched[entry] = record;
             }
             record.Key = entry.Settings.Id;
-            record.Path = path;
+            record.Path = MaskedPath(entry);
         }
         await backupFile.SaveChangesAsync();
 
-        foreach (var (entry, record) in matched)
+        foreach (var (entry, record) in matched) {
             entry.RecordId = record.Id;
+            _recordPaths[record.Id] = record.Path;
+        }
 
         if (DatabaseSource != null) {
             await backupFile.BackupVolumes
                 .Where(v => v.DestinationId == null)
                 .ExecuteUpdateAsync(s => s.SetProperty(v => v.DestinationId, DatabaseSource.RecordId));
         }
+    }
+
+    /// <summary>
+    /// The destination holding a volume
+    /// </summary>
+    /// <exception cref="MissingDestinationException">The destination of the volume has not been given to the job</exception>
+    public Entry GetEntry(BackupVolume volume)
+    {
+        // Volumes created before multiple destinations are where the database was
+        if (volume.DestinationId == null)
+            return DatabaseSource ?? Entries[0];
+
+        return Entries.FirstOrDefault(e => e.RecordId == volume.DestinationId) ??
+               throw new MissingDestinationException(_recordPaths.GetValueOrDefault(volume.DestinationId.Value));
     }
 
     public void Dispose()
@@ -132,6 +189,32 @@ public sealed class DestinationSet : IDisposable
     public static string MaskedPath(Entry entry)
     {
         return BaseJob.MaskCredentials(entry.Settings.Path ?? string.Empty);
+    }
+
+    /// <summary>
+    /// The records of the destinations: by id first, then by path among the records not matched by id
+    /// </summary>
+    private Dictionary<Entry, Destination> MatchRecords(List<Destination> records)
+    {
+        var free = records.ToList();
+        var res = new Dictionary<Entry, Destination>();
+        foreach (var entry in Entries) {
+            var record = free.FirstOrDefault(r => r.Key == entry.Settings.Id);
+            if (record != null) {
+                res[entry] = record;
+                free.Remove(record);
+            }
+        }
+
+        foreach (var entry in Entries.Where(e => !res.ContainsKey(e))) {
+            var path = MaskedPath(entry);
+            var record = free.FirstOrDefault(r => r.Path == path);
+            if (record != null) {
+                res[entry] = record;
+                free.Remove(record);
+            }
+        }
+        return res;
     }
 
     /// <summary>

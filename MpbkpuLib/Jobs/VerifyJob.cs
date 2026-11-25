@@ -68,10 +68,9 @@ public class VerifyJob: BaseJob
         LogInfo(SerializeSettings());
 
         LogInfo("Opening database");
-        BackupFm = FileManagerFactory.GetFileManager(Settings.BackupPath, out BackupPath, Settings.BackupPathUser, Settings.BackupPathPassword, Settings.BackupOauthSettings);
         Step?.Invoke(this, Steps.OpenDatabase);
         VerifyJobResult? res;
-        using (var openRes = await BackupFile.OpenBackupFile(BackupFm, BackupPath, Settings.EncryptPassword, progressAction: OnOpenBackup, token: _cancellationToken)) {
+        using (var openRes = await OpenBackupDestinations(Settings.BackupDestinations, false, _cancellationToken)) {
             var backupFile = openRes.BackupFile;
             await backupFile.EmptyFiles();
             var transaction = backupFile.BeginTransaction();
@@ -105,9 +104,6 @@ public class VerifyJob: BaseJob
     /// <returns>True on success</returns>
     private async Task<VerifyJobResult> RunPrimitive(BackupFile backupFile)
     {
-        if (BackupFm == null)
-            throw new Exception("Backup file manager not initialized");
-
         _errors = new List<VerifyJobResult.Error>();
         var bkp = await backupFile.Backups.AsNoTracking()
             .Where(b => b.Guid == Settings.BackupGuid)
@@ -143,15 +139,19 @@ public class VerifyJob: BaseJob
             throw new Exception("Cannot read backup settings");
 
         // Verify backup directory
-        var backupRoot = BackupFm.CombinePath(BackupPath!, bkp.Guid);
-        if (!await BackupFm.DirectoryExists(backupRoot)) {
-            _errors.Add(new VerifyJobResult.Error(VerifyJobResult.Error.ErrorCodes.BackupDirectoryNotFound, $"Backup directory {backupRoot} does not exists"));
+        // The files of a backup can be in some of the destinations only
+        var backupRoots = BackupDestinations!.Entries.Select(e => e.Fm.CombinePath(e.Path, bkp.Guid)).ToList();
+        var rootExists = false;
+        for (var i = 0; i < backupRoots.Count && !rootExists; i++)
+            rootExists = await BackupDestinations.Entries[i].Fm.DirectoryExists(backupRoots[i]);
+        if (!rootExists && bkpItemsCount > 0) {
+            _errors.Add(new VerifyJobResult.Error(VerifyJobResult.Error.ErrorCodes.BackupDirectoryNotFound, $"Backup directory {string.Join(", ", backupRoots)} does not exists"));
             LogWarning("Backup directory does not exists");
         } else {
             // Verify backup items
             _progressData = new ProgressData()
             {
-                Eta = StartEta(bkpSize, bkpItemsCount, BackupFm),
+                Eta = StartEta(bkpSize, bkpItemsCount, BackupDestinations.Entries.Select(e => e.Fm).ToArray()),
                 TotalBytes = bkpSize,
                 TotalFiles = bkpItemsCount
             };
@@ -169,7 +169,7 @@ public class VerifyJob: BaseJob
                 }
 
                 FileProgress?.Invoke(this, item.OriginalRelativePath!, 0, item.Size);
-                if (!await VerifyBackupItem(BackupFm, item))
+                if (!await VerifyBackupItem(item))
                     filesError++;
                 _progressData.FileIndex++;
                 _progressData.Bytes += item.Size;
@@ -193,16 +193,24 @@ public class VerifyJob: BaseJob
     /// <exception cref="ArgumentException"></exception>
     protected override void ValidateSettings()
     {
-        if (string.IsNullOrEmpty(Settings.BackupPath))
-            throw new ArgumentNullException(nameof(Settings.BackupPath), "Backup path cannot be empty");
+        DestinationSet.Validate(Settings.BackupDestinations, nameof(Settings.BackupDestinations));
         if (string.IsNullOrEmpty(Settings.BackupGuid))
             throw new ArgumentNullException(nameof(Settings.BackupGuid), "Backup GUID cannot be empty");
     }
 
-    private async Task<bool> VerifyBackupItem(IFileManager fm, BackupItem item)
+    private async Task<bool> VerifyBackupItem(BackupItem item)
     {
         LogDebug($"Verifying {item.OriginalRelativePath}");
-        var filePath = GetBackupItemPath(fm, BackupPath, item);
+        IFileManager fm;
+        string filePath;
+        try {
+            (fm, filePath) = GetBackupItemLocation(item);
+        } catch (MissingDestinationException ex) {
+            _errors!.Add(new VerifyJobResult.Error(VerifyJobResult.Error.ErrorCodes.FileNotFound, $"File {item.OriginalRelativePath} not found: {ex.Message}"));
+            LogWarning($"File {item.OriginalRelativePath} not found: {ex.Message}");
+            return false;
+        }
+
         if (!await fm.FileExists(filePath)) {
             _errors!.Add(new VerifyJobResult.Error(VerifyJobResult.Error.ErrorCodes.FileNotFound, $"File {filePath} not found"));
             LogWarning($"File {filePath} not found");

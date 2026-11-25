@@ -112,16 +112,32 @@
   always finds a destination with a free place (no waiting on destinations). One code path: `ParallelFiles = 1` is
   the old sequential copy. The first failing worker cancels the others (linked token) and its error is rethrown;
   a user cancellation still ends with the `Cancelled` result.
-- **`IFileManager.MaxParallelTransfers`**: default 1 (FTP, SFTP, SMB, MEGA, MediaFire: one connection or not proven
-  safe); local file systems unlimited; OneDrive, Dropbox and Nextcloud 4 (thread-safe HTTP clients, small limit for
-  the services' rate limits). `NextcloudClient` refreshes the token once under a lock (refresh tokens are single use).
+- **`IFileManager.MaxParallelTransfers`**: 1 for every file manager for now (the user's choice, 2026-11-25). Since
+  the source counts too, the workers are 1 and nothing is copied in parallel until a limit is raised (local file
+  systems and the HTTP services OneDrive, Dropbox, Nextcloud are the candidates). `NextcloudClient` already refreshes
+  the token once under a lock (refresh tokens are single use).
 - **Shared state**: the `DbContext` is used under one `SemaphoreSlim` (`WithDatabase`); volumes and the backup
   directory are created under a lock per destination and counted in memory (volumes belong to the running backup);
   progress counts copied bytes exactly (failed tries are subtracted) and `Progress`/`FileProgress` are raised one at a
   time; logging is serialized in `BaseJob.Log`. One `EncryptDecrypt` per worker.
 - **Files are copied in id order**, no longer in relative path order (nothing depends on it).
-- **`KeepChains` with more than one destination** is refused (`NotSupportedException`) until `DeleteJob` supports
-  multiple destinations (phase 4).
+- **Jobs on existing backups** (list, list content, restore, verify, delete) take `BackupDestinations`
+  (`BackupDestinationsJobSettings`, replacing `BackupPath*`): `BaseJob.OpenBackupDestinations` opens the newest
+  database and matches the destinations read-only (`DestinationSet.Match`, nothing written); `GetBackupItemLocation`
+  finds each item in the destination of its volume and throws `MissingDestinationException` (with the recorded,
+  masked path) when that destination was not given. Verify reports it as `FileNotFound` per item; restore fails.
+- **Delete** removes the files from their destinations, the `{guid}` directory from every destination and writes the
+  database to all of them (`BaseJob.SaveDatabaseToDestinations`, shared with the backup job). `KeepChains` therefore
+  works with multiple destinations.
+- **`DestinationSet.Validate`** is shared by all the jobs (at least one destination, paths and ids set, no duplicate
+  ids, no overlapping destinations); the backup job adds the source checks.
+- **CLI**: `-d/--destination` (backup) and `-b/--backup` (list, list content, restore, verify, delete) can be
+  repeated; the user, password and OAuth options apply to the first path, the others take the credentials in the path
+  (`scheme://user:password@host`). Restore and sync take one destination (`Arguments.Validate`, reported like the
+  parser errors). `--parallelFiles` (default 1) sets `ParallelFiles`. The CLI does not persist destination ids: the
+  jobs match the recorded destinations by path. Built by `Arguments.GetDestinations` / `GetBackupDestinations`.
+- **Restore does not retry a `MissingDestinationException`**: the destination does not appear by retrying.
+- **GUI helper**: `Job.Position.ToBackupDestination()` builds the single destination the GUI passes today.
 
 ## GUI
 - **SingleWindow navigation unchanged** (pages animated in `Container`, back arrow in the TitleBar); the sidebar is
