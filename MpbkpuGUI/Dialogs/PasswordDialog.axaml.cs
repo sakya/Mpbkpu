@@ -30,7 +30,7 @@ public partial class PasswordDialog : BaseDialog
 
     protected override void Opened()
     {
-        this.FindControl<TextBox>("Password").Focus();
+        this.FindControl<TextBox>("Password")!.Focus();
         base.Opened();
     }
 

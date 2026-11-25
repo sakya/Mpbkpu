@@ -28,7 +28,7 @@ namespace NextcloudClient
                 path = $"/{path}";
 
             var xdoc = XDocument.Parse(Client.PropfindDoc);
-            var url = $"{client.ServerUri}remote.php/dav/files/{client.UserId}{path}";
+            var url = client.GetDavUrl(path);
             try {
                 var res = await client.CallApi<ItemInfo>(new HttpMethod("PROPFIND"), new Uri(url), xdoc,
                     new Dictionary<string, string>()
@@ -60,8 +60,12 @@ namespace NextcloudClient
                 path = $"/{path}";
 
             var xdoc = XDocument.Parse(Client.PropfindDoc);
-            var url = $"{client.ServerUri}remote.php/dav/files/{client.UserId}{path}";
-            return await client.CallApi<ItemInfo>(new HttpMethod("PROPFIND"), new Uri(url), xdoc);
+            var url = client.GetDavUrl(path);
+            // Without Depth the server would use "infinity" (the whole tree, often refused)
+            return await client.CallApi<ItemInfo>(new HttpMethod("PROPFIND"), new Uri(url), xdoc, new Dictionary<string, string>()
+            {
+                { "Depth", "1" }
+            });
         }
 
         /// <summary>
@@ -77,7 +81,7 @@ namespace NextcloudClient
             if (!path.StartsWith("/"))
                 path = $"/{path}";
 
-            var url = $"{client.ServerUri}remote.php/dav/files/{client.UserId}{path}";
+            var url = client.GetDavUrl(path);
             await client.CallApi<string>(new HttpMethod("MKCOL"), new Uri(url), null);
         }
 
@@ -95,7 +99,7 @@ namespace NextcloudClient
                 path = $"/{path}";
 
             await GetInfo(client, path);
-            var url = $"{client.ServerUri}remote.php/dav/files/{client.UserId}{path}";
+            var url = client.GetDavUrl(path);
             await client.CallApi<string>(new HttpMethod("DELETE"), new Uri(url), null);
         }
     }

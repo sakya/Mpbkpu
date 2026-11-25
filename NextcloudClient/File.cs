@@ -27,7 +27,7 @@ namespace NextcloudClient
                 path = $"/{path}";
 
             var xdoc = XDocument.Parse(Client.PropfindDoc);
-            var url = $"{client.ServerUri}remote.php/dav/files/{client.UserId}{path}";
+            var url = client.GetDavUrl(path);
 
             try {
                 var res =  await client.CallApi<ItemInfo>(new HttpMethod("PROPFIND"), new Uri(url), xdoc, new Dictionary<string, string>()
@@ -58,7 +58,7 @@ namespace NextcloudClient
                 path = $"/{path}";
 
             await GetInfo(client, path);
-            var url = $"{client.ServerUri}remote.php/dav/files/{client.UserId}{path}";
+            var url = client.GetDavUrl(path);
             await client.CallApi<string>(new HttpMethod("DELETE"), new Uri(url), null);
         }
 
@@ -76,7 +76,7 @@ namespace NextcloudClient
                 path = $"/{path}";
 
             await GetInfo(client, path);
-            var url = $"{client.ServerUri}remote.php/dav/files/{client.UserId}{path}";
+            var url = client.GetDavUrl(path);
             return await client.GetDownloadStream(new Uri(url));
         }
 
@@ -99,11 +99,11 @@ namespace NextcloudClient
             if (!destinationPath.StartsWith("/"))
                 destinationPath = $"/{destinationPath}";
 
-            var url = $"{client.ServerUri}remote.php/dav/files/{client.UserId}{sourcePath}";
+            var url = client.GetDavUrl(sourcePath);
             await client.CallApi<string>(new HttpMethod("MOVE"), new Uri(url), null,
                 new Dictionary<string, string>()
                 {
-                    { "Destination", $"{client.ServerUri}remote.php/dav/files/{client.UserId}{destinationPath}"},
+                    { "Destination", client.GetDavUrl(destinationPath) },
                     { "Overwrite", overwrite ? "T" : "F" },
                 });
         }
@@ -114,16 +114,17 @@ namespace NextcloudClient
         /// <param name="client">The <see cref="Client"/></param>
         /// <param name="path">The path to upload the file</param>
         /// <param name="stream">The <see cref="Stream"/></param>
+        /// <param name="length">The number of bytes to upload</param>
         /// <exception cref="ArgumentNullException"></exception>
-        public static async Task Upload(Client client, string path, Stream stream)
+        public static async Task Upload(Client client, string path, Stream stream, long length)
         {
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(nameof(path));
             if (!path.StartsWith("/"))
                 path = $"/{path}";
 
-            var url = $"{client.ServerUri}remote.php/dav/files/{client.UserId}{path}";
-            await client.UploadStream(new Uri(url), stream);
+            var url = client.GetDavUrl(path);
+            await client.UploadStream(new Uri(url), stream, length);
         }
     }
 }

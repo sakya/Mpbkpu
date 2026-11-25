@@ -35,14 +35,15 @@ namespace MpbkpuLib.FileManagers
             IFileManager? res = null;
             // FTP
             // ftp://user:password@host/position
+            // (FTP and SFTP also accept scheme:///host/position, the form written by the GUI)
             if (path.StartsWith(Ftp.Scheme, StringComparison.InvariantCultureIgnoreCase)) {
-                var m = Regex.Match(path, $"{Ftp.Scheme}(([^:]+):([^@]+)@)?([^/:]+)(:[0-9]+)?(.*)?$");
+                var m = Regex.Match(path, $"{Ftp.Scheme}/?(([^:/]+):([^@]+)@)?([^/:]+)(:[0-9]+)?(.*)?$");
                 if (m.Success) {
                     if (m.Groups.Count == 7) {
                         var ftpFm = new Ftp();
                         if (!string.IsNullOrEmpty(m.Groups[2].Value) && !string.IsNullOrEmpty(m.Groups[3].Value))
                             ftpFm.Credentials = new System.Net.NetworkCredential(m.Groups[2].Value, m.Groups[3].Value);
-                        else if (string.IsNullOrEmpty(user))
+                        else if (!string.IsNullOrEmpty(user))
                             ftpFm.Credentials = new System.Net.NetworkCredential(user, password);
 
                         ftpFm.Host = m.Groups[4].Value;
@@ -64,17 +65,17 @@ namespace MpbkpuLib.FileManagers
             // sftp://user:password@host/position
             // sftp://user:keyfile=pathToFile@host/position
             if (res == null && path.StartsWith(Sftp.Scheme, StringComparison.InvariantCultureIgnoreCase)) {
-                var m = Regex.Match(path, $"{Sftp.Scheme}(([^:]+):([^@]+)@)?([^/:]+)(:[0-9]+)?(.*)?$");
+                var m = Regex.Match(path, $"{Sftp.Scheme}/?(([^:/]+):([^@]+)@)?([^/:]+)(:[0-9]+)?(.*)?$");
                 if (m.Success) {
                     if (m.Groups.Count == 7) {
                         var sftpFm = new Sftp();
                         if (!string.IsNullOrEmpty(m.Groups[2].Value) && !string.IsNullOrEmpty(m.Groups[3].Value))
                             sftpFm.Credentials = new System.Net.NetworkCredential(m.Groups[2].Value, m.Groups[3].Value);
-                        else if (string.IsNullOrEmpty(user))
+                        else if (!string.IsNullOrEmpty(user))
                             sftpFm.Credentials = new System.Net.NetworkCredential(user, password);
 
                         sftpFm.Host = m.Groups[4].Value;
-                        if (sftpFm.Credentials != null && sftpFm.Credentials.Password.StartsWith("keyfile=")) {
+                        if (sftpFm.Credentials?.Password?.StartsWith("keyfile=") == true) {
                             sftpFm.PrivateKeyFile = sftpFm.Credentials.Password.Substring(8);
                             sftpFm.Credentials.Password = string.Empty;
                         }
@@ -93,28 +94,27 @@ namespace MpbkpuLib.FileManagers
             }
 
             // SMB
-            // smb://domain\user:password@host\position
+            // smb://domain\user:password@host/share/position (the domain is optional)
+            // (also smb:///host/share/position, the form written by the GUI)
             if (res == null && path.StartsWith(Smb.Scheme, StringComparison.InvariantCultureIgnoreCase)) {
-                var m = Regex.Match(path, $"{Smb.Scheme}((.+)?\\\\(.+):(.+)@)?([^/]+)?(.*)?$");
+                var m = Regex.Match(path, $"{Smb.Scheme}/?((([^\\\\/:@]+)\\\\)?([^\\\\/:@]+):([^@]+)@)?([^/]+)?(.*)?$");
                 if (m.Success) {
-                    if (m.Groups.Count == 7) {
+                    if (m.Groups.Count == 8) {
                         Smb? smbFm;
-                        if (!string.IsNullOrEmpty(m.Groups[2].Value) && !string.IsNullOrEmpty(m.Groups[3].Value) && !string.IsNullOrEmpty(m.Groups[3].Value))
-                            smbFm = new Smb(m.Groups[2].Value, m.Groups[3].Value, m.Groups[4].Value, m.Groups[5].Value);
+                        var host = m.Groups[6].Value;
+                        if (!string.IsNullOrEmpty(m.Groups[4].Value) && !string.IsNullOrEmpty(m.Groups[5].Value))
+                            smbFm = new Smb(m.Groups[3].Value, m.Groups[4].Value, m.Groups[5].Value, host);
                         else if (!string.IsNullOrEmpty(user)) {
-                            // Get domain
-                            if (user.Contains("\\")) {
-                                var idx = user.IndexOf("\\", StringComparison.InvariantCultureIgnoreCase);
-                                var domain = user.Substring(idx);
-                                smbFm = new Smb(domain, user.Substring(idx + 1), password ?? string.Empty, m.Groups[5].Value);
-                            } else {
-                                smbFm = new Smb(string.Empty, user, password ?? string.Empty, m.Groups[5].Value);
-                            }
+                            // domain\user
+                            var idx = user.IndexOf('\\');
+                            smbFm = idx >= 0
+                                ? new Smb(user[..idx], user[(idx + 1)..], password ?? string.Empty, host)
+                                : new Smb(string.Empty, user, password ?? string.Empty, host);
                         } else
                             throw new Exception("Invalid address");
 
-                        if (!string.IsNullOrEmpty(m.Groups[6].Value))
-                            newPosition = $"{Smb.Scheme}{smbFm.Host}{m.Groups[6].Value}";
+                        if (!string.IsNullOrEmpty(m.Groups[7].Value))
+                            newPosition = $"{Smb.Scheme}{smbFm.Host}{m.Groups[7].Value}";
                         else
                             newPosition = $"{Smb.Scheme}{smbFm.Host}/";
                         res = smbFm;
@@ -247,7 +247,7 @@ namespace MpbkpuLib.FileManagers
 
             // Default to FileSystem
             if (res == null) {
-                var m = Regex.Match(path, "[a-zA-Z]:[\\\\/].*");
+                var m = Regex.Match(path, "^[a-zA-Z]:[\\\\/]");
                 // Paths without a drive letter (relative or UNC) use the file system of the current OS
                 res = m.Success || OperatingSystem.IsWindows() ? new LocalFileSystemWindows() : new LocalFileSystemLinux();
             }

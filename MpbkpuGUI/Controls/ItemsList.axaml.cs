@@ -48,7 +48,7 @@ namespace MpbkpuGUI.Controls
         {
             InitializeComponent();
 
-            this.FindControl<ScrollViewer>("ScrollViewer").DataContext = this;
+            this.FindControl<ScrollViewer>("ScrollViewer")!.DataContext = this;
             this.Focusable = true;
             this.KeyDown += OnKeyDown;
 
@@ -220,7 +220,7 @@ namespace MpbkpuGUI.Controls
         {
             AvaloniaXamlLoader.Load(this);
 
-            _itemsRepeater = this.FindControl<ItemsRepeater>("ItemsRepeater");
+            _itemsRepeater = this.FindControl<ItemsRepeater>("ItemsRepeater")!;
         }
     }
 }

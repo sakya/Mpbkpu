@@ -134,7 +134,7 @@ public partial class JobRunningPage : BasePage
         } else if (_job is SyncJob sync) {
             var settings = new SyncDirectoryJobSettings()
             {
-                Source = sync.Source!.Path,
+                Source = sync.Source!.FullPath,
                 SourceUser = sync.Source.User,
                 SourcePassword = sync.Source.Password,
                 SourceOauthSettings = new OAuth2Settings()
@@ -146,7 +146,7 @@ public partial class JobRunningPage : BasePage
                     RedirectUrl = sync.Source.OauthRedirectUrl
                 },
 
-                Destination = sync.Destination!.Path,
+                Destination = sync.Destination!.FullPath,
                 DestinationUser = sync.Destination.User,
                 DestinationPassword = sync.Destination.Password,
                 DestinationOauthSettings = new OAuth2Settings()
@@ -172,7 +172,7 @@ public partial class JobRunningPage : BasePage
 
         Dispatcher.UIThread.Post(() =>
         {
-            var spinner = this.FindControl<Controls.Spinner>("Spinner");
+            var spinner = this.FindControl<Controls.Spinner>("Spinner")!;
             spinner.IsVisible = false;
         }, DispatcherPriority.Background);
 
@@ -185,7 +185,7 @@ public partial class JobRunningPage : BasePage
             _model.ButtonText = Localizer.Localizer.Instance["Cancel"];
             var backupRes = await _backupJob.Run(_cts.Token);
             Backup.Results result;
-            if (backupRes is BackupJobJobResult { Result: { } backupResult })
+            if (backupRes.Result is { } backupResult)
                 result = backupResult;
             else if (_cts.IsCancellationRequested)
                 result = Backup.Results.Cancelled;
@@ -260,7 +260,7 @@ public partial class JobRunningPage : BasePage
                 Message = message
             });
             App.UpdateLayout();
-            var log = this.FindControl<ScrollViewer>("Log");
+            var log = this.FindControl<ScrollViewer>("Log")!;
             log.ScrollToEnd();
         }, DispatcherPriority.Background);
     }

@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using MpbkpuLib.Abstracts;
 using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
-using Newtonsoft.Json;
 using File = MpbkpuLib.DataModel.File;
 
 namespace MpbkpuLib.Jobs;
@@ -48,7 +47,7 @@ public class ListContentJob : BaseJob
 
         var started = DateTime.UtcNow;
         LogInfo("Starting with settings:");
-        LogInfo(JsonConvert.SerializeObject(Settings, Formatting.Indented));
+        LogInfo(SerializeSettings());
 
         LogInfo("Opening database");
         BackupFm = FileManagerFactory.GetFileManager(Settings.BackupPath, out BackupPath, Settings.BackupPathUser, Settings.BackupPathPassword, Settings.BackupOauthSettings);

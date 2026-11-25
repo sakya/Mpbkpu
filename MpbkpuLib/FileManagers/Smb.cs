@@ -1,5 +1,6 @@
 using EzSmb;
 using MpbkpuLib.Interfaces;
+using MpbkpuLib.Utility;
 using File = MpbkpuLib.DataModel.File;
 
 namespace MpbkpuLib.FileManagers
@@ -12,117 +13,6 @@ namespace MpbkpuLib.FileManagers
         private readonly string? _username;
         private readonly string? _password;
 
-        #region classes
-
-        private class WriterStream : Stream
-        {
-            private bool _abort;
-            private readonly Node? _node;
-            private readonly Task? _writeTask;
-            private long _pos;
-            private long _length;
-
-            private readonly List<byte> _buffer = new List<byte>();
-            private readonly SemaphoreSlim _bufferSema = new SemaphoreSlim(1,1);
-
-            public WriterStream(Node node, string fileName, long? size)
-            {
-                _node = node;
-                if (size.HasValue)
-                    _length = size.Value;
-                _writeTask = _node.Write(this, fileName);
-            }
-
-            public override bool CanRead => false;
-
-            public override bool CanSeek => false;
-
-            public override bool CanWrite => true;
-
-            public override long Length => _length;
-
-            public override long Position {
-                get => _pos;
-                set => _pos = value;
-            }
-
-            protected override void Dispose(bool disposing)
-            {
-                _node?.Dispose();
-                base.Dispose();
-            }
-
-            public override void Flush()
-            {
-                throw new InvalidOperationException();
-            }
-
-            public override int Read(byte[] buffer, int offset, int count)
-            {
-                if (_abort || _pos >= Length)
-                    return 0;
-
-                _bufferSema.Wait();
-                int readCount = 0;
-                for (int i = 0; i < count; i++) {
-                    if (_buffer.Count > 0) {
-                        buffer[offset + i] = _buffer[0];
-                        _buffer.RemoveAt(0);
-
-                        _pos++;
-                        readCount++;
-                        if (_pos >= Length)
-                            break;
-                    } else {
-                        _bufferSema.Release();
-                        Thread.Sleep(10);
-                        _bufferSema.Wait();
-                        i--;
-                    }
-                }
-                _bufferSema.Release();
-                return readCount;
-            }
-
-            public override long Seek(long offset, SeekOrigin origin)
-            {
-                throw new InvalidOperationException();
-            }
-
-            public override void SetLength(long value)
-            {
-                throw new InvalidOperationException();
-            }
-
-            public override void Write(byte[] buffer, int offset, int count)
-            {
-                if (_abort)
-                    return;
-
-                while(_buffer.Count > 0)
-                    Thread.Sleep(10);
-
-                _bufferSema.Wait();
-                for (int i = 0; i < count; i++) {
-                    _buffer.Add(buffer[offset + i]);
-                }
-                _bufferSema.Release();
-            }
-
-            public async Task WaitTask()
-            {
-                if (_writeTask != null)
-                    await _writeTask;
-                _writeTask?.Dispose();
-            }
-
-            public void Abort()
-            {
-                _abort = true;
-            }
-        }
-        #endregion
-
         public Smb(string domainName, string username, string password, string host)
         {
             _domainName = domainName;
@@ -133,10 +23,9 @@ namespace MpbkpuLib.FileManagers
 
         public void Dispose()
         {
-
         }
 
-        public bool IsCaseSensitive => true;
+        public bool IsCaseSensitive => false;
 
         public string GetScheme()
         {
@@ -161,22 +50,10 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
 
-            using var node = await Node.GetNode(GetPath(path), GetParamSet());
-            if (node == null || node.Type != NodeType.File)
+            using var node = await GetNode(path);
+            if (node is not { Type: NodeType.File })
                 throw new FileNotFoundException($"File {path} not found", path);
-
-            var fInfo = new File()
-            {
-                FullPath = $"{Scheme}{node.FullPath.Replace("\\", "/")}",
-                Name = node.Name,
-                Type = File.FileTyes.File,
-                Size = node.Size ?? 0,
-
-                Created = node.Created,
-                LastModified = node.Updated,
-            };
-
-            return fInfo;
+            return ToFile(node, path);
         }
 
         public async IAsyncEnumerable<File> GetDirectoryContent(string? path, bool includeHidden = true)
@@ -184,29 +61,22 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
 
-            using var dir = await Node.GetNode(GetPath(path), GetParamSet());
-            foreach (var node in await dir.GetList()) {
-                if (node.Name == ".." || node.Name == "." || node.Type != NodeType.Folder)
-                    continue;
+            using var dir = await GetNode(path);
+            if (dir is not { Type: NodeType.Folder })
+                throw new DirectoryNotFoundException($"Folder {path} not found");
 
-                var fInfo = new File()
-                {
-                    FullPath = $"{Scheme}{node.FullPath.Replace("\\", "/")}",
-                    Name = node.Name,
-                    Size = node.Size ?? 0,
-
-                    Created = node.Created,
-                    LastModified = node.Updated,
-                };
-
-                if (node.Type == NodeType.Folder) {
-                    fInfo.Type = File.FileTyes.Directory;
-                } else if (node.Type == NodeType.File) {
-                    fInfo.Type = File.FileTyes.File;
-                } else {
-                    continue;
+            // The library already skips "." and ".."
+            var children = await dir.GetList() ?? throw new IOException($"Cannot read folder {path}");
+            foreach (var node in children) {
+                using (node) {
+                    if (node.Type is not (NodeType.Folder or NodeType.File))
+                        continue;
+                    // Full paths keep the form of the given path, so relative paths can be computed
+                    // (the library returns paths with the IP address instead of the host name)
+                    var fInfo = ToFile(node, CombinePath(path, node.Name));
+                    if (includeHidden || !fInfo.Hidden)
+                        yield return fInfo;
                 }
-                yield return fInfo;
             }
         }
 
@@ -215,12 +85,21 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
 
-            var node = await Node.GetNode(GetPath(path), GetParamSet());
-            if (node?.Type == NodeType.Folder)
-                throw new Exception($"Cannot create '{path}' because a directory with the same name already exists");
+            using (var existing = await GetNode(path)) {
+                if (existing != null) {
+                    if (existing.Type == NodeType.Folder)
+                        return true;
+                    throw new IOException($"A file named {path} already exists");
+                }
+            }
 
-            node = await Node.GetNode(GetParent(path, out var dirName), GetParamSet());
-            await node.CreateFolder(dirName);
+            var parentPath = Utility.Files.GetParent(PathSeparator, GetPath(path), out var dirName);
+            using var parent = await GetNode(parentPath);
+            if (parent is not { Type: NodeType.Folder })
+                throw new DirectoryNotFoundException($"Folder {parentPath} not found");
+            using var created = await parent.CreateFolder(dirName);
+            if (created == null)
+                throw new IOException($"Cannot create folder {path}");
             return true;
         }
 
@@ -229,10 +108,23 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
 
-            using var node = await Node.GetNode(GetPath(path), GetParamSet());
-            if (node.Type == NodeType.Folder)
-                return await node.Delete();
-            return false;
+            using (var node = await GetNode(path)) {
+                if (node is not { Type: NodeType.Folder })
+                    throw new DirectoryNotFoundException($"Folder {path} not found");
+            }
+
+            // SMB deletes only empty folders
+            await foreach (var child in GetDirectoryContent(path)) {
+                if (child.Type == File.FileTyes.Directory)
+                    await DeleteDirectory(child.FullPath);
+                else
+                    await DeleteFile(child.FullPath);
+            }
+
+            using var folder = await GetNode(path);
+            if (folder == null || !await folder.Delete())
+                throw new IOException($"Cannot delete folder {path}");
+            return true;
         }
 
         public async Task<bool> DeleteFile(string? path)
@@ -240,10 +132,12 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
 
-            using var node = await Node.GetNode(GetPath(path), GetParamSet());
-            if (node.Type == NodeType.File)
-                return await node.Delete();
-            return false;
+            using var node = await GetNode(path);
+            if (node is not { Type: NodeType.File })
+                throw new FileNotFoundException($"File {path} not found", path);
+            if (!await node.Delete())
+                throw new IOException($"Cannot delete file {path}");
+            return true;
         }
 
         public async Task<bool> DirectoryExists(string? path)
@@ -251,7 +145,7 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
 
-            using var node = await Node.GetNode(GetPath(path), GetParamSet());
+            using var node = await GetNode(path);
             return node?.Type == NodeType.Folder;
         }
 
@@ -260,7 +154,7 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
 
-            using var node = await Node.GetNode(GetPath(path), GetParamSet());
+            using var node = await GetNode(path);
             return node?.Type == NodeType.File;
         }
 
@@ -269,17 +163,41 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(filePath))
                 throw new ArgumentNullException(filePath);
 
-            if (write) {
-                var parent = GetParent(filePath, out var fileName);
-                if (string.IsNullOrEmpty(filePath) || string.IsNullOrEmpty(fileName))
-                    throw new Exception($"Invalid path {filePath}");
-
-                var node = await Node.GetNode(GetPath(parent), GetParamSet());
-                return new FileSystemStream(this, new WriterStream(node, fileName, size));
-            } else {
-                var node = await Node.GetNode(GetPath(filePath), GetParamSet());
-                return new FileSystemStream(this, node.GetReaderStream());
+            if (!write) {
+                var node = await GetNode(filePath);
+                if (node is not { Type: NodeType.File }) {
+                    node?.Dispose();
+                    throw new FileNotFoundException($"File {filePath} not found", filePath);
+                }
+                return new FileSystemStream(this, node.GetReaderStream()
+                                                  ?? throw new IOException($"Cannot read file {filePath}"));
             }
+
+            if (size == null)
+                throw new ArgumentNullException(nameof(size));
+
+            var parentPath = Utility.Files.GetParent(PathSeparator, GetPath(filePath), out var fileName);
+            if (string.IsNullOrEmpty(fileName))
+                throw new ArgumentException($"Invalid path {filePath}");
+            // The library does not truncate an existing file: delete it first
+            if (await FileExists(filePath))
+                await DeleteFile(filePath);
+
+            var parent = await GetNode(parentPath);
+            if (parent is not { Type: NodeType.Folder }) {
+                parent?.Dispose();
+                throw new DirectoryNotFoundException($"Folder {parentPath} not found");
+            }
+
+            // The library writes stream.Length bytes reading the stream in order
+            var res = new UploadStream(size.Value, async (stream, _) =>
+            {
+                using (parent) {
+                    if (!await parent.Write(stream, fileName))
+                        throw new IOException($"Upload of {filePath} failed");
+                }
+            });
+            return new FileSystemStream(this, res);
         }
 
         public async Task RenameFile(string? filePath, string? newName)
@@ -291,26 +209,30 @@ namespace MpbkpuLib.FileManagers
             if (newName.Contains(PathSeparator))
                 throw new ArgumentException($"The new name cannot contain '{PathSeparator}'", newName);
 
-            using var node = await Node.GetNode(GetPath(filePath), GetParamSet());
-            if (node == null || node.Type != NodeType.File)
+            using var node = await GetNode(filePath);
+            if (node is not { Type: NodeType.File })
                 throw new FileNotFoundException($"File {filePath} not found", filePath);
 
-            var parentPath = Utility.Files.GetParent( PathSeparator, GetPath(filePath), out _);
-            var targetPath = Utility.Files.CombinePath(PathSeparator, parentPath, newName);
-            using var targetNode = await Node.GetNode(GetPath(targetPath), GetParamSet());
-            if (targetNode != null)
-                throw new Exception($"A file named {newName} already exists");
+            var parentPath = Utility.Files.GetParent(PathSeparator, GetPath(filePath), out _);
+            using (var target = await GetNode(CombinePath(parentPath, newName))) {
+                if (target != null)
+                    throw new IOException($"A file named {newName} already exists");
+            }
 
-            await node.Move(targetPath);
+            // The new path is relative to the parent folder of the node
+            using var moved = await node.Move(newName);
+            if (moved == null)
+                throw new IOException($"Cannot rename {filePath} to {newName}");
         }
 
         public async Task<bool> CloseFile(Stream stream)
         {
-            if (stream is WriterStream ws) {
-                ws.Abort();
-                await ws.WaitTask();
+            try {
+                if (stream is UploadStream us)
+                    await us.CompleteAsync();
+            } finally {
+                stream.Close();
             }
-            stream.Close();
             return true;
         }
 
@@ -326,14 +248,33 @@ namespace MpbkpuLib.FileManagers
             };
         }
 
-        private string GetPath(string path)
+        /// <summary>
+        /// The node at a path, null if it does not exist
+        /// </summary>
+        private Task<Node?> GetNode(string path)
         {
-            return Utility.Files.GetPath(PathSeparator, Scheme, path);
+            return Node.GetNode(GetPath(path), GetParamSet(), false)!;
         }
 
-        private string GetParent(string position, out string? childName)
+        private static File ToFile(Node node, string path)
         {
-            return Utility.Files.GetParent(PathSeparator, GetPath(position), out childName);
+            return new File()
+            {
+                FullPath = path,
+                Name = node.Name,
+                Type = node.Type == NodeType.Folder ? File.FileTyes.Directory : File.FileTyes.File,
+                Size = node.Type == NodeType.File ? node.Size ?? 0 : 0,
+                Created = node.Created,
+                LastModified = node.Updated,
+            };
+        }
+
+        /// <summary>
+        /// Path for the library: host/share/path
+        /// </summary>
+        private string GetPath(string path)
+        {
+            return Utility.Files.GetPath(PathSeparator, Scheme, path).TrimStart(PathSeparator);
         }
         #endregion
     }

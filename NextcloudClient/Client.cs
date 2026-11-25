@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -51,7 +53,8 @@ namespace NextcloudClient
         public Client(IClientSettings settings)
         {
             _settings = settings;
-            _httpClient = new HttpClient();
+            // No timeout: uploads and downloads of large files can take a long time
+            _httpClient = new HttpClient() { Timeout = System.Threading.Timeout.InfiniteTimeSpan };
             ValidateSettings();
         }
 
@@ -60,6 +63,11 @@ namespace NextcloudClient
         public string RefreshToken { get; private set; }
         public DateTime? TokenExpiration { get; private set; }
 
+        /// <summary>
+        /// Called after the OAuth tokens have been refreshed: the old refresh token is no longer valid
+        /// </summary>
+        public Func<Task> TokensRefreshed { get; set; }
+
         public Uri ServerUri => _settings.ServerUri;
 
         public void Dispose()
@@ -67,53 +75,70 @@ namespace NextcloudClient
             _httpClient?.Dispose();
         }
 
-        public async Task<Stream> GetDownloadStream(Uri uri)
+        /// <summary>
+        /// Get the WebDAV URL of a path of the user's files (each segment is escaped)
+        /// </summary>
+        public string GetDavUrl(string path)
         {
-            await CheckAccessToken();
-            using (var httpClient = new HttpClient()) {
-                AddAuthenticationHeader(httpClient.DefaultRequestHeaders);
-                return await httpClient.GetStreamAsync(uri);
-            }
+            var segments = (path ?? string.Empty).Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+            return $"{ServerUri}remote.php/dav/files/{Uri.EscapeDataString(UserId)}/{string.Join("/", segments.Select(Uri.EscapeDataString))}";
         }
 
-        public async Task UploadStream(Uri uri, Stream stream)
+        /// <summary>
+        /// Convert a WebDAV href (/remote.php/dav/files/user/path) to the path of the user's files (/path)
+        /// </summary>
+        public string GetPathFromHref(string href)
         {
-            await CheckAccessToken();
-            using (var httpClient = new HttpClient()) {
-                AddAuthenticationHeader(httpClient.DefaultRequestHeaders);
-                var fileStreamContent = new StreamContent(stream);
-                await httpClient.PutAsync(uri, fileStreamContent);
+            var decoded = Uri.UnescapeDataString(href ?? string.Empty);
+            var prefix = $"/remote.php/dav/files/{UserId}";
+            var idx = decoded.IndexOf(prefix, StringComparison.OrdinalIgnoreCase);
+            if (idx < 0)
+                throw new Exception($"Unexpected href {href}");
+            return $"/{decoded.Substring(idx + prefix.Length).Trim('/')}";
+        }
+
+        public async Task<Stream> GetDownloadStream(Uri uri)
+        {
+            var res = await Send(() => new HttpRequestMessage(HttpMethod.Get, uri), HttpCompletionOption.ResponseHeadersRead, true);
+            if (!res.IsSuccessStatusCode) {
+                var status = res.StatusCode;
+                res.Dispose();
+                throw new ApiException(status, $"Error: download failed with status {(int)status}");
+            }
+            // Disposing the stream releases the response
+            return await res.Content.ReadAsStreamAsync();
+        }
+
+        public async Task UploadStream(Uri uri, Stream stream, long length)
+        {
+            var content = new StreamContent(stream);
+            content.Headers.ContentLength = length;
+            // The stream can be read only once: no retry
+            using (var res = await Send(() => new HttpRequestMessage(HttpMethod.Put, uri) { Content = content },
+                       HttpCompletionOption.ResponseContentRead, false)) {
+                if (!res.IsSuccessStatusCode)
+                    throw new ApiException(res.StatusCode, $"Error: upload failed with status {(int)res.StatusCode}: {await ReadError(res)}");
             }
         }
 
         public async Task<T> CallApi<T>(HttpMethod method, Uri uri, XDocument data = null, Dictionary<string, string> headers = null)
         {
-            await CheckAccessToken();
-            using (var request = new HttpRequestMessage()) {
-                request.RequestUri = uri;
-                request.Method = method;
-                AddAuthenticationHeader(request.Headers);
-                if (headers != null) {
-                    foreach (var kvp in headers)
-                        request.Headers.Add(kvp.Key, kvp.Value);
-                }
-                if (data != null)
-                    request.Content = new StringContent(data.ToString());
-                using (var res = await _httpClient.SendAsync(request)) {
-                    string resContent;
-                    using (var stream = await res.Content.ReadAsStreamAsync()) {
-                        using (var sr = new StreamReader(stream)) {
-                            resContent = await sr.ReadToEndAsync();
-                        }
-                    }
+            var requestData = data?.ToString();
+            using (var res = await Send(() =>
+                   {
+                       var request = new HttpRequestMessage(method, uri);
+                       if (headers != null) {
+                           foreach (var kvp in headers)
+                               request.Headers.Add(kvp.Key, kvp.Value);
+                       }
+                       if (requestData != null)
+                           request.Content = new StringContent(requestData);
+                       return request;
+                   }, HttpCompletionOption.ResponseContentRead, true)) {
+                if (!res.IsSuccessStatusCode)
+                    throw new ApiException(res.StatusCode, $"Error: {await ReadError(res)}");
 
-                    if (!res.IsSuccessStatusCode) {
-                        var err = Deserialize<Error>(resContent);
-                        throw new ApiException(res.StatusCode, $"Error: { err.Message ?? err.Exception}");
-                    }
-
-                    return Deserialize<T>(resContent);
-                }
+                return Deserialize<T>(await res.Content.ReadAsStringAsync());
             }
         }
 
@@ -136,12 +161,61 @@ namespace NextcloudClient
                 _settings.ServerUri = new Uri($"{_settings.ServerUri}/");
         }
 
+        /// <summary>
+        /// Send a request with the authentication header. With OAuth a 401 refreshes the token and, if allowed,
+        /// sends the request again.
+        /// </summary>
+        private async Task<HttpResponseMessage> Send(Func<HttpRequestMessage> createRequest, HttpCompletionOption option, bool allowRetry)
+        {
+            await CheckAccessToken();
+            var request = createRequest();
+            AddAuthenticationHeader(request.Headers);
+            var res = await _httpClient.SendAsync(request, option);
+            if (res.StatusCode != HttpStatusCode.Unauthorized || !allowRetry || string.IsNullOrEmpty(AccessToken))
+                return res;
+
+            res.Dispose();
+            await CheckAccessToken(true);
+            request = createRequest();
+            AddAuthenticationHeader(request.Headers);
+            return await _httpClient.SendAsync(request, option);
+        }
+
+        /// <summary>
+        /// The error message of a failed response (WebDAV XML error, or the raw content)
+        /// </summary>
+        private async Task<string> ReadError(HttpResponseMessage res)
+        {
+            var content = await res.Content.ReadAsStringAsync();
+            try {
+                var err = Deserialize<Error>(content);
+                return err.Message ?? err.Exception ?? res.ReasonPhrase;
+            } catch {
+                return string.IsNullOrEmpty(content) ? res.ReasonPhrase : content;
+            }
+        }
+
+        /// <summary>
+        /// Request an OAuth token: parameters in the body, so secrets never end up in URLs
+        /// </summary>
+        private async Task RequestToken(Dictionary<string, string> parameters)
+        {
+            parameters["client_id"] = _settings.ClientId;
+            parameters["client_secret"] = _settings.ClientSecret;
+            var token = await GetPostResponse<AuthTokenModel>($"{_settings.ServerUri}index.php/apps/oauth2/api/v1/token",
+                new FormUrlEncodedContent(parameters));
+            AccessToken = token.AccessToken;
+            RefreshToken = token.RefreshToken;
+            UserId = token.UserId;
+            TokenExpiration = DateTime.UtcNow.AddSeconds(token.ExpiresIn);
+        }
+
         private void AddAuthenticationHeader(HttpRequestHeaders headers)
         {
             if (!string.IsNullOrEmpty(AccessToken))
                 headers.Authorization = new AuthenticationHeaderValue("Bearer", AccessToken);
             else {
-                var basicAuth = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{_settings.UserId}:{_settings.Password}"));
+                var basicAuth = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{_settings.UserId}:{_settings.Password}"));
                 headers.Authorization = new AuthenticationHeaderValue("Basic", basicAuth);
             }
         }
@@ -154,14 +228,15 @@ namespace NextcloudClient
             if (string.IsNullOrEmpty(AccessToken))
                 throw new Exception("Not logged in");
 
-            if (forceRefresh || TokenExpiration <= DateTime.UtcNow.AddMinutes(-1)) {
-                var token = await GetPostResponse<AuthTokenModel>(
-                    $"{_settings.ServerUri}index.php/apps/oauth2/api/v1/token?&grant_type=refresh_token&refresh_token={RefreshToken}&client_id={_settings.ClientId}&client_secret={_settings.ClientSecret}",
-                    null);
-                UserId = token.UserId;
-                AccessToken = token.AccessToken;
-                RefreshToken = token.RefreshToken;
-                TokenExpiration = DateTime.Now.AddSeconds(token.ExpiresIn);
+            // Refresh before the expiration
+            if (forceRefresh || TokenExpiration == null || TokenExpiration <= DateTime.UtcNow.AddMinutes(1)) {
+                await RequestToken(new Dictionary<string, string>()
+                {
+                    { "grant_type", "refresh_token" },
+                    { "refresh_token", RefreshToken }
+                });
+                if (TokensRefreshed != null)
+                    await TokensRefreshed();
             }
         }
 

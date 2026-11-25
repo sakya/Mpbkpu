@@ -27,8 +27,8 @@ namespace MpbkpuGUI.Views
             Transition = new TransitionSettings(TransitionSettings.EnterTransitions.SlideLeft, TimeSpan.FromMilliseconds(220),
                 new Avalonia.Animation.Easings.CubicEaseOut());
 
-            Container = this.FindControl<Grid>("Container");
-            _titleBar = this.FindControl<Controls.TitleBar>("TitleBar");
+            Container = this.FindControl<Grid>("Container")!;
+            _titleBar = this.FindControl<Controls.TitleBar>("TitleBar")!;
         }
 
         protected override async void OnOpened(EventArgs e)
@@ -65,7 +65,7 @@ namespace MpbkpuGUI.Views
 
         private void SetWaitAnimation(bool visible)
         {
-            var spinner = this.FindControl<Controls.Spinner>("Spinner");
+            var spinner = this.FindControl<Controls.Spinner>("Spinner")!;
             spinner.IsVisible = visible;
         } // SetWaitAnimation
 

@@ -64,7 +64,7 @@ public class VerifyJob: BaseJob
 
         var started = DateTime.UtcNow;
         LogInfo("Starting with settings:");
-        LogInfo(JsonConvert.SerializeObject(Settings, Formatting.Indented));
+        LogInfo(SerializeSettings());
 
         LogInfo("Opening database");
         BackupFm = FileManagerFactory.GetFileManager(Settings.BackupPath, out BackupPath, Settings.BackupPathUser, Settings.BackupPathPassword, Settings.BackupOauthSettings);

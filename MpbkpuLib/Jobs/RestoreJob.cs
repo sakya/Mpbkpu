@@ -109,7 +109,7 @@ public class RestoreJob : BaseJob
 
         var started = DateTime.UtcNow;
         LogInfo("Starting with settings:");
-        LogInfo(JsonConvert.SerializeObject(Settings, Formatting.Indented));
+        LogInfo(SerializeSettings());
 
         BackupFm = FileManagerFactory.GetFileManager(Settings.BackupPath, out BackupPath, Settings.BackupPathUser, Settings.BackupPathPassword, Settings.BackupOauthSettings);
         _destinationFm = FileManagerFactory.GetFileManager(Settings.Destination, out _destinationPath, Settings.DestinationUser, Settings.DestinationPassword, Settings.DestinationOauthSettings);
@@ -214,7 +214,7 @@ public class RestoreJob : BaseJob
                 backupFile.Files.Add(file);
             } else if (file.Type == File.FileTyes.File) {
                 if (Settings.SkipHashCheck) {
-                    if (file.Size != item.OriginalSize || file.LastModified != item.OriginalLastModified) {
+                    if (file.Size != item.OriginalSize || !Files.SameModificationTime(file.LastModified, item.OriginalLastModified)) {
                         file.BackupItemId = item.Id;
                         file.FileAction = File.FileActions.Restore;
                     } else {
@@ -399,7 +399,7 @@ public class RestoreJob : BaseJob
 
                 // Restore last modified date (only on local file system)
                 if (_destinationFm is BaseLocalFileSystem && fileToRestore.BackupItem!.OriginalLastModified.HasValue) {
-                    Directory.SetLastWriteTime(destFilePath, fileToRestore.BackupItem.OriginalLastModified.Value);
+                    Directory.SetLastWriteTimeUtc(destFilePath, fileToRestore.BackupItem.OriginalLastModified.Value);
                 }
                 FileProgress?.Invoke(this, fileToRestore.RelativePath!, 9, 9);
                 break;
@@ -445,7 +445,7 @@ public class RestoreJob : BaseJob
 
                 // Restore last modified date (only on local file system)
                 if (_destinationFm is BaseLocalFileSystem && fileToRestore.BackupItem.OriginalLastModified.HasValue) {
-                    System.IO.File.SetLastWriteTime(destFilePath, fileToRestore.BackupItem.OriginalLastModified.Value);
+                    System.IO.File.SetLastWriteTimeUtc(destFilePath, fileToRestore.BackupItem.OriginalLastModified.Value);
                 }
                 break;
         }

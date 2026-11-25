@@ -12,138 +12,10 @@ public class Dropbox : IFileManager, IOAuth2
 {
     public const string Scheme = "dropbox://";
 
-    #region classes
-    private class WriterStream : Stream
-    {
-        private long _pos;
-
-        private readonly DropboxClient _client;
-        private readonly string _fileName;
-        private readonly long _fileLength;
-        private long _length;
-        public static readonly int ChunkSize = 4 * 1024 * 1024; // 4Mb
-        private readonly int _chunkNumber;
-        private int _chunkIndex;
-        private string? _sessionId;
-        private readonly List<byte> _buffer = new();
-        private readonly SemaphoreSlim _bufferSema = new(1,1);
-
-        public WriterStream(DropboxClient client, string fileName, long fileLength)
-        {
-            _client = client;
-            _fileName = fileName;
-
-            _fileLength = fileLength;
-            _length = fileLength < ChunkSize ? fileLength : ChunkSize;
-            _chunkNumber = (int)Math.Ceiling((double)_fileLength / ChunkSize);
-            _chunkIndex = 0;
-        }
-
-        public Task? WriteTask { get; set; }
-        public override bool CanRead => true;
-
-        public override bool CanSeek => true;
-
-        public override bool CanWrite => true;
-
-        public override long Length => _length;
-
-        public override long Position {
-            get => _pos;
-            set => _pos = value;
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-        }
-
-        public override void Flush()
-        {
-        }
-
-        public override int Read(byte[] buffer, int offset, int count)
-        {
-            if (_pos >= Length) {
-                if (_chunkIndex < _chunkNumber - 1) {
-                    _ = NextChunk();
-                }
-                return 0;
-            }
-
-            _bufferSema.Wait();
-            int readCount = 0;
-            for (int i = 0; i < count; i++) {
-                if (_buffer.Count > 0) {
-                    buffer[offset + i] = _buffer[0];
-                    _buffer.RemoveAt(0);
-
-                    _pos++;
-                    readCount++;
-                    if (_pos >= Length)
-                        break;
-                } else {
-                    _bufferSema.Release();
-                    Thread.Sleep(10);
-                    _bufferSema.Wait();
-                    i--;
-                }
-            }
-            _bufferSema.Release();
-            return readCount;
-        }
-
-        public override long Seek(long offset, SeekOrigin origin)
-        {
-            return offset;
-        }
-
-        public override void SetLength(long value)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override void Write(byte[] buffer, int offset, int count)
-        {
-            while(_buffer.Count > 0)
-                Thread.Sleep(10);
-
-            _bufferSema.Wait();
-            for (int i = 0; i < count; i++) {
-                _buffer.Add(buffer[offset + i]);
-            }
-            _bufferSema.Release();
-        }
-
-        public async Task WaitTask()
-        {
-            if (WriteTask != null)
-                await WriteTask;
-            WriteTask?.Dispose();
-        }
-
-        private async Task NextChunk()
-        {
-            if (WriteTask == null)
-                throw new Exception("WriteTask not initialized");
-
-            _chunkIndex++;
-            if (_chunkIndex == 1) {
-                var sr = await (Task<UploadSessionStartResult>)WriteTask;
-                _sessionId = sr.SessionId;
-            } else {
-                await WriteTask;
-            }
-
-            _pos = 0;
-            var cursor = new UploadSessionCursor(_sessionId, (ulong)(ChunkSize * _chunkIndex));
-            if (_chunkIndex == _chunkNumber - 1) {
-                _length = _fileLength - (ChunkSize * _chunkIndex);
-                WriteTask = _client.Files.UploadSessionFinishAsync(cursor, new CommitInfo(_fileName), body: this);
-            } else
-                WriteTask = _client.Files.UploadSessionAppendV2Async(cursor, body: this);
-        }
-    }
-    #endregion
+    /// <summary>
+    /// Size of each request of an upload session (Dropbox accepts up to 150 MB)
+    /// </summary>
+    private const int ChunkSize = 4 * 1024 * 1024;
 
     private readonly string _tokenCache = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Mpbkpu", "DropboxTokenCache");
 
@@ -189,7 +61,7 @@ public class Dropbox : IFileManager, IOAuth2
         _client?.Dispose();
     }
 
-    public bool IsCaseSensitive => true;
+    public bool IsCaseSensitive => false;
 
     public string GetScheme()
     {
@@ -212,12 +84,16 @@ public class Dropbox : IFileManager, IOAuth2
         if (string.IsNullOrEmpty(path))
             throw new ArgumentNullException(path);
 
-        var client = await GetClient();
-        path = GetPath(path);
-        var folderArg = new CreateFolderArg(path);
-        var folder = await client.Files.CreateFolderV2Async(folderArg);
+        var existing = await GetItem(path);
+        if (existing != null) {
+            if (existing.IsFolder)
+                return true;
+            throw new IOException($"A file named {path} already exists");
+        }
 
-        return folder != null;
+        var client = await GetClient();
+        await client.Files.CreateFolderV2Async(new CreateFolderArg(GetPath(path)));
+        return true;
     }
 
     public async Task<bool> DeleteDirectory(string? path)
@@ -225,11 +101,10 @@ public class Dropbox : IFileManager, IOAuth2
         if (string.IsNullOrEmpty(path))
             throw new ArgumentNullException(path);
 
-        var client = await GetClient();
-        path = GetPath(path);
-        var args = new DeleteArg(path);
-        var result = await client.Files.DeleteV2Async(args);
-        return result != null;
+        if ((await GetItem(path))?.IsFolder != true)
+            throw new DirectoryNotFoundException($"Folder {path} not found");
+        await (await GetClient()).Files.DeleteV2Async(new DeleteArg(GetPath(path)));
+        return true;
     }
 
     public async Task<bool> DeleteFile(string? path)
@@ -237,11 +112,10 @@ public class Dropbox : IFileManager, IOAuth2
         if (string.IsNullOrEmpty(path))
             throw new ArgumentNullException(path);
 
-        var client = await GetClient();
-        path = GetPath(path);
-        var args = new DeleteArg(path);
-        var result = await client.Files.DeleteV2Async(args);
-        return result != null;
+        if ((await GetItem(path))?.IsFile != true)
+            throw new FileNotFoundException($"File {path} not found", path);
+        await (await GetClient()).Files.DeleteV2Async(new DeleteArg(GetPath(path)));
+        return true;
     }
 
     public async Task<bool> DirectoryExists(string? path)
@@ -249,18 +123,10 @@ public class Dropbox : IFileManager, IOAuth2
         if (string.IsNullOrEmpty(path))
             throw new ArgumentNullException(path);
 
-        var client = await GetClient();
-        path = GetPath(path);
-
-        var metadataArgs = new GetMetadataArg(path);
-        try {
-            var metadata = await client.Files.GetMetadataAsync(metadataArgs);
-            return metadata?.IsFolder == true;
-        } catch (ApiException<GetMetadataError> ex) {
-            if (ex.ErrorResponse is GetMetadataError.Path)
-                return false;
-            throw;
-        }
+        // The root has no metadata
+        if (GetPath(path).Length == 0)
+            return true;
+        return (await GetItem(path))?.IsFolder == true;
     }
 
     public async Task<bool> FileExists(string? path)
@@ -268,18 +134,7 @@ public class Dropbox : IFileManager, IOAuth2
         if (string.IsNullOrEmpty(path))
             throw new ArgumentNullException(path);
 
-        var client = await GetClient();
-        path = GetPath(path);
-
-        var metadataArgs = new GetMetadataArg(path);
-        try {
-            var metadata = await client.Files.GetMetadataAsync(metadataArgs);
-            return metadata?.IsFile == true;
-        } catch (ApiException<GetMetadataError> ex) {
-            if (ex.ErrorResponse is GetMetadataError.Path)
-                return false;
-            throw;
-        }
+        return (await GetItem(path))?.IsFile == true;
     }
 
     public async Task<File> GetFileInfo(string? path)
@@ -287,20 +142,10 @@ public class Dropbox : IFileManager, IOAuth2
         if (string.IsNullOrEmpty(path))
             throw new ArgumentNullException(path);
 
-        var client = await GetClient();
-        path = GetPath(path);
-
-        var metadataArgs = new GetMetadataArg(path);
-        var item = await client.Files.GetMetadataAsync(metadataArgs);
-        return new File()
-        {
-            FullPath = $"{path}/{item.Name}",
-            Name = item.Name,
-            Type = item.IsFolder ? File.FileTyes.Directory : File.FileTyes.File,
-            Size = item.IsFile ? (long)item.AsFile.Size : 0,
-
-            LastModified = item.IsFile ? item.AsFile.ServerModified : null
-        };
+        var item = await GetItem(path);
+        if (item?.IsFile != true)
+            throw new FileNotFoundException($"File {path} not found", path);
+        return ToFile(item, path);
     }
 
     public async IAsyncEnumerable<File> GetDirectoryContent(string? path, bool includeHidden = true)
@@ -308,29 +153,20 @@ public class Dropbox : IFileManager, IOAuth2
         if (string.IsNullOrEmpty(path))
             throw new ArgumentNullException(path);
 
+        if (!await DirectoryExists(path))
+            throw new DirectoryNotFoundException($"Folder {path} not found");
+
         var client = await GetClient();
-        path = GetPath(path);
-        var list = await client.Files.ListFolderAsync(path);
+        var list = await client.Files.ListFolderAsync(GetPath(path));
         while (list != null) {
             foreach (var item in list.Entries) {
-                var fInfo = new File()
-                {
-                    FullPath = $"{path}/{item.Name}",
-                    Name = item.Name,
-                    Type = item.IsFolder ? File.FileTyes.Directory : File.FileTyes.File,
-                    Size = item.IsFile ? (long)item.AsFile.Size : 0,
-
-                    LastModified = item.IsFile ? item.AsFile.ServerModified : null
-
-                };
-                yield return fInfo;
+                if (!item.IsFile && !item.IsFolder)
+                    continue;
+                // Full paths keep the form of the given path, so relative paths can be computed
+                yield return ToFile(item, CombinePath(path, item.Name));
             }
 
-            if (list.HasMore) {
-                list = await client.Files.ListFolderContinueAsync(list.Cursor);
-            } else {
-                list = null;
-            }
+            list = list.HasMore ? await client.Files.ListFolderContinueAsync(list.Cursor) : null;
         }
     }
 
@@ -340,23 +176,18 @@ public class Dropbox : IFileManager, IOAuth2
             throw new ArgumentNullException(filePath);
 
         var client = await GetClient();
-        filePath = GetPath(filePath);
-        Stream? res;
+        var apiPath = GetPath(filePath);
         if (!write) {
-            var downloadRes = await client.Files.DownloadAsync(filePath);
-            res = await downloadRes.GetContentAsStreamAsync();
-        } else {
-            if (size == null)
-                throw new ArgumentNullException(nameof(size));
-
-            var ws = new WriterStream(client, filePath, size.Value);
-            if (size.Value <= WriterStream.ChunkSize)
-                ws.WriteTask = client.Files.UploadAsync(filePath, body: ws);
-            else
-                ws.WriteTask = client.Files.UploadSessionStartAsync(body: ws);
-            res = ws;
+            if ((await GetItem(filePath))?.IsFile != true)
+                throw new FileNotFoundException($"File {filePath} not found", filePath);
+            var downloadRes = await client.Files.DownloadAsync(apiPath);
+            return new FileSystemStream(this, await downloadRes.GetContentAsStreamAsync());
         }
 
+        if (size == null)
+            throw new ArgumentNullException(nameof(size));
+
+        var res = new UploadStream(size.Value, (stream, token) => Upload(client, apiPath, stream, size.Value, token));
         return new FileSystemStream(this, res);
     }
 
@@ -369,22 +200,22 @@ public class Dropbox : IFileManager, IOAuth2
         if (newName.Contains(PathSeparator))
             throw new ArgumentException($"The new name cannot contain '{PathSeparator}'", newName);
 
-        var client = await GetClient();
-        filePath = GetPath(filePath);
-        var metadataArgs = new GetMetadataArg(filePath);
-        var item = await client.Files.GetMetadataAsync(metadataArgs);
-        if (!item.IsFile)
+        if ((await GetItem(filePath))?.IsFile != true)
             throw new FileNotFoundException($"File {filePath} not found", filePath);
 
-        var parent = Files.GetParent(PathSeparator, filePath, out _);
-        var args = new RelocationArg(filePath, Files.CombinePath(PathSeparator, parent, newName));
-        await client.Files.MoveV2Async(args);
+        var apiPath = GetPath(filePath);
+        var parent = Files.GetParent(PathSeparator, apiPath, out _);
+        var client = await GetClient();
+        await client.Files.MoveV2Async(new RelocationArg(apiPath, Files.CombinePath(PathSeparator, parent, newName)));
     }
 
     public async Task<bool> CloseFile(Stream stream)
     {
-        if (stream is WriterStream ws) {
-            await ws.WaitTask();
+        try {
+            if (stream is UploadStream us)
+                await us.CompleteAsync();
+        } finally {
+            stream.Close();
         }
 
         return true;
@@ -480,9 +311,83 @@ public class Dropbox : IFileManager, IOAuth2
         await cache.SaveToken(account, accessToken, refreshToken, expiresAt);
     }
 
+    /// <summary>
+    /// Path for the Dropbox API: empty for the root, "/a/b" otherwise
+    /// </summary>
     private string GetPath(string path)
     {
-        return Files.GetPath(PathSeparator, Scheme, path);
+        var segments = Files.GetPath(PathSeparator, Scheme, path).Split(PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+        return segments.Length == 0 ? string.Empty : $"{PathSeparator}{string.Join(PathSeparator, segments)}";
+    }
+
+    /// <summary>
+    /// Metadata of a file or folder, null if it does not exist (or for the root)
+    /// </summary>
+    private async Task<Metadata?> GetItem(string path)
+    {
+        var apiPath = GetPath(path);
+        if (apiPath.Length == 0)
+            return null;
+        try {
+            return await (await GetClient()).Files.GetMetadataAsync(new GetMetadataArg(apiPath));
+        } catch (ApiException<GetMetadataError> ex) when (ex.ErrorResponse.IsPath && ex.ErrorResponse.AsPath.Value.IsNotFound) {
+            return null;
+        }
+    }
+
+    private static File ToFile(Metadata item, string path)
+    {
+        return new File()
+        {
+            FullPath = path,
+            Name = item.Name,
+            Type = item.IsFolder ? File.FileTyes.Directory : File.FileTyes.File,
+            Size = item.IsFile ? (long)item.AsFile.Size : 0,
+            LastModified = item.IsFile ? item.AsFile.ServerModified : null
+        };
+    }
+
+    /// <summary>
+    /// Upload the data read from a stream: one request up to <see cref="ChunkSize"/>, an upload session otherwise.
+    /// Every request gets its own buffer of known length, so a failed request never leaves the stream in an odd state.
+    /// </summary>
+    private static async Task Upload(DropboxClient client, string apiPath, Stream stream, long size, CancellationToken token)
+    {
+        var buffer = new byte[(int)Math.Min(ChunkSize, Math.Max(size, 1))];
+
+        async Task<MemoryStream> ReadChunk()
+        {
+            var read = 0;
+            int n;
+            while (read < buffer.Length && (n = await stream.ReadAsync(buffer.AsMemory(read), token)) > 0)
+                read += n;
+            return new MemoryStream(buffer, 0, read, false);
+        }
+
+        var commit = new CommitInfo(apiPath, WriteMode.Overwrite.Instance);
+        if (size <= ChunkSize) {
+            await client.Files.UploadAsync(new UploadArg(apiPath, WriteMode.Overwrite.Instance), await ReadChunk());
+            return;
+        }
+
+        string sessionId;
+        ulong offset;
+        using (var chunk = await ReadChunk()) {
+            sessionId = (await client.Files.UploadSessionStartAsync(body: chunk)).SessionId;
+            offset = (ulong)chunk.Length;
+        }
+        while (true) {
+            using var chunk = await ReadChunk();
+            if (chunk.Length == 0)
+                throw new IOException($"Upload of {apiPath} incomplete: {offset} of {size} bytes");
+            var cursor = new UploadSessionCursor(sessionId, offset);
+            if ((long)offset + chunk.Length >= size) {
+                await client.Files.UploadSessionFinishAsync(cursor, commit, body: chunk);
+                return;
+            }
+            await client.Files.UploadSessionAppendV2Async(cursor, body: chunk);
+            offset += (ulong)chunk.Length;
+        }
     }
 
     #endregion

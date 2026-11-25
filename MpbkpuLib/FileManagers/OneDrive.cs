@@ -1,6 +1,7 @@
 using MpbkpuLib.Interfaces;
 using Microsoft.Graph;
 using Microsoft.Graph.Models;
+using Microsoft.Graph.Models.ODataErrors;
 using Microsoft.Kiota.Abstractions;
 using Microsoft.Kiota.Abstractions.Authentication;
 using Microsoft.Identity.Client;
@@ -14,114 +15,34 @@ namespace MpbkpuLib.FileManagers
     {
         public const string Scheme = "onedrive://";
 
+        /// <summary>
+        /// Upload slice size: must be a multiple of 320 KiB
+        /// </summary>
+        private const int UploadSliceSize = 4 * 320 * 1024;
+
         #region classes
+        /// <summary>
+        /// Gets a token from MSAL for every request: MSAL returns the cached token and refreshes it when it expires
+        /// </summary>
         private class TokenProvider : IAccessTokenProvider
         {
-            private readonly string _accessToken;
+            private readonly IPublicClientApplication _app;
+            private readonly IAccount _account;
+            private readonly string[] _scopes;
 
-            public TokenProvider(string accessToken)
+            public TokenProvider(IPublicClientApplication app, IAccount account, string[] scopes)
             {
-                _accessToken = accessToken;
+                _app = app;
+                _account = account;
+                _scopes = scopes;
             }
 
             public AllowedHostsValidator AllowedHostsValidator { get; } = new();
 
-            public Task<string> GetAuthorizationTokenAsync(Uri uri, Dictionary<string, object>? additionalAuthenticationContext = null, CancellationToken cancellationToken = default)
+            public async Task<string> GetAuthorizationTokenAsync(Uri uri, Dictionary<string, object>? additionalAuthenticationContext = null, CancellationToken cancellationToken = default)
             {
-                return Task.FromResult(_accessToken);
-            }
-        }
-
-        private class WriterStream : Stream
-        {
-            private readonly Task? _writeTask;
-            private long _pos;
-
-            private readonly long _cacheSize = 1310720;
-            private readonly List<byte> _buffer = new();
-            private readonly SemaphoreSlim _bufferSema = new(1,1);
-
-            public WriterStream(UploadSession session, long length, IRequestAdapter requestAdapter)
-            {
-                Length = length;
-                _writeTask = new LargeFileUploadTask<DriveItem>(session, this, (int)_cacheSize, requestAdapter).UploadAsync();
-            }
-
-            public override bool CanRead => true;
-
-            public override bool CanSeek => true;
-
-            public override bool CanWrite => true;
-
-            public override long Length { get; }
-
-            public override long Position {
-                get => _pos;
-                set => _pos = value;
-            }
-
-            protected override void Dispose(bool disposing)
-            {
-            }
-
-            public override void Flush()
-            {
-            }
-
-            public override int Read(byte[] buffer, int offset, int count)
-            {
-                if (_pos >= Length)
-                    return 0;
-
-                _bufferSema.Wait();
-                int readCount = 0;
-                for (int i = 0; i < count; i++) {
-                    if (_buffer.Count > 0) {
-                        buffer[offset + i] = _buffer[0];
-                        _buffer.RemoveAt(0);
-
-                        _pos++;
-                        readCount++;
-                        if (_pos >= Length)
-                            break;
-                    } else {
-                        _bufferSema.Release();
-                        Thread.Sleep(10);
-                        _bufferSema.Wait();
-                        i--;
-                    }
-                }
-                _bufferSema.Release();
-                return readCount;
-            }
-
-            public override long Seek(long offset, SeekOrigin origin)
-            {
-                return offset;
-            }
-
-            public override void SetLength(long value)
-            {
-                throw new InvalidOperationException();
-            }
-
-            public override void Write(byte[] buffer, int offset, int count)
-            {
-                while(_buffer.Count > 0)
-                    Thread.Sleep(10);
-
-                _bufferSema.Wait();
-                for (int i = 0; i < count; i++) {
-                    _buffer.Add(buffer[offset + i]);
-                }
-                _bufferSema.Release();
-            }
-
-            public async Task WaitTask()
-            {
-                if (_writeTask != null)
-                    await _writeTask;
-                _writeTask?.Dispose();
+                var result = await _app.AcquireTokenSilent(_scopes, _account).ExecuteAsync(cancellationToken);
+                return result.AccessToken;
             }
         }
         #endregion
@@ -151,7 +72,7 @@ namespace MpbkpuLib.FileManagers
         {
         }
 
-        public bool IsCaseSensitive => true;
+        public bool IsCaseSensitive => false;
 
         public string GetScheme()
         {
@@ -174,29 +95,10 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
 
-            var client = await GetClient();
-            path = GetPath(path);
-            try {
-                var item = await client.Drives[_driveId].Root.ItemWithPath(path).GetAsync();
-                if (item.File == null)
-                    throw new FileNotFoundException($"File {path} not found", path);
-
-                var fInfo = new File()
-                {
-                    FullPath = $"{path}/{item.Name}",
-                    Name = item.Name,
-                    Type = item.Folder != null ? File.FileTyes.Directory : File.FileTyes.File,
-                    Size = item.Size ?? 0,
-
-                    Created = item.CreatedDateTime?.UtcDateTime,
-                    LastModified = item.LastModifiedDateTime?.UtcDateTime
-                };
-                return fInfo;
-            } catch (ApiException ex) {
-                if (ex.ResponseStatusCode == 404)
-                    throw new FileNotFoundException($"File {path} not found", path);
-                throw;
-            }
+            var item = await GetItem(path);
+            if (item?.File == null)
+                throw new FileNotFoundException($"File {path} not found", path);
+            return ToFile(item, path);
         }
 
         public async IAsyncEnumerable<File> GetDirectoryContent(string? path, bool includeHidden = true)
@@ -204,23 +106,18 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
 
-            var client = await GetClient();
-            path = GetPath(path);
-            var children = client.Drives[_driveId].Root.ItemWithPath(path).Children;
+            var folder = await GetItem(path);
+            if (folder?.Folder == null)
+                throw new DirectoryNotFoundException($"Folder {path} not found");
+
+            var children = (await GetClient()).Drives[_driveId].Items[folder.Id].Children;
             var page = await children.GetAsync();
             while (page != null) {
                 foreach (var item in page.Value ?? new List<DriveItem>()) {
-                    var fInfo = new File()
-                    {
-                        FullPath = $"{path}/{item.Name}",
-                        Name = item.Name,
-                        Type = item.Folder != null ? File.FileTyes.Directory : File.FileTyes.File,
-                        Size = item.Size ?? 0,
-
-                        Created = item.CreatedDateTime?.UtcDateTime,
-                        LastModified = item.LastModifiedDateTime?.UtcDateTime
-                    };
-                    yield return fInfo;
+                    if (item.File == null && item.Folder == null)
+                        continue;
+                    // Full paths keep the form of the given path, so relative paths can be computed
+                    yield return ToFile(item, CombinePath(path, item.Name!));
                 }
 
                 page = page.OdataNextLink != null ? await children.WithUrl(page.OdataNextLink).GetAsync() : null;
@@ -232,21 +129,23 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
 
-            var client = await GetClient();
-            path = GetPath(path);
-            var parent = GetParent(path, out var dirName);
-            var folderDriveItem = new DriveItem()
+            var existing = await GetItem(path);
+            if (existing != null) {
+                if (existing.Folder != null)
+                    return true;
+                throw new IOException($"A file named {path} already exists");
+            }
+
+            var parentPath = Utility.Files.GetParent(PathSeparator, GetPath(path), out var dirName);
+            var parent = await GetItem(parentPath);
+            if (parent?.Folder == null)
+                throw new DirectoryNotFoundException($"Folder {parentPath} not found");
+
+            await (await GetClient()).Drives[_driveId].Items[parent.Id].Children.PostAsync(new DriveItem()
             {
                 Name = dirName,
                 Folder = new Folder(),
-            };
-
-            if (string.IsNullOrEmpty(parent)) {
-                await client.Drives[_driveId].Items["root"].Children.PostAsync(folderDriveItem);
-            } else {
-                await client.Drives[_driveId].Root.ItemWithPath(parent).Children.PostAsync(folderDriveItem);
-            }
-
+            });
             return true;
         }
 
@@ -255,9 +154,11 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
 
-            var client = await GetClient();
-            path = GetPath(path);
-            await client.Drives[_driveId].Root.ItemWithPath(path).DeleteAsync();
+            var item = await GetItem(path);
+            if (item?.Folder == null)
+                throw new DirectoryNotFoundException($"Folder {path} not found");
+            // OneDrive moves deleted items to its recycle bin
+            await (await GetClient()).Drives[_driveId].Items[item.Id].DeleteAsync();
             return true;
         }
 
@@ -266,9 +167,10 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
 
-            var client = await GetClient();
-            path = GetPath(path);
-            await client.Drives[_driveId].Root.ItemWithPath(path).DeleteAsync();
+            var item = await GetItem(path);
+            if (item?.File == null)
+                throw new FileNotFoundException($"File {path} not found", path);
+            await (await GetClient()).Drives[_driveId].Items[item.Id].DeleteAsync();
             return true;
         }
 
@@ -277,16 +179,7 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
 
-            var client = await GetClient();
-            path = GetPath(path);
-            try {
-                var item = await client.Drives[_driveId].Root.ItemWithPath(path).GetAsync();
-                return item.Folder != null;
-            } catch (ApiException ex) {
-                if (ex.ResponseStatusCode == 404)
-                    return false;
-                throw;
-            }
+            return (await GetItem(path))?.Folder != null;
         }
 
         public async Task<bool> FileExists(string? path)
@@ -294,16 +187,7 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
 
-            var client = await GetClient();
-            path = GetPath(path);
-            try {
-                var item = await client.Drives[_driveId].Root.ItemWithPath(path).GetAsync();
-                return item.File != null;
-            } catch (ApiException ex) {
-                if (ex.ResponseStatusCode == 404)
-                    return false;
-                throw;
-            }
+            return (await GetItem(path))?.File != null;
         }
 
         public async Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null)
@@ -312,17 +196,41 @@ namespace MpbkpuLib.FileManagers
                 throw new ArgumentNullException(filePath);
 
             var client = await GetClient();
-            filePath = GetPath(filePath);
-            Stream? res;
             if (!write) {
-                res = await client.Drives[_driveId].Root.ItemWithPath(filePath).Content.GetAsync();
-            } else {
-                if (size == null)
-                    throw new ArgumentNullException(nameof(size));
-                UploadSession uploadSession = await client.Drives[_driveId].Root.ItemWithPath(filePath).CreateUploadSession.PostAsync(new Microsoft.Graph.Drives.Item.Items.Item.CreateUploadSession.CreateUploadSessionPostRequestBody()) ?? throw new Exception("Failed to create upload session");
-                res = new WriterStream(uploadSession, size.Value, client.RequestAdapter);
+                var item = await GetItem(filePath);
+                if (item?.File == null)
+                    throw new FileNotFoundException($"File {filePath} not found", filePath);
+                var content = await client.Drives[_driveId].Items[item.Id].Content.GetAsync()
+                              ?? throw new IOException($"Cannot download {filePath}");
+                return new FileSystemStream(this, content);
             }
 
+            if (size == null)
+                throw new ArgumentNullException(nameof(size));
+
+            var parentPath = Utility.Files.GetParent(PathSeparator, GetPath(filePath), out var fileName);
+            var parent = await GetItem(parentPath);
+            if (parent?.Folder == null)
+                throw new DirectoryNotFoundException($"Folder {parentPath} not found");
+            var itemPath = GetItemPath(CombinePath(parentPath, fileName!));
+
+            UploadStream res;
+            if (size.Value == 0) {
+                // Upload sessions do not accept empty files
+                res = new UploadStream(0, (stream, token) =>
+                    client.Drives[_driveId].Root.ItemWithPath(itemPath).Content.PutAsync(stream, cancellationToken: token));
+            } else {
+                var session = await client.Drives[_driveId].Root.ItemWithPath(itemPath).CreateUploadSession
+                                  .PostAsync(new Microsoft.Graph.Drives.Item.Items.Item.CreateUploadSession.CreateUploadSessionPostRequestBody())
+                              ?? throw new IOException("Failed to create upload session");
+                res = new UploadStream(size.Value, async (stream, token) =>
+                {
+                    var task = new LargeFileUploadTask<DriveItem>(session, stream, UploadSliceSize, client.RequestAdapter);
+                    var result = await task.UploadAsync(cancellationToken: token);
+                    if (!result.UploadSucceeded)
+                        throw new IOException($"Upload of {filePath} failed");
+                });
+            }
             return new FileSystemStream(this, res);
         }
 
@@ -335,30 +243,21 @@ namespace MpbkpuLib.FileManagers
             if (newName.Contains(PathSeparator))
                 throw new ArgumentException($"The new name cannot contain '{PathSeparator}'", newName);
 
-            var client = await GetClient();
-            filePath = GetPath(filePath);
-            var item = await client.Drives[_driveId].Root.ItemWithPath(filePath).GetAsync();
-            if (item.File == null)
+            var item = await GetItem(filePath);
+            if (item?.File == null)
                 throw new FileNotFoundException($"File {filePath} not found", filePath);
 
-            var updateItem = new DriveItem
-            {
-                Id = item.Id,
-                ParentReference = new ItemReference
-                {
-                    Id = item.ParentReference?.Id
-                },
-                Name = newName
-            };
-            await client.Drives[_driveId].Root.ItemWithPath(filePath).PatchAsync(updateItem);
+            await (await GetClient()).Drives[_driveId].Items[item.Id].PatchAsync(new DriveItem { Name = newName });
         }
 
         public async Task<bool> CloseFile(Stream stream)
         {
-            if (stream is WriterStream ws) {
-                await ws.WaitTask();
+            try {
+                if (stream is UploadStream us)
+                    await us.CompleteAsync();
+            } finally {
+                stream.Close();
             }
-            stream.Close();
 
             return true;
         }
@@ -395,21 +294,22 @@ namespace MpbkpuLib.FileManagers
                 cacheHelper.VerifyPersistence();
                 cacheHelper.RegisterCache(app.UserTokenCache);
 
-                // Get token
+                // Sign in (silently when the account is in the cache)
                 var accounts = await app.GetAccountsAsync();
+                var account = accounts.FirstOrDefault(a => string.Compare(a.Username, _account, StringComparison.InvariantCultureIgnoreCase) == 0);
                 AuthenticationResult result;
                 try {
-                    result = await app.AcquireTokenSilent(_scopes, accounts.FirstOrDefault(a => string.Compare(a.Username, _account, StringComparison.InvariantCultureIgnoreCase) == 0))
-                        .ExecuteAsync();
+                    result = await app.AcquireTokenSilent(_scopes, account).ExecuteAsync();
                 } catch (MsalUiRequiredException) {
                     result = await app.AcquireTokenInteractive(_scopes)
+                        .WithLoginHint(_account)
                         .ExecuteAsync();
-                    if (string.Compare(result.Account.Username, _account, StringComparison.InvariantCultureIgnoreCase) != 0)
-                        throw new Exception("Account mismatch");
                 }
+                if (string.Compare(result.Account.Username, _account, StringComparison.InvariantCultureIgnoreCase) != 0)
+                    throw new Exception("Account mismatch");
 
-                // Create client
-                _client = new GraphServiceClient(new BaseBearerTokenAuthenticationProvider(new TokenProvider(result.AccessToken)));
+                // Create client: every request gets a valid token from MSAL
+                _client = new GraphServiceClient(new BaseBearerTokenAuthenticationProvider(new TokenProvider(app, result.Account, _scopes)));
                 var drive = await _client.Me.Drive.GetAsync();
                 _driveId = drive?.Id ?? throw new Exception("OneDrive drive not found");
             }
@@ -417,14 +317,48 @@ namespace MpbkpuLib.FileManagers
             return _client;
         }
 
+        /// <summary>
+        /// The item at a path, null if it does not exist. The root is addressed by id, other items by path;
+        /// the other operations use the item id.
+        /// </summary>
+        private async Task<DriveItem?> GetItem(string path)
+        {
+            var client = await GetClient();
+            var itemPath = GetItemPath(path);
+            try {
+                return itemPath.Length == 0
+                    ? await client.Drives[_driveId].Items["root"].GetAsync()
+                    : await client.Drives[_driveId].Root.ItemWithPath(itemPath).GetAsync();
+            } catch (ODataError ex) when (ex.ResponseStatusCode == 404) {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Path relative to the root for ItemWithPath (it escapes the path), empty for the root
+        /// </summary>
+        private string GetItemPath(string path)
+        {
+            var segments = GetPath(path).Split(PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+            return segments.Length == 0 ? string.Empty : $"/{string.Join(PathSeparator, segments)}";
+        }
+
+        private static File ToFile(DriveItem item, string path)
+        {
+            return new File()
+            {
+                FullPath = path,
+                Name = item.Name,
+                Type = item.Folder != null ? File.FileTyes.Directory : File.FileTyes.File,
+                Size = item.Folder != null ? 0 : item.Size ?? 0,
+                Created = item.CreatedDateTime?.UtcDateTime,
+                LastModified = item.LastModifiedDateTime?.UtcDateTime
+            };
+        }
+
         private string GetPath(string path)
         {
             return Utility.Files.GetPath(PathSeparator, Scheme, path);
-        }
-
-        private string GetParent(string position, out string? childName)
-        {
-            return Utility.Files.GetParent(PathSeparator, GetPath(position), out childName);
         }
         #endregion
     }

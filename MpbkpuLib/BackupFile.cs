@@ -166,10 +166,10 @@ public class BackupFile : IDisposable
                         await decrypt.Decrypt(sourceStream, tempStream, backupFm.SupportCompression, action, token);
                     }
                 } catch (System.Security.Cryptography.CryptographicException) {
-                    System.IO.File.Delete(tempDbPath);
+                    System.IO.File.Delete(tempDbPath!);
                     throw new Exception("Failed to open the database (wrong password or corrupted file)");
                 } catch {
-                    System.IO.File.Delete(tempDbPath);
+                    System.IO.File.Delete(tempDbPath!);
                     throw;
                 }
             }
@@ -186,7 +186,7 @@ public class BackupFile : IDisposable
             await backupFile.Open(string.IsNullOrEmpty(tempDbPath) ? backupDbPath : tempDbPath);
         } catch (SqliteException) {
             if (!string.IsNullOrEmpty(tempDbPath))
-                System.IO.File.Delete(tempDbPath);
+                System.IO.File.Delete(tempDbPath!);
             if (encrypted)
                 throw new Exception("Failed to open the database (wrong password)");
             throw new Exception("Failed to open the database");

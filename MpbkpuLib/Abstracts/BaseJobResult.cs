@@ -1,3 +1,5 @@
+using MpbkpuLib.DataModel;
+
 namespace MpbkpuLib.Abstracts;
 
 public abstract class BaseJobResult
@@ -21,6 +23,11 @@ public abstract class BaseJobResult
     /// Job result
     /// </summary>
     public bool Success { get; set; }
+
+    /// <summary>
+    /// Detailed result (null when there was nothing to do)
+    /// </summary>
+    public Backup.Results? Result { get; set; }
 
     /// <summary>
     /// Job error message

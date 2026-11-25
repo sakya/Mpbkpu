@@ -28,6 +28,19 @@ public static class Files
         }
     }
 
+    /// <summary>
+    /// Compare the current modification time of a file (UTC) with the one saved in a backup database.
+    /// Backups made by older versions saved local times: they match too, so files are not backed up again.
+    /// </summary>
+    public static bool SameModificationTime(DateTime? current, DateTime? saved)
+    {
+        if (current == saved)
+            return true;
+        if (current == null || saved == null)
+            return false;
+        return DateTime.SpecifyKind(saved.Value, DateTimeKind.Local).ToUniversalTime().Ticks == current.Value.Ticks;
+    }
+
     public static string CombinePath(char separator, params string[] paths)
     {
         var res = string.Empty;

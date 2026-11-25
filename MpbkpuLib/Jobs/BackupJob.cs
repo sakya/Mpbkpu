@@ -113,7 +113,7 @@ public class BackupJob : BaseJob
 
         var started = DateTime.UtcNow;
         LogInfo("Starting with settings:");
-        LogInfo(JsonConvert.SerializeObject(Settings, Formatting.Indented));
+        LogInfo(SerializeSettings());
 
         BackupFm = FileManagerFactory.GetFileManager(Settings.Destination, out BackupPath, Settings.DestinationUser, Settings.DestinationPassword, Settings.DestinationOauthSettings);
         _sourceFm = FileManagerFactory.GetFileManager(Settings.Source, out _sourcePath, Settings.SourceUser, Settings.SourcePassword, Settings.SourceOauthSettings);
@@ -224,7 +224,7 @@ public class BackupJob : BaseJob
         {
             Name = Settings.Name,
             Type = Settings.BackupType,
-            Settings = JsonConvert.SerializeObject(Settings, Formatting.Indented),
+            Settings = SerializeSettings(),
             StartedAt = DateTime.UtcNow,
         };
 
@@ -271,7 +271,7 @@ public class BackupJob : BaseJob
                 if (sourceFile != null) {
                     if (item.Type == File.FileTyes.File) {
                         if (Settings.SkipHashCheck) {
-                            if (sourceFile.Size != item.OriginalSize || sourceFile.LastModified != item.OriginalLastModified) {
+                            if (sourceFile.Size != item.OriginalSize || !Files.SameModificationTime(sourceFile.LastModified, item.OriginalLastModified)) {
                                 sourceFile.FileAction = File.FileActions.Backup;
                                 sourceFile.Modified = true;
                             } else {

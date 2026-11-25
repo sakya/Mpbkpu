@@ -1,5 +1,6 @@
 using CG.Web.MegaApiClient;
 using MpbkpuLib.Interfaces;
+using MpbkpuLib.Utility;
 using File = MpbkpuLib.DataModel.File;
 
 namespace MpbkpuLib.FileManagers;
@@ -8,103 +9,13 @@ public class Mega : IFileManager
 {
     public const string Scheme = "mega://";
 
-    #region classes
-    private class WriterStream : Stream
-    {
-        private long _pos;
-
-        private readonly List<byte> _buffer = new();
-        private readonly SemaphoreSlim _bufferSema = new(1,1);
-
-        public WriterStream(long length)
-        {
-            Length = length;
-        }
-
-        public Task? WriteTask { get; set; }
-        public override bool CanRead => true;
-
-        public override bool CanSeek => true;
-
-        public override bool CanWrite => true;
-
-        public override long Length { get; }
-
-        public override long Position {
-            get => _pos;
-            set => _pos = value;
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-        }
-
-        public override void Flush()
-        {
-        }
-
-        public override int Read(byte[] buffer, int offset, int count)
-        {
-            if (_pos >= Length)
-                return 0;
-
-            _bufferSema.Wait();
-            int readCount = 0;
-            for (int i = 0; i < count; i++) {
-                if (_buffer.Count > 0) {
-                    buffer[offset + i] = _buffer[0];
-                    _buffer.RemoveAt(0);
-
-                    _pos++;
-                    readCount++;
-                    if (_pos >= Length)
-                        break;
-                } else {
-                    _bufferSema.Release();
-                    Thread.Sleep(10);
-                    _bufferSema.Wait();
-                    i--;
-                }
-            }
-            _bufferSema.Release();
-            return readCount;
-        }
-
-        public override long Seek(long offset, SeekOrigin origin)
-        {
-            return offset;
-        }
-
-        public override void SetLength(long value)
-        {
-            throw new InvalidOperationException();
-        }
-
-        public override void Write(byte[] buffer, int offset, int count)
-        {
-            while(_buffer.Count > 0)
-                Thread.Sleep(10);
-
-            _bufferSema.Wait();
-            for (int i = 0; i < count; i++) {
-                _buffer.Add(buffer[offset + i]);
-            }
-            _bufferSema.Release();
-        }
-
-        public async Task WaitTask()
-        {
-            if (WriteTask != null)
-                await WriteTask;
-            WriteTask?.Dispose();
-        }
-    }
-    #endregion
-
     private readonly string? _username;
     private readonly string? _password;
     private MegaApiClient? _client;
-    private IEnumerable<INode>? _nodes;
+    /// <summary>
+    /// Nodes of the account, read once and kept updated by the operations of this instance
+    /// </summary>
+    private List<INode>? _nodes;
 
     public Mega(string username, string password)
     {
@@ -150,12 +61,19 @@ public class Mega : IFileManager
         if (string.IsNullOrEmpty(path))
             throw new ArgumentNullException(path);
 
+        var existing = await GetNode(path);
+        if (existing != null) {
+            // MEGA allows duplicate names: never create a second folder with the same name
+            if (existing.Type == NodeType.Directory)
+                return true;
+            throw new IOException($"A file named {path} already exists");
+        }
+
         var client = await GetClient();
-        var parentPath = GetParent(GetPath(path), out var childName);
-        var parent = await GetNode(parentPath);
-        if (parent == null)
-            throw new Exception($"Folder {parentPath} not found");
-        return await client.CreateFolderAsync(childName, parent) != null;
+        var parent = await GetParentNode(path, out var childName);
+        var node = await client.CreateFolderAsync(childName, parent);
+        _nodes!.Add(node);
+        return true;
     }
 
     public async Task<bool> DeleteDirectory(string? path)
@@ -163,13 +81,10 @@ public class Mega : IFileManager
         if (string.IsNullOrEmpty(path))
             throw new ArgumentNullException(path);
 
-        path = GetPath(path);
-        var client = await GetClient();
         var node = await GetNode(path);
-        if (node == null || node.Type != NodeType.Directory)
-            throw new Exception($"Folder {path} not found");
-        await client.DeleteAsync(node, false);
-
+        if (node is not { Type: NodeType.Directory })
+            throw new DirectoryNotFoundException($"Folder {path} not found");
+        await DeleteNode(node);
         return true;
     }
 
@@ -178,13 +93,10 @@ public class Mega : IFileManager
         if (string.IsNullOrEmpty(path))
             throw new ArgumentNullException(path);
 
-        path = GetPath(path);
-        var client = await GetClient();
         var node = await GetNode(path);
-        if (node == null || node.Type != NodeType.File)
-            throw new Exception($"File {path} not found");
-        await client.DeleteAsync(node, false);
-
+        if (node is not { Type: NodeType.File })
+            throw new FileNotFoundException($"File {path} not found", path);
+        await DeleteNode(node);
         return true;
     }
 
@@ -194,7 +106,7 @@ public class Mega : IFileManager
             throw new ArgumentNullException(path);
 
         var node = await GetNode(path);
-        return node?.Type == NodeType.Directory;
+        return node?.Type is NodeType.Directory or NodeType.Root;
     }
 
     public async Task<bool> FileExists(string? path)
@@ -214,19 +126,7 @@ public class Mega : IFileManager
         var node = await GetNode(path);
         if (node == null)
             throw new FileNotFoundException($"File {path} not found", path);
-
-        var fInfo = new File()
-        {
-            FullPath = path,
-            Name = node.Name,
-            Type = File.FileTyes.File,
-            Size = node.Size,
-
-            Created = node.CreationDate,
-            LastModified = node.ModificationDate
-        };
-
-        return fInfo;
+        return ToFile(node, path);
     }
 
     public async IAsyncEnumerable<File> GetDirectoryContent(string? path, bool includeHidden = true)
@@ -235,21 +135,11 @@ public class Mega : IFileManager
             throw new ArgumentNullException(path);
 
         var parent = await GetNode(path);
-        if (parent == null)
-            throw new Exception($"Folder {path} not found");
+        if (parent is not { Type: NodeType.Directory or NodeType.Root })
+            throw new DirectoryNotFoundException($"Folder {path} not found");
 
-        foreach (var node in _nodes!.Where(n => n.ParentId == parent.Id)) {
-            var fInfo = new File()
-            {
-                FullPath = $"{path}/{node.Name}",
-                Name = node.Name,
-                Type = node.Type == NodeType.Directory ? File.FileTyes.Directory : File.FileTyes.File,
-                Size = node.Size,
-
-                Created = node.CreationDate,
-                LastModified = node.ModificationDate
-            };
-            yield return fInfo;
+        foreach (var node in GetChildren(parent).ToList()) {
+            yield return ToFile(node, CombinePath(path, node.Name));
         }
     }
 
@@ -258,28 +148,29 @@ public class Mega : IFileManager
         if (string.IsNullOrEmpty(filePath))
             throw new ArgumentNullException(filePath);
 
-        filePath = GetPath(filePath);
         var client = await GetClient();
-        Stream? res;
         if (!write) {
             var node = await GetNode(filePath);
-            if (node == null)
+            if (node is not { Type: NodeType.File })
                 throw new FileNotFoundException($"File {filePath} not found", filePath);
-            res = client.Download(node);
-        } else {
-            if (size == null)
-                throw new ArgumentNullException(nameof(size));
-
-            var parentPath = GetParent(filePath, out var childName);
-            var parent = await GetNode(parentPath);
-            if (parent == null)
-                throw new Exception($"Folder {parentPath} not found");
-
-            var ws = new WriterStream(size.Value);
-            ws.WriteTask = client.UploadAsync(ws, childName, parent);
-            res = ws;
+            return new FileSystemStream(this, await client.DownloadAsync(node));
         }
 
+        if (size == null)
+            throw new ArgumentNullException(nameof(size));
+
+        // Overwrite like a file system: MEGA would keep both files
+        if (await FileExists(filePath))
+            await DeleteFile(filePath);
+        var parent = await GetParentNode(filePath, out var childName);
+        var res = new UploadStream(size.Value, (stream, token) =>
+        {
+            var node = client.Upload(stream, childName, parent, null, token);
+            lock (_nodes!) {
+                _nodes.Add(node);
+            }
+            return Task.CompletedTask;
+        });
         return new FileSystemStream(this, res);
     }
 
@@ -292,26 +183,29 @@ public class Mega : IFileManager
         if (newName.Contains(PathSeparator))
             throw new ArgumentException($"The new name cannot contain '{PathSeparator}'", newName);
 
-        filePath = GetPath(filePath);
         var client = await GetClient();
         var sourceNode = await GetNode(filePath);
         if (sourceNode == null)
             throw new FileNotFoundException($"File {filePath} not found", filePath);
-        var parentPath = GetParent(filePath, out _);
-        var parent = await GetNode(parentPath);
-        if (parent == null)
-            throw new Exception($"Folder {parentPath} not found");
-        if (await GetNode(Utility.Files.CombinePath(PathSeparator, parentPath, newName)) != null)
-            throw new Exception($"A file named {newName} already exists");
-        await client.MoveAsync(sourceNode, parent);
+        var parentPath = Utility.Files.GetParent(PathSeparator, GetPath(filePath), out _);
+        if (await GetNode(CombinePath(parentPath, newName)) != null)
+            throw new IOException($"A file named {newName} already exists");
+
+        var renamed = await client.RenameAsync(sourceNode, newName);
+        lock (_nodes!) {
+            _nodes.Remove(sourceNode);
+            _nodes.Add(renamed);
+        }
     }
 
     public async Task<bool> CloseFile(Stream stream)
     {
-        if (stream is WriterStream ws) {
-            await ws.WaitTask();
+        try {
+            if (stream is UploadStream us)
+                await us.CompleteAsync();
+        } finally {
+            stream.Close();
         }
-        stream.Close();
 
         return true;
     }
@@ -327,43 +221,92 @@ public class Mega : IFileManager
         return _client;
     }
 
+    private static File ToFile(INode node, string path)
+    {
+        return new File()
+        {
+            FullPath = path,
+            Name = node.Name,
+            Type = node.Type == NodeType.File ? File.FileTyes.File : File.FileTyes.Directory,
+            Size = node.Type == NodeType.File ? node.Size : 0,
+            Created = node.CreationDate,
+            LastModified = node.ModificationDate
+        };
+    }
+
+    /// <summary>
+    /// Path without the scheme, always starting with the separator
+    /// </summary>
     private string GetPath(string path)
     {
-        return Utility.Files.GetPath(PathSeparator, Scheme, path);
+        path = Utility.Files.GetPath(PathSeparator, Scheme, path);
+        return path.StartsWith(PathSeparator) ? path : $"{PathSeparator}{path}";
     }
 
-    private string[] SplitPath(string position)
+    private IEnumerable<INode> GetChildren(INode parent)
     {
-        return position.Split(PathSeparator);
+        lock (_nodes!) {
+            return _nodes.Where(n => n.ParentId == parent.Id).ToList();
+        }
     }
 
+    /// <summary>
+    /// Find a node from its path: paths always start from the root of the Cloud Drive
+    /// </summary>
     private async Task<INode?> GetNode(string path)
     {
         var client = await GetClient();
-        _nodes = await client.GetNodesAsync();
-        if (_nodes == null)
-            return null;
+        _nodes ??= (await client.GetNodesAsync()).ToList();
 
-        INode? node = null;
-        foreach (var dir in SplitPath(GetPath(path))) {
-            if (node == null) {
-                if (string.IsNullOrEmpty(dir) || dir == "/")
-                    node = _nodes.FirstOrDefault(n => n.Type == NodeType.Root);
-                else
-                    node = _nodes.FirstOrDefault(n => n.Name == dir);
-            } else
-                node = _nodes.FirstOrDefault(n => n.Name == dir && n.ParentId == node.Id);
-
+        INode? node;
+        lock (_nodes) {
+            node = _nodes.FirstOrDefault(n => n.Type == NodeType.Root);
+        }
+        foreach (var name in GetPath(path).Split(PathSeparator, StringSplitOptions.RemoveEmptyEntries)) {
             if (node == null)
                 return null;
+            // Duplicate names are possible: prefer folders, then the most recent item
+            node = GetChildren(node)
+                .Where(n => n.Name == name)
+                .OrderBy(n => n.Type == NodeType.File)
+                .ThenByDescending(n => n.ModificationDate ?? n.CreationDate)
+                .FirstOrDefault();
         }
 
         return node;
     }
 
-    private string GetParent(string position, out string? childName)
+    private Task<INode> GetParentNode(string path, out string childName)
     {
-        return Utility.Files.GetParent(PathSeparator, GetPath(position), out childName);
+        var parentPath = Utility.Files.GetParent(PathSeparator, GetPath(path), out var name);
+        childName = name ?? throw new ArgumentException($"Invalid path {path}");
+        return GetExistingFolder(parentPath);
+    }
+
+    private async Task<INode> GetExistingFolder(string path)
+    {
+        var node = await GetNode(path);
+        if (node is not { Type: NodeType.Directory or NodeType.Root })
+            throw new DirectoryNotFoundException($"Folder {path} not found");
+        return node;
+    }
+
+    /// <summary>
+    /// Permanently delete a node (not moved to the trash) and remove it and its descendants from the cache
+    /// </summary>
+    private async Task DeleteNode(INode node)
+    {
+        await (await GetClient()).DeleteAsync(node, false);
+        lock (_nodes!) {
+            var removed = new HashSet<string> { node.Id };
+            bool changed;
+            do {
+                changed = false;
+                foreach (var n in _nodes.Where(n => !removed.Contains(n.Id) && removed.Contains(n.ParentId)).ToList())
+                    changed |= removed.Add(n.Id);
+            } while (changed);
+            _nodes.RemoveAll(n => removed.Contains(n.Id));
+        }
     }
     #endregion
 }

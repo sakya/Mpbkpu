@@ -57,7 +57,7 @@ public partial class BackupBrowsePage : BasePage
                 $"{Localizer.Localizer.Instance["AnErrorOccurred"]}{ex.Message}", MessageDialog.Icons.Error);
         }
 
-        var spinner = this.FindControl<Controls.Spinner>("Spinner");
+        var spinner = this.FindControl<Controls.Spinner>("Spinner")!;
         spinner.IsVisible = false;
     }
 

@@ -41,7 +41,7 @@ public partial class Spinner : UserControl
         var iv = this.GetObservable(UserControl.IsVisibleProperty);
         iv.Subscribe(new AnonymousObserver<bool>(value =>
         {
-            var stack = this.FindControl<StackPanel>("WaitSpinner");
+            var stack = this.FindControl<StackPanel>("WaitSpinner")!;
             if (value)
                 stack.Classes.Add("spinner");
             else

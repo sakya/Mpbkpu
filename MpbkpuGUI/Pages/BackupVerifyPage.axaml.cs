@@ -104,7 +104,7 @@ public partial class BackupVerifyPage : BasePage
 
         Dispatcher.UIThread.Post(() =>
         {
-            var spinner = this.FindControl<Controls.Spinner>("Spinner");
+            var spinner = this.FindControl<Controls.Spinner>("Spinner")!;
             spinner.IsVisible = false;
         }, DispatcherPriority.Background);
 
@@ -177,7 +177,7 @@ public partial class BackupVerifyPage : BasePage
                 Message = message
             });
             App.UpdateLayout();
-            var log = this.FindControl<ScrollViewer>("Log");
+            var log = this.FindControl<ScrollViewer>("Log")!;
             log.ScrollToEnd();
         }, DispatcherPriority.Background);
     }

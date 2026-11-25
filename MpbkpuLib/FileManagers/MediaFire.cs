@@ -2,6 +2,7 @@ using MediaFireApi;
 using MediaFireApi.Exceptions;
 using MediaFireApi.Models;
 using MpbkpuLib.Interfaces;
+using MpbkpuLib.Utility;
 using File = MpbkpuLib.DataModel.File;
 
 namespace MpbkpuLib.FileManagers;
@@ -11,147 +12,68 @@ public class MediaFire : IFileManager
     public const string Scheme = "mediafire://";
 
     #region classes
-
-    private class ReaderStream : Stream
+    /// <summary>
+    /// Download stream: owns the HTTP response and reports the file size
+    /// </summary>
+    private sealed class ReaderStream : Stream
     {
-        private readonly HttpClient _client;
+        private readonly HttpResponseMessage _response;
         private readonly Stream _baseStream;
-        public ReaderStream(string url)
+        private long _position;
+
+        public ReaderStream(HttpResponseMessage response, Stream baseStream, long length)
         {
-            _client = new HttpClient();
-            var res = _client.GetAsync(new Uri(url));
-            _baseStream = res.Result.Content.ReadAsStream();
+            _response = response;
+            _baseStream = baseStream;
+            Length = length;
         }
 
         protected override void Dispose(bool disposing)
         {
-            _baseStream?.Dispose();
-            _client?.Dispose();
-        }
-
-        public override void Flush()
-        {
-            throw new InvalidOperationException();
+            _baseStream.Dispose();
+            _response.Dispose();
+            base.Dispose(disposing);
         }
 
         public override int Read(byte[] buffer, int offset, int count)
         {
-            return _baseStream.Read(buffer, offset, count);
+            var read = _baseStream.Read(buffer, offset, count);
+            _position += read;
+            return read;
         }
 
-        public override long Seek(long offset, SeekOrigin origin)
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
         {
-            throw new InvalidOperationException();
-        }
-
-        public override void SetLength(long value)
-        {
-            throw new InvalidOperationException();
-        }
-
-        public override void Write(byte[] buffer, int offset, int count)
-        {
-            throw new InvalidOperationException();
+            var read = await _baseStream.ReadAsync(buffer, cancellationToken);
+            _position += read;
+            return read;
         }
 
         public override bool CanRead => true;
         public override bool CanSeek => false;
         public override bool CanWrite => false;
         public override long Length { get; }
-        public override long Position { get; set; }
-    }
 
-    private class WriterStream : Stream
-    {
-        private long _pos;
-
-        private readonly List<byte> _buffer = new();
-        private readonly SemaphoreSlim _bufferSema = new(1,1);
-
-        public WriterStream(long length)
+        public override long Position
         {
-            Length = length;
-        }
-
-        public Task? WriteTask { get; set; }
-        public override bool CanRead => true;
-
-        public override bool CanSeek => true;
-
-        public override bool CanWrite => true;
-
-        public override long Length { get; }
-
-        public override long Position {
-            get => _pos;
-            set => _pos = value;
-        }
-
-        protected override void Dispose(bool disposing)
-        {
+            get => _position;
+            set => throw new NotSupportedException();
         }
 
         public override void Flush()
         {
         }
 
-        public override int Read(byte[] buffer, int offset, int count)
-        {
-            if (_pos >= Length)
-                return 0;
-
-            _bufferSema.Wait();
-            int readCount = 0;
-            for (int i = 0; i < count; i++) {
-                if (_buffer.Count > 0) {
-                    buffer[offset + i] = _buffer[0];
-                    _buffer.RemoveAt(0);
-
-                    _pos++;
-                    readCount++;
-                    if (_pos >= Length)
-                        break;
-                } else {
-                    _bufferSema.Release();
-                    Thread.Sleep(10);
-                    _bufferSema.Wait();
-                    i--;
-                }
-            }
-            _bufferSema.Release();
-            return readCount;
-        }
-
-        public override long Seek(long offset, SeekOrigin origin)
-        {
-            return offset;
-        }
-
-        public override void SetLength(long value)
-        {
-            throw new InvalidOperationException();
-        }
-
-        public override void Write(byte[] buffer, int offset, int count)
-        {
-            while(_buffer.Count > 0)
-                Thread.Sleep(10);
-
-            _bufferSema.Wait();
-            for (int i = 0; i < count; i++) {
-                _buffer.Add(buffer[offset + i]);
-            }
-            _bufferSema.Release();
-        }
-
-        public async Task WaitTask()
-        {
-            if (WriteTask != null)
-                await WriteTask;
-            WriteTask?.Dispose();
-        }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
     #endregion
+
+    /// <summary>
+    /// Shared by all the downloads; no timeout because files can be large
+    /// </summary>
+    private static readonly HttpClient DownloadClient = new() { Timeout = Timeout.InfiniteTimeSpan };
 
     private readonly string? _username;
     private readonly string? _password;
@@ -195,9 +117,11 @@ public class MediaFire : IFileManager
         if (string.IsNullOrEmpty(path))
             throw new ArgumentNullException(path);
 
+        if (await DirectoryExists(path))
+            return true;
         var client = await GetClient();
         var parentPath = GetParent(GetPath(path), out var childName);
-        await client.FolderCreate(parentPath: parentPath, name: childName);
+        await client.FolderCreate(parentPath: parentPath, name: childName, actionOnDuplicate: ActionOnDuplicate.Skip);
         return true;
     }
 
@@ -206,16 +130,13 @@ public class MediaFire : IFileManager
         if (string.IsNullOrEmpty(path))
             throw new ArgumentNullException(path);
 
+        if (!await DirectoryExists(path))
+            throw new DirectoryNotFoundException($"Folder {path} not found");
         var client = await GetClient();
-        path = GetPath(path);
-        var info = (await client.FolderGetInfo(folderPath: path))?.ToList();
-        if (info?.Count == 1) {
-            await client.FolderDelete(new []{ info[0].FolderKey });
-            await client.FolderPurge( new []{ info[0].FolderKey });
-            return true;
-        }
-
-        return false;
+        var info = (await client.FolderGetInfo(folderPath: GetPath(path)))!.ToList();
+        await client.FolderDelete(new []{ info[0].FolderKey });
+        await client.FolderPurge( new []{ info[0].FolderKey });
+        return true;
     }
 
     public async Task<bool> DeleteFile(string? path)
@@ -223,16 +144,11 @@ public class MediaFire : IFileManager
         if (string.IsNullOrEmpty(path))
             throw new ArgumentNullException(path);
 
+        var quickKey = await GetQuickKey(path);
         var client = await GetClient();
-        path = GetPath(path);
-        var info = (await client.FileGetInfo(filePath: path))?.ToList();
-        if (info?.Count == 1) {
-            await client.FileDelete(new []{ info[0].QuickKey });
-            await client.FilePurge( new []{ info[0].QuickKey });
-            return true;
-        }
-
-        return false;
+        await client.FileDelete(new []{ quickKey });
+        await client.FilePurge( new []{ quickKey });
+        return true;
     }
 
     public async Task<bool> DirectoryExists(string? path)
@@ -277,8 +193,7 @@ public class MediaFire : IFileManager
             throw new ArgumentNullException(path);
 
         var client = await GetClient();
-        path = GetPath(path);
-        var info = (await client.FileGetInfo(filePath: path))?.ToList();
+        var info = await TryGetFileInfo(client, path);
         if (info?.Count == 1) {
             var fInfo = new File()
             {
@@ -301,15 +216,17 @@ public class MediaFire : IFileManager
             throw new ArgumentNullException(path);
 
         var client = await GetClient();
-        path = GetPath(path);
+        var apiPath = GetPath(path);
 
-        // Read folders
-        var content = await client.FolderGetContent(folderPath: path, contentType: FolderContentType.Folders);
+        // Read folders (full paths keep the form of the given path, so relative paths can be computed)
+        var content = await client.FolderGetContent(folderPath: apiPath, contentType: FolderContentType.Folders)
+            .ContinueWith(t => t.Exception?.InnerException is MediaFireApiException { ErrorCode: (int)ErrorCodes.ErrorInvalidFolderPath } ?
+                throw new DirectoryNotFoundException($"Folder {path} not found") : t.GetAwaiter().GetResult());
         while (content?.Folders != null) {
             foreach (var f in content.Folders) {
                 var fInfo = new File()
                 {
-                    FullPath = $"{path}/{f.Name}",
+                    FullPath = CombinePath(path, f.Name),
                     Name = f.Name,
                     Type = File.FileTyes.Directory,
                     Size = f.TotalSize,
@@ -320,18 +237,18 @@ public class MediaFire : IFileManager
             }
 
             if (content.MoreChunks == YesNo.Yes) {
-                content = await client.FolderGetContent(folderPath: path, contentType: FolderContentType.Folders, chunk: content.ChunkNumber + 1);
+                content = await client.FolderGetContent(folderPath: apiPath, contentType: FolderContentType.Folders, chunk: content.ChunkNumber + 1);
             } else
                 content = null;
         }
 
         // Read files
-        content = await client.FolderGetContent(folderPath: path, contentType: FolderContentType.Files);
+        content = await client.FolderGetContent(folderPath: apiPath, contentType: FolderContentType.Files);
         while (content?.Files != null) {
             foreach (var f in content.Files) {
                 var fInfo = new File()
                 {
-                    FullPath = $"{path}/{f.Filename}",
+                    FullPath = CombinePath(path, f.Filename),
                     Name = f.Filename,
                     Type = File.FileTyes.File,
                     Size = f.Size,
@@ -342,7 +259,7 @@ public class MediaFire : IFileManager
             }
 
             if (content.MoreChunks == YesNo.Yes) {
-                content = await client.FolderGetContent(folderPath: path, contentType: FolderContentType.Files, chunk: content.ChunkNumber + 1);
+                content = await client.FolderGetContent(folderPath: apiPath, contentType: FolderContentType.Files, chunk: content.ChunkNumber + 1);
             } else
                 content = null;
         }
@@ -353,33 +270,31 @@ public class MediaFire : IFileManager
         if (string.IsNullOrEmpty(filePath))
             throw new ArgumentNullException(filePath);
 
-        filePath = GetPath(filePath);
         var client = await GetClient();
-        Stream? res;
         if (!write) {
+            var info = await TryGetFileInfo(client, filePath);
+            if (info is not { Count: 1 })
+                throw new FileNotFoundException($"File {filePath} not found", filePath);
+            var links = await client.DownloadDirectLink(new[] { info[0].QuickKey });
+            // Stream the content: never load the whole file in memory
+            var response = await DownloadClient.GetAsync(new Uri(links.First().DirectDownload), HttpCompletionOption.ResponseHeadersRead);
             try {
-                var info = (await client.FileGetInfo(filePath: filePath))?.ToList();
-                if (info != null) {
-                    var links = await client.DownloadDirectLink(new[] { info[0].QuickKey });
-                    res = new ReaderStream(links.First().DirectDownload);
-                } else {
-                    throw new FileNotFoundException($"File {filePath} not found", filePath);
-                }
-            } catch (MediaFireApiException ex) {
-                if (ex.ErrorCode == (int)ErrorCodes.ErrorInvalidFilePath)
-                    throw new FileNotFoundException($"File {filePath} not found", filePath);
-
+                // An error page must never be read as the file content
+                response.EnsureSuccessStatusCode();
+                return new FileSystemStream(this, new ReaderStream(response, await response.Content.ReadAsStreamAsync(), info[0].Size));
+            } catch {
+                response.Dispose();
                 throw;
             }
-        } else {
-            if (size == null)
-                throw new ArgumentNullException(nameof(size));
-
-            var parentPath = GetParent(filePath, out var childName);
-            var ws = new WriterStream(size.Value);
-            ws.WriteTask = client.UploadSimple(ws, "application/octet-stream", childName, ws.Length, path: parentPath);
-            res = ws;
         }
+
+        if (size == null)
+            throw new ArgumentNullException(nameof(size));
+
+        var parentPath = GetParent(filePath, out var childName);
+        var res = new UploadStream(size.Value, (stream, _) =>
+            client.UploadSimple(stream, "application/octet-stream", childName, size.Value, path: parentPath,
+                actionOnDuplicate: ActionOnDuplicate.Replace));
         return new FileSystemStream(this, res);
     }
 
@@ -392,23 +307,22 @@ public class MediaFire : IFileManager
         if (newName.Contains(PathSeparator))
             throw new ArgumentException($"The new name cannot contain '{PathSeparator}'", newName);
 
-        filePath = GetPath(filePath);
+        var quickKey = await GetQuickKey(filePath);
+        var parentPath = GetParent(filePath, out _);
+        if (await FileExists(CombinePath(parentPath, newName)))
+            throw new IOException($"A file named {newName} already exists");
         var client = await GetClient();
-
-        await GetFileInfo(filePath);
-        var parentPath = Utility.Files.GetParent(PathSeparator, filePath, out _);
-        var targetPath = Utility.Files.CombinePath(PathSeparator, parentPath, newName);
-        if (await  FileExists(targetPath))
-            throw new Exception($"A file named {newName} already exists");
-        await client.FileMove(filePath: filePath, targetFolderPath: targetPath);
+        await client.FileUpdate(quickKey: quickKey, filename: newName);
     }
 
     public async Task<bool> CloseFile(Stream stream)
     {
-        if (stream is WriterStream ws) {
-            await ws.WaitTask();
+        try {
+            if (stream is UploadStream us)
+                await us.CompleteAsync();
+        } finally {
+            stream.Close();
         }
-        stream.Close();
 
         return true;
     }
@@ -422,6 +336,26 @@ public class MediaFire : IFileManager
         }
 
         return _client;
+    }
+
+    /// <summary>
+    /// File information, null if the file does not exist
+    /// </summary>
+    private async Task<List<FileItem>?> TryGetFileInfo(Client client, string path)
+    {
+        try {
+            return (await client.FileGetInfo(filePath: GetPath(path)))?.ToList();
+        } catch (MediaFireApiException ex) when (ex.ErrorCode == (int)ErrorCodes.ErrorInvalidFilePath) {
+            return null;
+        }
+    }
+
+    private async Task<string> GetQuickKey(string path)
+    {
+        var info = await TryGetFileInfo(await GetClient(), path);
+        if (info is not { Count: 1 })
+            throw new FileNotFoundException($"File {path} not found", path);
+        return info[0].QuickKey;
     }
 
     private string GetPath(string path)

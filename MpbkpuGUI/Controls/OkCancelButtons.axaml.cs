@@ -76,7 +76,7 @@ namespace MpbkpuGUI.Controls
             set
             {
                 if (SetAndRaise(CancelVisibleProperty, ref _cancelVisible, value)) {
-                    var btn = this.FindControl<Button>("Ok");
+                    var btn = this.FindControl<Button>("Ok")!;
                     btn.IsCancel = !value;
                     Grid.SetColumn(btn, value ? 1 : 0);
                     Grid.SetColumnSpan(btn, value ? 1 : 2);
@@ -94,12 +94,12 @@ namespace MpbkpuGUI.Controls
             set
             {
                 if (SetAndRaise(SmallButtonsProperty, ref _smallButtons, value)) {
-                    var btn = this.FindControl<Button>("Ok");
+                    var btn = this.FindControl<Button>("Ok")!;
                     if (value)
                         btn.Classes.Add("Small");
                     else
                         btn.Classes.Remove("Small");
-                    btn = this.FindControl<Button>("Cancel");
+                    btn = this.FindControl<Button>("Cancel")!;
                     if (value)
                         btn.Classes.Add("Small");
                     else
@@ -118,10 +118,10 @@ namespace MpbkpuGUI.Controls
             CancelVisible = true;
             DataContext = this;
 
-            this.FindControl<Button>("Ok").Click += (s, args) => {
+            this.FindControl<Button>("Ok")!.Click += (s, args) => {
                 OkClick?.Invoke(this, new RoutedEventArgs());
             };
-            this.FindControl<Button>("Cancel").Click += (s, args) => {
+            this.FindControl<Button>("Cancel")!.Click += (s, args) => {
                 CancelClick?.Invoke(this, new RoutedEventArgs());
             };
         }

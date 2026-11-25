@@ -1,6 +1,7 @@
 using MpbkpuLib.Interfaces;
 using System.Net;
 using Renci.SshNet;
+using Renci.SshNet.Common;
 using Renci.SshNet.Sftp;
 using File = MpbkpuLib.DataModel.File;
 
@@ -9,16 +10,34 @@ namespace MpbkpuLib.FileManagers
     public class Sftp : IFileManager
     {
         public const string Scheme = "sftp://";
+        public const int DefaultPort = 22;
+
         public string? Host { get; set; }
-        public int Port { get; set; }
+        public int Port { get; set; } = DefaultPort;
         public NetworkCredential? Credentials { get; set; }
         public string? PrivateKeyFile { get; set; }
 
+        /// <summary>
+        /// Fingerprints of the known servers ("host:port fingerprint" per line): the first key of a server is trusted,
+        /// a different key later is rejected
+        /// </summary>
+        public static string KnownHostsFile { get; set; } =
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Mpbkpu", "known_hosts");
+
+        private static readonly object KnownHostsLock = new();
         private SftpClient? _client;
 
         public void Dispose()
         {
-
+            if (_client == null)
+                return;
+            try {
+                if (_client.IsConnected)
+                    _client.Disconnect();
+            } catch {
+                // ignored
+            }
+            _client.Dispose();
         }
 
         public bool IsCaseSensitive => true;
@@ -44,21 +63,10 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
 
-            path = GetPath(path);
-            var client = GetClient();
-            var f = await Task.Run( () => client.Get(path));
-            if (f == null || !f.IsRegularFile)
+            var f = await GetItem(path);
+            if (f is not { IsRegularFile: true })
                 throw new FileNotFoundException($"File {path} not found", path);
-
-            var fInfo = new File()
-            {
-                FullPath = $"{Scheme}{Host}{f.FullName}",
-                Name = f.Name,
-                Type = File.FileTyes.File,
-                Size = f.Length,
-                LastModified = f.Attributes.LastWriteTime
-            };
-            return fInfo;
+            return ToFile(f, path);
         }
 
         public async IAsyncEnumerable<File> GetDirectoryContent(string? path, bool includeHidden = true)
@@ -66,25 +74,19 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
 
-            path = GetPath(path);
             var client = GetClient();
-            await foreach (var f in client.ListDirectoryAsync(path, CancellationToken.None)) {
-                var fInfo = new File()
-                {
-                    FullPath = $"{Scheme}{Host}{f.FullName}",
-                    Name = f.Name,
-                    Size = f.Length,
-                    LastModified = f.Attributes.LastWriteTime
-                };
-
-                if (f.Attributes.IsDirectory) {
-                    fInfo.Type = File.FileTyes.Directory;
-                } else if (f.Attributes.IsRegularFile) {
-                    fInfo.Type = File.FileTyes.File;
-                } else {
+            if (!await DirectoryExists(path))
+                throw new DirectoryNotFoundException($"Folder {path} not found");
+            await foreach (var f in client.ListDirectoryAsync(GetPath(path), CancellationToken.None)) {
+                // The listing includes the directory itself and its parent
+                if (f.Name is "." or "..")
                     continue;
-                }
-                yield return fInfo;
+                if (!f.IsDirectory && !f.IsRegularFile)
+                    continue;
+                // Full paths keep the form of the given path, so relative paths can be computed
+                var fInfo = ToFile(f, CombinePath(path, f.Name));
+                if (includeHidden || !fInfo.Hidden)
+                    yield return fInfo;
             }
         }
 
@@ -93,11 +95,10 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
 
-            path = GetPath(path);
-            var client = GetClient();
             if (await DirectoryExists(path))
-                throw new Exception($"Cannot create '{path}' because a directory with the same name already exists");
-            await Task.Run( () => client.CreateDirectory(path));
+                return true;
+            var client = GetClient();
+            await client.CreateDirectoryAsync(GetPath(path));
             return true;
         }
 
@@ -106,14 +107,16 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
 
-            path = GetPath(path);
-            var client = GetClient();
-            var fi = await Task.Run( () => client.Get(path));
-            if (fi.Attributes.IsDirectory)
-                await Task.Run( () => client.DeleteDirectory(path));
-            else
-                return false;
-
+            if (!await DirectoryExists(path))
+                throw new DirectoryNotFoundException($"Folder {path} not found");
+            // SFTP deletes only empty directories
+            await foreach (var child in GetDirectoryContent(path)) {
+                if (child.Type == File.FileTyes.Directory)
+                    await DeleteDirectory(child.FullPath);
+                else
+                    await DeleteFile(child.FullPath);
+            }
+            await GetClient().DeleteDirectoryAsync(GetPath(path));
             return true;
         }
 
@@ -122,14 +125,9 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
 
-            path = GetPath(path);
-            var client = GetClient();
-            var fi = await Task.Run( () => client.Get(path));
-            if (fi.Attributes.IsRegularFile)
-                await Task.Run( () => client.DeleteFile(path));
-            else
-                return false;
-
+            if (!await FileExists(path))
+                throw new FileNotFoundException($"File {path} not found", path);
+            await GetClient().DeleteFileAsync(GetPath(path), CancellationToken.None);
             return true;
         }
 
@@ -138,14 +136,7 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
 
-            path = GetPath(path);
-            var client = GetClient();
-            try {
-                var fi = await Task.Run(() => client.Get(path));
-                return fi.Attributes.IsDirectory;
-            } catch {
-                return false;
-            }
+            return (await GetItem(path))?.IsDirectory == true;
         }
 
         public async Task<bool> FileExists(string? path)
@@ -153,14 +144,7 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
 
-            path = GetPath(path);
-            var client = GetClient();
-            try {
-                var fi = await Task.Run(() => client.Get(path));
-                return fi.Attributes.IsRegularFile;
-            } catch {
-                return false;
-            }
+            return (await GetItem(path))?.IsRegularFile == true;
         }
 
         public async Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null)
@@ -184,20 +168,16 @@ namespace MpbkpuLib.FileManagers
             if (newName.Contains(PathSeparator))
                 throw new ArgumentException($"The new name cannot contain '{PathSeparator}'", newName);
 
-            filePath = GetPath(filePath);
-            var client = GetClient();
-
-            var f = await Task.Run( () => client.Get(filePath));
-            if (f == null)
+            if (!await FileExists(filePath))
                 throw new FileNotFoundException($"File {filePath} not found", filePath);
 
-            var parentPath = Utility.Files.GetParent( PathSeparator, GetPath(filePath), out _);
+            var sftpPath = GetPath(filePath);
+            var parentPath = Utility.Files.GetParent(PathSeparator, sftpPath, out _);
             var targetPath = Utility.Files.CombinePath(PathSeparator, parentPath, newName);
-            f = await Task.Run( () => client.Get(targetPath));
-            if (f != null)
-                throw new Exception($"A file named {newName} already exists");
+            if (await GetItem(targetPath) != null)
+                throw new IOException($"A file named {newName} already exists");
 
-            await Task.Run( () => client.RenameFile(filePath, targetPath));
+            await GetClient().RenameFileAsync(sftpPath, targetPath, CancellationToken.None);
         }
 
         public Task<bool> CloseFile(Stream stream)
@@ -210,6 +190,8 @@ namespace MpbkpuLib.FileManagers
         private SftpClient GetClient()
         {
             if (_client == null) {
+                if (string.IsNullOrEmpty(Host))
+                    throw new Exception($"{nameof(Host)} cannot be empty");
                 if (Credentials == null)
                     throw new Exception($"Credentials cannot be null");
 
@@ -219,11 +201,61 @@ namespace MpbkpuLib.FileManagers
                 } else {
                     _client = new SftpClient(Host, Port, Credentials.UserName, Credentials.Password);
                 }
+                _client.HostKeyReceived += OnHostKeyReceived;
             }
 
             if (!_client.IsConnected)
                 _client.Connect();
             return _client;
+        }
+
+        /// <summary>
+        /// Trust on first use: the first key of a server is saved, a different key later is rejected
+        /// </summary>
+        private void OnHostKeyReceived(object? sender, HostKeyEventArgs e)
+        {
+            var host = $"{Host}:{Port}";
+            lock (KnownHostsLock) {
+                var known = System.IO.File.Exists(KnownHostsFile) ? System.IO.File.ReadAllLines(KnownHostsFile) : Array.Empty<string>();
+                var saved = known.Select(l => l.Split(' ', 2))
+                    .FirstOrDefault(p => p.Length == 2 && string.Equals(p[0], host, StringComparison.OrdinalIgnoreCase));
+                if (saved != null) {
+                    e.CanTrust = saved[1] == e.FingerPrintSHA256;
+                    return;
+                }
+
+                Directory.CreateDirectory(Path.GetDirectoryName(KnownHostsFile)!);
+                System.IO.File.AppendAllLines(KnownHostsFile, new[] { $"{host} {e.FingerPrintSHA256}" });
+                e.CanTrust = true;
+            }
+        }
+
+        /// <summary>
+        /// Information about a file or directory, null if it does not exist
+        /// </summary>
+        private async Task<ISftpFile?> GetItem(string path)
+        {
+            var client = GetClient();
+            var sftpPath = GetPath(path);
+            try {
+                return await client.GetAsync(sftpPath, CancellationToken.None);
+            } catch (SftpPathNotFoundException) {
+                return null;
+            }
+        }
+
+        private static File ToFile(ISftpFile f, string path)
+        {
+            return new File()
+            {
+                FullPath = path,
+                Name = f.Name,
+                Type = f.IsDirectory ? File.FileTyes.Directory : File.FileTyes.File,
+                Size = f.IsRegularFile ? f.Length : 0,
+                LastModified = f.LastWriteTimeUtc,
+                // Unix convention
+                Hidden = f.Name.StartsWith('.')
+            };
         }
 
         private string GetPath(string path)

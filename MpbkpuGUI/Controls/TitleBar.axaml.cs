@@ -30,10 +30,10 @@ namespace MpbkpuGUI.Controls
             set
             {
                 _canGoBack = value;
-                var btn = this.FindControl<Button>("BackBtn");
+                var btn = this.FindControl<Button>("BackBtn")!;
                 btn.IsVisible = _canGoBack;
 
-                var icon = this.FindControl<Control>("Icon");
+                var icon = this.FindControl<Control>("Icon")!;
                 icon.IsVisible = !_canGoBack;
             }
         }
@@ -50,17 +50,17 @@ namespace MpbkpuGUI.Controls
             base.OnApplyTemplate(e);
 
             if (TopLevel.GetTopLevel(this) is Window pw) {
-                SetTitle(pw.Title);
+                SetTitle(pw.Title ?? string.Empty);
                 var title = pw.GetObservable(Window.TitleProperty);
-                title.Subscribe(new AnonymousObserver<string>(value =>
+                title.Subscribe(new AnonymousObserver<string?>(value =>
                 {
-                    SetTitle(value);
+                    SetTitle(value ?? string.Empty);
                 }));
 
                 var canResize = pw.GetObservable(Window.CanResizeProperty);
                 canResize.Subscribe(new AnonymousObserver<bool>(value =>
                 {
-                    this.FindControl<Button>("MaximizeBtn").IsEnabled = CanMaximize && value;
+                    this.FindControl<Button>("MaximizeBtn")!.IsEnabled = CanMaximize && value;
                 }));
 
                 var wState = pw.GetObservable(Window.WindowStateProperty);
@@ -76,14 +76,14 @@ namespace MpbkpuGUI.Controls
                     }
                 }));
 
-                var btn = this.FindControl<Button>("MinimizeBtn");
+                var btn = this.FindControl<Button>("MinimizeBtn")!;
                 btn.Click += (s, a) =>
                 {
                     pw.WindowState = WindowState.Minimized;
                 };
                 btn.IsVisible = CanMinimize;
 
-                btn = this.FindControl<Button>("MaximizeBtn");
+                btn = this.FindControl<Button>("MaximizeBtn")!;
                 btn.Click += (s, a) =>
                 {
                     var parentWindow = TopLevel.GetTopLevel(this) as Window;
@@ -96,13 +96,13 @@ namespace MpbkpuGUI.Controls
                 };
                 btn.IsVisible = CanMinimize;
 
-                btn = this.FindControl<Button>("CloseBtn");
+                btn = this.FindControl<Button>("CloseBtn")!;
                 btn.Click += (s, a) =>
                 {
                     pw.Close();
                 };
 
-                btn = this.FindControl<Button>("BackBtn");
+                btn = this.FindControl<Button>("BackBtn")!;
                 btn.Click += async (s, a) =>
                 {
                     await (pw as MainWindow)!.NavigateBack();
@@ -112,7 +112,7 @@ namespace MpbkpuGUI.Controls
 
         private void SetTitle(string title)
         {
-            var txt = this.FindControl<TextBlock>("Title");
+            var txt = this.FindControl<TextBlock>("Title")!;
             txt.Text = title;
         }
     }

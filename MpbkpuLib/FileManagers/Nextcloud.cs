@@ -9,99 +9,6 @@ public class Nextcloud : IFileManager, IOAuth2
 {
     public const string Scheme = "nextcloud://";
 
-    #region classes
-    private class WriterStream : Stream
-    {
-        private long _pos;
-
-        private readonly List<byte> _buffer = new();
-        private readonly SemaphoreSlim _bufferSema = new(1,1);
-
-        public WriterStream(long length)
-        {
-            Length = length;
-        }
-
-        public Task? WriteTask { get; set; }
-        public override bool CanRead => true;
-
-        public override bool CanSeek => true;
-
-        public override bool CanWrite => true;
-
-        public override long Length { get; }
-
-        public override long Position {
-            get => _pos;
-            set => _pos = value;
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-        }
-
-        public override void Flush()
-        {
-        }
-
-        public override int Read(byte[] buffer, int offset, int count)
-        {
-            if (_pos >= Length)
-                return 0;
-
-            _bufferSema.Wait();
-            int readCount = 0;
-            for (int i = 0; i < count; i++) {
-                if (_buffer.Count > 0) {
-                    buffer[offset + i] = _buffer[0];
-                    _buffer.RemoveAt(0);
-
-                    _pos++;
-                    readCount++;
-                    if (_pos >= Length)
-                        break;
-                } else {
-                    _bufferSema.Release();
-                    Thread.Sleep(10);
-                    _bufferSema.Wait();
-                    i--;
-                }
-            }
-            _bufferSema.Release();
-            return readCount;
-        }
-
-        public override long Seek(long offset, SeekOrigin origin)
-        {
-            return offset;
-        }
-
-        public override void SetLength(long value)
-        {
-            throw new InvalidOperationException();
-        }
-
-        public override void Write(byte[] buffer, int offset, int count)
-        {
-            while(_buffer.Count > 0)
-                Thread.Sleep(10);
-
-            _bufferSema.Wait();
-            for (int i = 0; i < count; i++) {
-                _buffer.Add(buffer[offset + i]);
-            }
-            _bufferSema.Release();
-        }
-
-        public async Task WaitTask()
-        {
-            if (WriteTask != null)
-                await WriteTask;
-            WriteTask?.Dispose();
-        }
-    }
-    #endregion
-
     private readonly string _userId;
     private readonly string? _password;
     private Client? _client;
@@ -126,6 +33,7 @@ public class Nextcloud : IFileManager, IOAuth2
 
     public void Dispose()
     {
+        _client?.Dispose();
     }
 
     public bool IsCaseSensitive => true;
@@ -215,8 +123,7 @@ public class Nextcloud : IFileManager, IOAuth2
             throw new ArgumentNullException(path);
 
         var client = await GetClient();
-        path = GetPath(path);
-        var item = await NextcloudClient.File.GetInfo(client, path);
+        var item = await NextcloudClient.File.GetInfo(client, GetPath(path));
         if (item.Response.Count != 1)
             throw new FileNotFoundException($"File {path} not found", path);
 
@@ -238,13 +145,20 @@ public class Nextcloud : IFileManager, IOAuth2
             throw new ArgumentNullException(path);
 
         var client = await GetClient();
-        path = GetPath(path);
-        var res = await Folder.ListContent(client, path);
+        var folderPath = GetPath(path).Trim(PathSeparator);
+        var res = await Folder.ListContent(client, folderPath);
         foreach (var item in res.Response) {
+            // The response includes the folder itself
+            var itemPath = client.GetPathFromHref(item.Href).Trim(PathSeparator);
+            if (itemPath == folderPath)
+                continue;
+
+            // Full paths keep the form of the given path, so relative paths can be computed
+            var name = GetName(itemPath);
             var fInfo = new File()
             {
-                FullPath = item.Href,
-                Name = GetName(item.Href),
+                FullPath = CombinePath(path, name),
+                Name = name,
                 Type = item.PropStat.Properties.ResourceType.Collection != null ? File.FileTyes.Directory : File.FileTyes.File,
                 Size = item.PropStat.Properties.ContentLength,
 
@@ -268,9 +182,8 @@ public class Nextcloud : IFileManager, IOAuth2
             if (size == null)
                 throw new ArgumentNullException(nameof(size));
 
-            var ws = new WriterStream(size.Value);
-            ws.WriteTask = NextcloudClient.File.Upload(client, filePath, ws);
-            res = ws;
+            var uploadPath = filePath;
+            res = new UploadStream(size.Value, (stream, _) => NextcloudClient.File.Upload(client, uploadPath, stream, size.Value));
         }
 
         return new FileSystemStream(this, res);
@@ -299,10 +212,12 @@ public class Nextcloud : IFileManager, IOAuth2
 
     public async Task<bool> CloseFile(Stream stream)
     {
-        if (stream is WriterStream ws) {
-            await ws.WaitTask();
+        try {
+            if (stream is UploadStream us)
+                await us.CompleteAsync();
+        } finally {
+            stream.Close();
         }
-        stream.Close();
 
         return true;
     }
@@ -342,8 +257,12 @@ public class Nextcloud : IFileManager, IOAuth2
             await _client.Login();
             if (string.Compare(_client.UserId, _userId, StringComparison.InvariantCultureIgnoreCase) != 0)
                 throw new Exception("Account mismatch");
-            if (string.IsNullOrEmpty(_password))
+            if (string.IsNullOrEmpty(_password)) {
+                // Refresh tokens are single use: save every new one
+                var client = _client;
+                client.TokensRefreshed = () => SaveToken(_userId, client.AccessToken, client.RefreshToken, client.TokenExpiration);
                 await SaveToken(_userId, _client.AccessToken, _client.RefreshToken, _client.TokenExpiration);
+            }
         }
 
         return _client;
@@ -356,8 +275,8 @@ public class Nextcloud : IFileManager, IOAuth2
 
     private string GetName(string path)
     {
-        var idx = path.LastIndexOf($"{PathSeparator}", StringComparison.InvariantCultureIgnoreCase);
-        return idx >= 0 ? path.Substring(idx) : path;
+        path = path.TrimEnd(PathSeparator);
+        return path[(path.LastIndexOf(PathSeparator) + 1)..];
     }
 
     private async Task<OAuthTokenCache.TokenData?> GetToken(string account)

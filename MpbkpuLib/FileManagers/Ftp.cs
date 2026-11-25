@@ -46,21 +46,10 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
 
-            path = GetPath(path);
-            var client = await GetClient();
-            var f = await client.GetObjectInfo(path, true);
-            if (f == null || f.Type != FtpObjectType.File)
-                throw new Exception($"File {path} not found");
-
-            return new File() {
-                FullPath = $"{Scheme}{Host}{f.FullName}",
-                Name = f.Name,
-                Type = File.FileTyes.File,
-
-                Size = f.Size,
-                LastModified = f.Modified,
-                Created = f.Created,
-            };
+            var f = await GetItem(path);
+            if (f is not { Type: FtpObjectType.File })
+                throw new FileNotFoundException($"File {path} not found", path);
+            return ToFile(f, path);
         }
 
         public async IAsyncEnumerable<File> GetDirectoryContent(string? path, bool includeHidden = true)
@@ -68,26 +57,16 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
 
-            path = GetPath(path);
             var client = await GetClient();
-            foreach (var f in await client.GetListing(path)) {
-                var fInfo = new File()
-                {
-                    FullPath = $"{Scheme}{Host}{f.FullName}",
-                    Name = f.Name,
-                    Size = f.Size,
-                    Created = f.Created,
-                    LastModified = f.Modified
-                };
-
-                if (f.Type == FtpObjectType.Directory) {
-                    fInfo.Type = File.FileTyes.Directory;
-                } else if (f.Type == FtpObjectType.File) {
-                    fInfo.Type = File.FileTyes.File;
-                } else {
+            if (!await client.DirectoryExists(GetPath(path)))
+                throw new DirectoryNotFoundException($"Folder {path} not found");
+            foreach (var f in await client.GetListing(GetPath(path))) {
+                if (f.Type is not (FtpObjectType.Directory or FtpObjectType.File))
                     continue;
-                }
-                yield return fInfo;
+                // Full paths keep the form of the given path, so relative paths can be computed
+                var fInfo = ToFile(f, CombinePath(path, f.Name));
+                if (includeHidden || !fInfo.Hidden)
+                    yield return fInfo;
             }
         }
 
@@ -96,11 +75,10 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
 
-            path = GetPath(path);
             var client = await GetClient();
-            if (await DirectoryExists(path))
-                throw new Exception($"Cannot create '{path}' because a directory with the same name already exists");
-            return await client.CreateDirectory(path);
+            if (await client.DirectoryExists(GetPath(path)))
+                return true;
+            return await client.CreateDirectory(GetPath(path));
         }
 
         public async Task<bool> DeleteDirectory(string? path)
@@ -108,14 +86,10 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
 
-            path = GetPath(path);
             var client = await GetClient();
-            var fi = await client.GetObjectInfo(path);
-            if (fi.Type == FtpObjectType.Directory)
-                await client.DeleteDirectory(path);
-            else
-                return false;
-
+            if (!await client.DirectoryExists(GetPath(path)))
+                throw new DirectoryNotFoundException($"Folder {path} not found");
+            await client.DeleteDirectory(GetPath(path));
             return true;
         }
 
@@ -124,14 +98,10 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
 
-            path = GetPath(path);
             var client = await GetClient();
-            var fi = await client.GetObjectInfo(path);
-            if (fi.Type == FtpObjectType.File)
-                await client.DeleteFile(path);
-            else
-                return false;
-
+            if (!await client.FileExists(GetPath(path)))
+                throw new FileNotFoundException($"File {path} not found", path);
+            await client.DeleteFile(GetPath(path));
             return true;
         }
 
@@ -140,9 +110,8 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
 
-            path = GetPath(path);
             var client = await GetClient();
-            return await client.DirectoryExists(path);
+            return await client.DirectoryExists(GetPath(path));
         }
 
         public async Task<bool> FileExists(string? path)
@@ -150,9 +119,8 @@ namespace MpbkpuLib.FileManagers
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
 
-            path = GetPath(path);
             var client = await GetClient();
-            return await client.FileExists(path);
+            return await client.FileExists(GetPath(path));
         }
 
         public async Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null)
@@ -162,12 +130,7 @@ namespace MpbkpuLib.FileManagers
 
             filePath = GetPath(filePath);
             var client = await GetClient();
-            Stream? res;
-            if (!write)
-                res = await client.OpenRead(filePath);
-            else
-                res = await client.OpenWrite(filePath);
-
+            var res = write ? await client.OpenWrite(filePath) : await client.OpenRead(filePath);
             return new FileSystemStream(this, res);
         }
 
@@ -182,26 +145,25 @@ namespace MpbkpuLib.FileManagers
 
             filePath = GetPath(filePath);
             var client = await GetClient();
-
-            var f = await client.GetObjectInfo(filePath, true);
-            if (f == null || f.Type != FtpObjectType.File)
+            if (!await client.FileExists(filePath))
                 throw new FileNotFoundException($"File {filePath} not found", filePath);
 
             var parent = Files.GetParent(PathSeparator, filePath, out _);
             if (!await client.MoveFile(filePath, Utility.Files.CombinePath(PathSeparator, parent, newName),
                     FtpRemoteExists.Skip))
-                throw new Exception($"Failed to move rename file {filePath}");
+                throw new IOException($"Failed to rename file {filePath}: a file named {newName} already exists");
         }
 
         public async Task<bool> CloseFile(Stream stream)
         {
-            bool canWrite = stream.CanWrite;
+            var canWrite = stream.CanWrite;
             stream.Close();
 
-            if (canWrite) {
-                var client = await GetClient();
-                await client.GetReply(default);
-            }
+            // The server confirms the transfer only after the data connection is closed
+            var client = await GetClient();
+            var reply = await client.GetReply(default);
+            if (canWrite && !reply.Success)
+                throw new IOException($"Upload failed: {reply.ErrorMessage}");
 
             return true;
         }
@@ -212,14 +174,49 @@ namespace MpbkpuLib.FileManagers
             if (_client == null) {
                 _client = new AsyncFtpClient(Host, Credentials, Port);
                 _client.Config.SocketKeepAlive = true;
+                // TLS when the server supports it; certificates are validated (self-signed ones are rejected)
                 _client.Config.EncryptionMode = FtpEncryptionMode.Auto;
                 _client.Config.SslProtocols = SslProtocols;
-                _client.Config.ValidateAnyCertificate = true;
+                _client.Config.ValidateAnyCertificate = false;
             }
 
             if (!_client.IsConnected)
                 await _client.Connect();
             return _client;
+        }
+
+        /// <summary>
+        /// Information about a file or directory, null if it does not exist.
+        /// The same commands of the listing are used (MLST/MLSD or LIST), so dates are consistent.
+        /// </summary>
+        private async Task<FtpListItem?> GetItem(string path)
+        {
+            var client = await GetClient();
+            var ftpPath = GetPath(path);
+            var item = await client.GetObjectInfo(ftpPath);
+            if (item != null)
+                return item;
+
+            // Servers without MLST: look for the item in the listing of its parent
+            var parent = Files.GetParent(PathSeparator, ftpPath, out var name);
+            if (string.IsNullOrEmpty(name) || !await client.DirectoryExists(parent))
+                return null;
+            return (await client.GetListing(parent)).FirstOrDefault(i => i.Name == name);
+        }
+
+        private static File ToFile(FtpListItem f, string path)
+        {
+            return new File()
+            {
+                FullPath = path,
+                Name = f.Name,
+                Type = f.Type == FtpObjectType.Directory ? File.FileTyes.Directory : File.FileTyes.File,
+                Size = f.Type == FtpObjectType.File ? f.Size : 0,
+                Created = f.Created == DateTime.MinValue ? null : f.Created,
+                LastModified = f.Modified == DateTime.MinValue ? null : f.Modified,
+                // Unix convention
+                Hidden = f.Name.StartsWith('.')
+            };
         }
 
         private string GetPath(string path)

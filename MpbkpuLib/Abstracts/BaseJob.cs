@@ -171,17 +171,66 @@ public abstract class BaseJob : IDisposable
     /// <param name="includeHiddenFiles">If set to true also hidden files are included</param>
     /// <param name="defaultAction">The <see cref="DataModel.File"/> default action</param>
     /// <param name="token">The <see cref="CancellationToken"/></param>
+    /// <param name="exclude">Files and directories to skip (see <see cref="IsExcluded"/>)</param>
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
     protected Task<bool> ReadPathContent(BackupFile? bkpFile, IFileManager? fileManager, string? rootPath,
         bool includeHiddenFiles,
         File.FileActions defaultAction,
-        CancellationToken? token)
+        CancellationToken? token,
+        IReadOnlyCollection<string>? exclude = null)
     {
         // Local file systems return absolute paths: the root must be absolute too to compute relative paths
         if (fileManager is BaseLocalFileSystem && !string.IsNullOrEmpty(rootPath))
             rootPath = Path.GetFullPath(rootPath);
-        return ReadPathContent(bkpFile, fileManager, rootPath, rootPath, includeHiddenFiles, defaultAction, token);
+        return ReadPathContent(bkpFile, fileManager, rootPath, rootPath, includeHiddenFiles, defaultAction, token, exclude);
+    }
+
+    /// <summary>
+    /// Check if a relative path matches one of the exclude patterns.
+    /// A pattern (wildcards * and ?, case-insensitive, '/' or '' as separator) is matched against the relative path
+    /// and against the file name: "bin", "*.tmp" and "docs/old" are all valid.
+    /// </summary>
+    protected static bool IsExcluded(string? relativePath, char pathSeparator, IReadOnlyCollection<string>? exclude)
+    {
+        if (string.IsNullOrEmpty(relativePath) || exclude == null || exclude.Count == 0)
+            return false;
+
+        var path = ToPortablePath(relativePath, pathSeparator);
+        var name = path[(path.LastIndexOf('/') + 1)..];
+        return exclude
+            .Select(e => e.Replace('\\', '/').Trim('/'))
+            .Where(e => e.Length > 0)
+            .Any(e => System.IO.Enumeration.FileSystemName.MatchesSimpleExpression(e, path) ||
+                      System.IO.Enumeration.FileSystemName.MatchesSimpleExpression(e, name));
+    }
+
+    /// <summary>
+    /// Convert a relative path to use '/' as separator, to compare paths of different file managers
+    /// </summary>
+    protected static string ToPortablePath(string relativePath, char pathSeparator)
+    {
+        return relativePath.Replace(pathSeparator, '/').Trim('/');
+    }
+
+    private static readonly System.Text.RegularExpressions.Regex UrlCredentials = new(
+        @"(\b\w+://[^:/@\s""]+:)[^@\s""]+@|(\b(?:mega|mediafire)://[^:/\s""]+:)[^/\s""]+",
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+    /// <summary>
+    /// Hide the passwords written in paths like ftp://user:password@host or mega://user:password/path
+    /// </summary>
+    public static string MaskCredentials(string text)
+    {
+        return UrlCredentials.Replace(text, m => m.Groups[1].Success ? $"{m.Groups[1].Value}***@" : $"{m.Groups[2].Value}***");
+    }
+
+    /// <summary>
+    /// The job settings as JSON, safe to log or save: passwords are never included
+    /// </summary>
+    protected string SerializeSettings()
+    {
+        return MaskCredentials(Newtonsoft.Json.JsonConvert.SerializeObject(Settings, Newtonsoft.Json.Formatting.Indented));
     }
 
     protected void LogDebug(string message)
@@ -265,7 +314,8 @@ public abstract class BaseJob : IDisposable
     private async Task<bool> ReadPathContent(BackupFile? bkpFile, IFileManager? fileManager, string? rootPath,
         string? path, bool includeHiddenFiles,
         File.FileActions defaultAction,
-        CancellationToken? token)
+        CancellationToken? token,
+        IReadOnlyCollection<string>? exclude)
     {
         if (bkpFile == null)
             throw new ArgumentNullException(nameof(bkpFile));
@@ -291,10 +341,14 @@ public abstract class BaseJob : IDisposable
             file.FileAction = defaultAction;
             file.RootPath = rootPath;
             file.RelativePath = file.FullPath?.Substring(file.RootPath.Length);
+            if (IsExcluded(file.RelativePath, fileManager.PathSeparator, exclude)) {
+                LogDebug($"  Excluded {file.FullPath}");
+                continue;
+            }
             bkpFile.Files.Add(file);
             if (file.Type == File.FileTyes.Directory) {
                 try {
-                    await ReadPathContent(bkpFile, fileManager, rootPath, file.FullPath, includeHiddenFiles, defaultAction, token);
+                    await ReadPathContent(bkpFile, fileManager, rootPath, file.FullPath, includeHiddenFiles, defaultAction, token, exclude);
                 } catch (Exception ex) when (ex is UnauthorizedAccessException or DirectoryNotFoundException) {
                     // A single unreadable directory must not abort the whole job
                     LogWarning($"Cannot read directory {file.FullPath}: {ex.Message}");

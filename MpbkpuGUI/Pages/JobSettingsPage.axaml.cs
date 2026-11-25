@@ -51,12 +51,12 @@ public partial class JobSettingsPage : BasePage
         PageTitle = Localizer.Localizer.Instance["JobSettings"];
         NavigateBackWithKeyboard = false;
 
-        var ctrl = this.FindControl<Controls.PositionDetail>("Source");
+        var ctrl = this.FindControl<Controls.PositionDetail>("Source")!;
         ctrl.Value = _job.Source;
-        ctrl = this.FindControl<Controls.PositionDetail>("Destination");
+        ctrl = this.FindControl<Controls.PositionDetail>("Destination")!;
         ctrl.Value = _job.Destination;
 
-        var cmbType = this.FindControl<ComboBox>("CmbType");
+        var cmbType = this.FindControl<ComboBox>("CmbType")!;
         cmbType.ItemsSource = new List<Backup.BackupTypes>()
         {
             Backup.BackupTypes.Full,
@@ -64,7 +64,7 @@ public partial class JobSettingsPage : BasePage
             Backup.BackupTypes.Incremental
         };
 
-        var cmbCompression = this.FindControl<ComboBox>("CmbCompressionLevel");
+        var cmbCompression = this.FindControl<ComboBox>("CmbCompressionLevel")!;
         cmbCompression.ItemsSource = new List<CompressionLevel>()
         {
             CompressionLevel.NoCompression,
@@ -81,7 +81,7 @@ public partial class JobSettingsPage : BasePage
 
     public override void OnNavigatedTo(NavigationDirection direction)
     {
-        this.FindControl<TextBox>("Name").Focus();
+        this.FindControl<TextBox>("Name")!.Focus();
         base.OnNavigatedTo(direction);
     }
 
@@ -92,9 +92,9 @@ public partial class JobSettingsPage : BasePage
 
     private async void OnOkClick(object? sender, RoutedEventArgs e)
     {
-        var ctrl = this.FindControl<Controls.PositionDetail>("Source");
+        var ctrl = this.FindControl<Controls.PositionDetail>("Source")!;
         _job.Source = ctrl.Value;
-        ctrl = this.FindControl<Controls.PositionDetail>("Destination");
+        ctrl = this.FindControl<Controls.PositionDetail>("Destination")!;
         _job.Destination = ctrl.Value;
 
         if (!Validate())
@@ -119,9 +119,9 @@ public partial class JobSettingsPage : BasePage
         if (string.IsNullOrEmpty(_model.Job!.Name))
             errors.Add(new ErrorContainer.ErrorData("Name", Localizer.Localizer.Instance["RequiredError"]));
 
-        var ctrl = this.FindControl<Controls.PositionDetail>("Source");
+        var ctrl = this.FindControl<Controls.PositionDetail>("Source")!;
         var sValid = ctrl.Validate();
-        ctrl = this.FindControl<Controls.PositionDetail>("Destination");
+        ctrl = this.FindControl<Controls.PositionDetail>("Destination")!;
         var dValid = ctrl.Validate();
 
         _model.Errors = errors;

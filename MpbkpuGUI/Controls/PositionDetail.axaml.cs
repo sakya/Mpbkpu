@@ -52,7 +52,7 @@ public partial class PositionDetail : UserControl, IValidate
     {
         AvaloniaXamlLoader.Load(this);
 
-        var cmbType = this.FindControl<ComboBox>("CmbType");
+        var cmbType = this.FindControl<ComboBox>("CmbType")!;
         cmbType.ItemsSource = new List<Job.Position.FileSystemTypes>()
         {
             Job.Position.FileSystemTypes.FileSystem,

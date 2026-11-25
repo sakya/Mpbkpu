@@ -42,7 +42,7 @@ namespace MpbkpuLib.Abstracts
         {
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
-            Directory.Delete(path, true);
+            DeleteRecursive(new DirectoryInfo(path));
             return Task.FromResult(true);
         }
 
@@ -50,6 +50,9 @@ namespace MpbkpuLib.Abstracts
         {
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
+            var fi = new FileInfo(path);
+            if (fi.Exists)
+                ClearReadOnly(fi);
             File.Delete(path);
             return Task.FromResult(true);
         }
@@ -78,8 +81,8 @@ namespace MpbkpuLib.Abstracts
                 Extension = fi.Extension,
                 Size = fi.Length,
 
-                Created = fi.CreationTime,
-                LastModified = fi.LastWriteTime,
+                Created = fi.CreationTimeUtc,
+                LastModified = fi.LastWriteTimeUtc,
             };
             return Task.FromResult(fInfo);
         }
@@ -91,10 +94,9 @@ namespace MpbkpuLib.Abstracts
 
             DirectoryInfo di = new DirectoryInfo(path);
             foreach (var sdi in await Task.Run( () => di.GetDirectories())) {
-                if (sdi.Name == ".." || sdi.Name == ".")
-                    continue;
-                // Don't follow junctions and symbolic links to directories: they can create loops
-                if (sdi.Attributes.HasFlag(FileAttributes.ReparsePoint))
+                // Don't follow junctions and symbolic links to directories: they can create loops.
+                // Other reparse points (cloud files placeholders like OneDrive, deduplication...) are normal directories.
+                if (sdi.LinkTarget != null)
                     continue;
 
                 var fInfo = new DataModel.File()
@@ -103,8 +105,8 @@ namespace MpbkpuLib.Abstracts
                     Name = sdi.Name,
                     Type = DataModel.File.FileTyes.Directory,
 
-                    Created = sdi.CreationTime,
-                    LastModified = sdi.LastWriteTime,
+                    Created = sdi.CreationTimeUtc,
+                    LastModified = sdi.LastWriteTimeUtc,
                     Hidden = IsFileHidden(sdi)
                 };
 
@@ -114,16 +116,20 @@ namespace MpbkpuLib.Abstracts
 
 
             foreach (var fi in await Task.Run( () => di.GetFiles())) {
+                // Symbolic links to files are followed; broken links are skipped
+                if (fi.LinkTarget != null && !File.Exists(fi.FullName))
+                    continue;
+
                 var fInfo = new DataModel.File()
                 {
                     FullPath = fi.FullName,
                     Name = fi.Name,
                     Type = DataModel.File.FileTyes.File,
                     Extension = fi.Extension,
-                    Size = fi.Length,
+                    Size = fi.LinkTarget != null ? new FileInfo(fi.FullName).Length : fi.Length,
 
-                    Created = fi.CreationTime,
-                    LastModified = fi.LastWriteTime,
+                    Created = fi.CreationTimeUtc,
+                    LastModified = fi.LastWriteTimeUtc,
                     Hidden = IsFileHidden(fi)
                 };
 
@@ -177,5 +183,28 @@ namespace MpbkpuLib.Abstracts
         }
 
         protected abstract bool IsFileHidden(FileSystemInfo fileInfo);
+
+        /// <summary>
+        /// Delete a directory and its content: links are removed without touching their targets
+        /// (Directory.Delete fails on junctions) and read-only files are deleted too
+        /// </summary>
+        private static void DeleteRecursive(DirectoryInfo dir)
+        {
+            if (dir.LinkTarget == null) {
+                foreach (var sub in dir.GetDirectories())
+                    DeleteRecursive(sub);
+                foreach (var file in dir.GetFiles()) {
+                    ClearReadOnly(file);
+                    file.Delete();
+                }
+            }
+            dir.Delete();
+        }
+
+        private static void ClearReadOnly(FileInfo file)
+        {
+            if (file.Attributes.HasFlag(FileAttributes.ReadOnly))
+                file.Attributes &= ~FileAttributes.ReadOnly;
+        }
     }
 }

@@ -14,7 +14,7 @@ public partial class AboutPage : BasePage
         _model = new AboutPageModel()
         {
             Title = $"Mpbkpu v.{Assembly.GetEntryAssembly()!.GetName().Version}",
-            Copyright = ((AssemblyCopyrightAttribute)System.Attribute.GetCustomAttribute(Assembly.GetExecutingAssembly(), typeof(AssemblyCopyrightAttribute), false)).Copyright,
+            Copyright = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyCopyrightAttribute>()?.Copyright,
             Description = "A multi platform backup utility with encryption and compression feature.\nSupports local and remote file system."
         };
         DataContext = _model;

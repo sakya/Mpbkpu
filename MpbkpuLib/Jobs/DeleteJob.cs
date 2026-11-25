@@ -2,7 +2,6 @@
 using MpbkpuLib.Abstracts;
 using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
-using Newtonsoft.Json;
 
 namespace MpbkpuLib.Jobs;
 
@@ -103,7 +102,7 @@ public class DeleteJob : BaseJob
 
         var started = DateTime.UtcNow;
         LogInfo("Starting with settings:");
-        LogInfo(JsonConvert.SerializeObject(Settings, Formatting.Indented));
+        LogInfo(SerializeSettings());
 
 
         LogInfo("Opening database");

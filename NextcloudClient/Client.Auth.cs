@@ -59,14 +59,12 @@ namespace NextcloudClient
                     throw new Exception("Invalid state");
                 var code = queryDictionary["code"];
 
-                var token = await GetPostResponse<AuthTokenModel>(
-                    $"{_settings.ServerUri}index.php/apps/oauth2/api/v1/token?&grant_type=authorization_code&client_id={_settings.ClientId}&redirect_uri={_settings.RedirectUri}&client_secret={_settings.ClientSecret}&code={code}",
-                    null);
-
-                AccessToken = token.AccessToken;
-                RefreshToken = token.RefreshToken;
-                UserId = token.UserId;
-                TokenExpiration = DateTime.UtcNow.AddSeconds(token.ExpiresIn);
+                await RequestToken(new System.Collections.Generic.Dictionary<string, string>()
+                {
+                    { "grant_type", "authorization_code" },
+                    { "redirect_uri", _settings.RedirectUri.ToString() },
+                    { "code", code }
+                });
             }
         }
 
