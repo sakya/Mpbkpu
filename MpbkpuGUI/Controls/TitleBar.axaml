@@ -35,15 +35,18 @@
     <Grid Height="40" Background="Transparent" WindowDecorationProperties.ElementRole="TitleBar"
           ColumnDefinitions="Auto,*,Auto">
       <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-        <Button Name="BackBtn" Classes="chrome" Width="44" IsVisible="False"
-                WindowDecorationProperties.ElementRole="User"
-                ToolTip.Tip="Indietro">
-          <mi:MaterialIcon Kind="ArrowLeft" />
-        </Button>
-        <Border Name="Icon" Width="18" Height="18" CornerRadius="5" Margin="14,0,0,0"
-                Background="{StaticResource AccentBrush}" IsHitTestVisible="False">
-          <mi:MaterialIcon Kind="TrayArrowDown" Width="13" Height="13" Foreground="#FFFFFF" />
-        </Border>
+        <!-- Back button and icon share the same slot, so the title does not move -->
+        <Panel Width="44">
+          <Button Name="BackBtn" Classes="chrome" Width="44" IsVisible="False"
+                  WindowDecorationProperties.ElementRole="User"
+                  ToolTip.Tip="Indietro">
+            <mi:MaterialIcon Kind="ArrowLeft" />
+          </Button>
+          <Border Name="Icon" Width="18" Height="18" CornerRadius="5" HorizontalAlignment="Center"
+                  Background="{StaticResource AccentBrush}" IsHitTestVisible="False">
+            <mi:MaterialIcon Kind="TrayArrowDown" Width="13" Height="13" Foreground="#FFFFFF" />
+          </Border>
+        </Panel>
         <TextBlock Name="Title" FontSize="13" Margin="10,0,0,0"
                    Foreground="{StaticResource MutedTextBrush}"
                    IsHitTestVisible="False" VerticalAlignment="Center" />
