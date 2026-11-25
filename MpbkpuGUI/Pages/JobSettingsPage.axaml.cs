@@ -48,8 +48,11 @@ public partial class JobSettingsPage : BasePage
     {
         AvaloniaXamlLoader.Load(this);
 
-        PageTitle = Localizer.Localizer.Instance["JobSettings"];
+        PageTitle = Localizer.Localizer.Instance[_job is SyncJob ? "SyncSettings" : "JobSettings"];
+        this.FindControl<TextBlock>("PageHeader")!.Text = PageTitle;
         NavigateBackWithKeyboard = false;
+
+        UpdateSavedPasswordPanel();
 
         var ctrl = this.FindControl<Controls.PositionDetail>("Source")!;
         ctrl.Value = _job.Source;
@@ -110,6 +113,20 @@ public partial class JobSettingsPage : BasePage
         }
         await App.Settings.Save(App.SettingFile!);
         await MainWindow!.NavigateBack();
+    }
+
+    private void UpdateSavedPasswordPanel()
+    {
+        this.FindControl<Control>("SavedPasswordPanel")!.IsVisible = _job is BackupJob { HasSavedPassword: true };
+    }
+
+    /// <summary>
+    /// Forget the saved encryption password (applied when the settings are saved)
+    /// </summary>
+    private void OnForgetPasswordClick(object? sender, RoutedEventArgs e)
+    {
+        (_job as BackupJob)?.ForgetPassword();
+        UpdateSavedPasswordPanel();
     }
 
     private bool Validate()

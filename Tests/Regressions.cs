@@ -319,6 +319,21 @@ public class Regressions : BaseTest
     }
 
     [Test]
+    public async Task WrongPasswordRaisesInvalidPasswordException()
+    {
+        await RunBackup(Backup.BackupTypes.Full, "correct password");
+
+        using var fm = MpbkpuLib.FileManagers.FileManagerFactory.GetFileManager(BackupDestination, out var path);
+        // The GUI forgets a saved password only for this exception
+        await Assert.ThrowsAsync<MpbkpuLib.InvalidPasswordException>(async () =>
+        {
+            using var openRes = await BackupFile.OpenBackupFile(fm, path, "wrong password");
+        });
+        using var ok = await BackupFile.OpenBackupFile(fm, path, "correct password");
+        Assert.That(ok.BackupFile.Backups.Count(), Is.EqualTo(1));
+    }
+
+    [Test]
     public async Task DirectoryTreeHasTheBackedUpFolderAsRoot()
     {
         var guid = await RunBackup(Backup.BackupTypes.Full);

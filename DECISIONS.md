@@ -57,6 +57,14 @@
 - **Time left** (`EtaEstimator`): work = bytes + items x fixed cost (256 KiB local, 2 MiB when a remote file
   manager is involved), speed over the last 30 s, null (`--:--:--`) during the first 3 s or when nothing moves.
   Every phase (copy, deletion, verification) starts its own estimate with `BaseJob.StartEta`.
+- **Free space** (`IFileManager.GetSpace` → `StorageSpace(Available, Total)`), null when the file system cannot
+  report it. Cloud services return the space of the account (Dropbox team: of the team). Jobs read it at the start and
+  at the end and estimate it in between (`BaseJob.SpaceChanged`); the GUI saves the last value in the job, reads local
+  destinations live and remote ones only on request (refresh button) or during a run, to avoid logins at startup.
+- **Remembered encryption password** (GUI only): opt-in per job (`BackupJob.RememberPassword`, default off), stored
+  in `SecretStore` like the other secrets, never in `settings.json`. A wrong saved password is detected by the
+  dedicated `MpbkpuLib.InvalidPasswordException` and forgotten. Without a secure storage the option is hidden and the
+  settings are saved without secrets.
 - **Credentials in paths** (`ftp://user:password@host`, `mega://user:password/path`, ...) are masked by
   `BaseJob.SerializeSettings` before the settings are logged or saved in the backup database.
 - **GUI credentials in the OS secure storage**: `Job.Position.Password` and `OauthAppSecret` are `[JsonIgnore]` and

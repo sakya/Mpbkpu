@@ -167,7 +167,7 @@ public class BackupFile : IDisposable
                     }
                 } catch (System.Security.Cryptography.CryptographicException) {
                     System.IO.File.Delete(tempDbPath!);
-                    throw new Exception("Failed to open the database (wrong password or corrupted file)");
+                    throw new InvalidPasswordException("Failed to open the database (wrong password or corrupted file)");
                 } catch {
                     System.IO.File.Delete(tempDbPath!);
                     throw;
@@ -188,7 +188,7 @@ public class BackupFile : IDisposable
             if (!string.IsNullOrEmpty(tempDbPath))
                 System.IO.File.Delete(tempDbPath!);
             if (encrypted)
-                throw new Exception("Failed to open the database (wrong password)");
+                throw new InvalidPasswordException("Failed to open the database (wrong password)");
             throw new Exception("Failed to open the database");
         }
         return new OpenResult(backupFile, backupDbPath, tempDbPath);

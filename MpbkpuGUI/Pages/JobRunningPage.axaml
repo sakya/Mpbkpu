@@ -56,6 +56,14 @@
                             </StackPanel>
                         </Border>
                     </Grid>
+                    <!-- Space of the destination: read at the start and at the end, estimated during the job -->
+                    <StackPanel Name="SpacePanel" Spacing="6" IsVisible="False">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Classes="muted" FontSize="12" Text="{i18n:Localize DestinationSpace}" />
+                            <TextBlock Grid.Column="1" Name="SpaceText" Classes="muted" FontSize="12" />
+                        </Grid>
+                        <ProgressBar Name="SpaceBar" Classes="inline" Minimum="0" Maximum="100" />
+                    </StackPanel>
                 </StackPanel>
             </Border>
 

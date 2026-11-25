@@ -34,6 +34,13 @@ namespace MpbkpuLib.Interfaces
         bool SupportCompression { get; }
 
         /// <summary>
+        /// Get the space available for writing and the total space
+        /// </summary>
+        /// <param name="path">A path of the file system (cloud services return the space of the account)</param>
+        /// <returns>The space, null if the file system cannot report it</returns>
+        Task<StorageSpace?> GetSpace(string? path);
+
+        /// <summary>
         /// Combine <see cref="paths"/>
         /// </summary>
         /// <param name="paths">The paths to combine</param>

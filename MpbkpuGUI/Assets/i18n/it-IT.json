@@ -29,6 +29,7 @@
   "JobList": "Lista backup",
   "JobRunning": "In esecuzione",
   "JobSettings": "Impostazioni backup",
+  "SyncSettings": "Impostazioni sincronizzazione",
   "Name": "Nome",
   "OauthServerUrl": "Server Url",
   "OauthRedirectUrl": "Redirect Url",
@@ -122,5 +123,16 @@
   "Compression_Optimal": "Ottimale",
   "Compression_SmallestSize": "Massima",
   "Save": "Salva",
-  "NoBackups": "Nessun backup in questa destinazione."
+  "NoBackups": "Nessun backup in questa destinazione.",
+  "DestinationSpace": "Spazio destinazione",
+  "FreeSpace": "{0} liberi su {1}",
+  "FreeSpaceNoTotal": "{0} liberi",
+  "SpaceUnknown": "Spazio libero sconosciuto",
+  "SpaceReadAt": "Letto il {0}",
+  "RefreshSpace": "Aggiorna lo spazio libero",
+  "RememberPassword": "Ricorda la password su questo computer",
+  "RememberPasswordHint": "Salvata nell'archivio sicuro del sistema operativo",
+  "PasswordSaved": "Password salvata in modo sicuro",
+  "ForgetPassword": "Dimentica password",
+  "SavedPasswordInvalid": "La password salvata non è corretta ed è stata dimenticata: inseriscila di nuovo."
 }

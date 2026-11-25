@@ -29,6 +29,7 @@
   "JobList": "Backup list",
   "JobRunning": "Running",
   "JobSettings": "Backup settings",
+  "SyncSettings": "Synchronization settings",
   "Name": "Name",
   "OauthServerUrl": "Server Url",
   "OauthRedirectUrl": "Redirect Url",
@@ -122,5 +123,16 @@
   "Compression_Optimal": "Optimal",
   "Compression_SmallestSize": "Smallest size",
   "Save": "Save",
-  "NoBackups": "No backups in this destination."
+  "NoBackups": "No backups in this destination.",
+  "DestinationSpace": "Destination space",
+  "FreeSpace": "{0} free of {1}",
+  "FreeSpaceNoTotal": "{0} free",
+  "SpaceUnknown": "Free space unknown",
+  "SpaceReadAt": "Read on {0}",
+  "RefreshSpace": "Refresh free space",
+  "RememberPassword": "Remember the password on this computer",
+  "RememberPasswordHint": "Saved in the secure storage of the operating system",
+  "PasswordSaved": "Password saved securely",
+  "ForgetPassword": "Forget password",
+  "SavedPasswordInvalid": "The saved password is wrong and has been forgotten: type it again."
 }

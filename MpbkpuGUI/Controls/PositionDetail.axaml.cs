@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -46,6 +48,9 @@ public partial class PositionDetail : UserControl, IValidate
             _model.OauthAppSecret = value?.OauthAppSecret;
             _model.OauthRedirectUrl = value?.OauthRedirectUrl;
             _model.OauthServerUrl = value?.OauthServerUrl;
+            // The binding is not refreshed when the type does not change (a new position is a local folder like the
+            // default of the model): select it explicitly
+            this.FindControl<ComboBox>("CmbType")!.SelectedItem = _model.Type;
         }
     }
 
@@ -54,18 +59,10 @@ public partial class PositionDetail : UserControl, IValidate
         AvaloniaXamlLoader.Load(this);
 
         var cmbType = this.FindControl<ComboBox>("CmbType")!;
-        cmbType.ItemsSource = new List<Job.Position.FileSystemTypes>()
-        {
-            Job.Position.FileSystemTypes.FileSystem,
-            Job.Position.FileSystemTypes.DropBox,
-            Job.Position.FileSystemTypes.Ftp,
-            Job.Position.FileSystemTypes.MediaFire,
-            Job.Position.FileSystemTypes.Mega,
-            Job.Position.FileSystemTypes.Nextcloud,
-            Job.Position.FileSystemTypes.OneDrive,
-            Job.Position.FileSystemTypes.Sftp,
-            Job.Position.FileSystemTypes.Smb
-        };
+        // Sorted by the name shown in the current language
+        cmbType.ItemsSource = Enum.GetValues<Job.Position.FileSystemTypes>()
+            .OrderBy(t => Localizer.Localizer.Instance[$"Fs_{t}"], StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
         cmbType.SelectedItem = Job.Position.FileSystemTypes.FileSystem;
     }
 

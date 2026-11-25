@@ -112,8 +112,10 @@ public class SyncDirectoryJob : BaseJob
         try {
             var backupFile = new BackupFile();
             await backupFile.Open(tempDbFile);
+            await ReadDestinationSpace();
             result = await RunPrimitive(backupFile);
             backupFile.Close();
+            await ReadDestinationSpace();
         } catch (Exception ex) {
             LogError(ex);
             throw;
@@ -248,6 +250,7 @@ public class SyncDirectoryJob : BaseJob
                     return Cancelled();
 
                 await WithRetry(item, "delete", () => DeleteFile(item));
+                DestinationSpaceUsed(-item.Size);
                 _progressData.DeleteBytes += item.Size;
                 _progressData.DeleteFileIndex++;
                 DeleteProgress?.Invoke(this, new ProgressHandlerArgs(_progressData.DeleteFileIndex, _progressData.DeleteTotalFiles,
@@ -273,6 +276,7 @@ public class SyncDirectoryJob : BaseJob
                 // Also an aborted upload of a file manager when the copy is cancelled
                 return Cancelled();
             }
+            DestinationSpaceUsed(item.Size);
             _progressData.BackupBytes += item.Size;
             _progressData.BackupFileIndex++;
             Progress?.Invoke(this, new ProgressHandlerArgs(_progressData.BackupFileIndex, _progressData.BackupTotalFiles,

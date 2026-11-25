@@ -57,6 +57,12 @@ public abstract class BaseJob : IDisposable
     /// </summary>
     public event LogHandler? LogEmitted;
 
+    public delegate void SpaceHandler(object sender, StorageSpace space);
+    /// <summary>
+    /// Emitted with the space of the destination: read at the start and at the end of the job, estimated in between
+    /// </summary>
+    public event SpaceHandler? SpaceChanged;
+
     public delegate void OpenBackupHandler(object sender, long bytes, long totalBytes);
     public event OpenBackupHandler? OpenBackup;
     public event OpenBackupHandler? CopyBackup;
@@ -74,6 +80,38 @@ public abstract class BaseJob : IDisposable
     #region properties
     public BaseJobSettings Settings { get; private set; }
     #endregion
+
+    private StorageSpace? _space;
+    private long _spaceWritten;
+
+    /// <summary>
+    /// Read the space of the destination (<see cref="BackupFm"/>). Never fails the job.
+    /// </summary>
+    protected async Task ReadDestinationSpace()
+    {
+        if (BackupFm == null || string.IsNullOrEmpty(BackupPath))
+            return;
+        try {
+            _space = await BackupFm.GetSpace(BackupPath);
+            _spaceWritten = 0;
+            if (_space != null)
+                SpaceChanged?.Invoke(this, _space);
+        } catch (Exception ex) {
+            LogWarning($"Cannot read the space of the destination: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Update the estimated space of the destination after writing (or deleting, with negative bytes)
+    /// </summary>
+    protected void DestinationSpaceUsed(long bytes)
+    {
+        if (_space == null)
+            return;
+        _spaceWritten += bytes;
+        var available = Math.Max(0, _space.Available - _spaceWritten);
+        SpaceChanged?.Invoke(this, _space with { Available = _space.Total.HasValue ? Math.Min(available, _space.Total.Value) : available });
+    }
 
     public virtual void Dispose()
     {

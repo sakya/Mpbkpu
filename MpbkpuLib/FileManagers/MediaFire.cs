@@ -112,6 +112,15 @@ public class MediaFire : IFileManager
         return Utility.Files.CombinePath(PathSeparator, paths);
     }
 
+    public async Task<StorageSpace?> GetSpace(string? path)
+    {
+        if (string.IsNullOrEmpty(path))
+            throw new ArgumentNullException(path);
+
+        var info = await (await GetClient()).UserGetInfo();
+        return new StorageSpace(Math.Max(0, info.StorageLimit - info.UsedStorageSize), info.StorageLimit);
+    }
+
     public async Task<bool> CreateDirectory(string? path)
     {
         if (string.IsNullOrEmpty(path))

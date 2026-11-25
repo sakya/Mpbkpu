@@ -12,10 +12,17 @@ namespace MpbkpuGUI.Dialogs;
 
 public partial class PasswordDialog : BaseDialog
 {
+    /// <summary>
+    /// The password typed and if it must be remembered
+    /// </summary>
+    public record Result(string Password, bool Remember);
+
     private readonly PasswordDialogModel _model;
-    public PasswordDialog()
+
+    /// <param name="canRemember">Show the option to remember the password</param>
+    public PasswordDialog(bool canRemember = false)
     {
-        _model = new PasswordDialogModel();
+        _model = new PasswordDialogModel() { CanRemember = canRemember };
         DataContext = _model;
 
         VerticalAlignment = VerticalAlignment.Bottom;
@@ -58,7 +65,7 @@ public partial class PasswordDialog : BaseDialog
             return;
         }
 
-        Close(_model.Password);
+        Close(new Result(_model.Password!, _model.CanRemember && _model.Remember));
     }
 
     private void OnCancelClick(object? sender, RoutedEventArgs e)

@@ -54,6 +54,21 @@ public class Nextcloud : IFileManager, IOAuth2
         return Files.CombinePath(PathSeparator, paths);
     }
 
+    public async Task<StorageSpace?> GetSpace(string? path)
+    {
+        if (string.IsNullOrEmpty(path))
+            throw new ArgumentNullException(path);
+
+        var client = await GetClient();
+        var info = await Folder.GetInfo(client, GetPath(path));
+        var props = info.Response.Count == 1 ? info.Response[0].PropStat.Properties : null;
+        // Negative values: unknown or unlimited
+        if (props?.QuotaAvailableBytes is not >= 0)
+            return null;
+        var available = props.QuotaAvailableBytes.Value;
+        return new StorageSpace(available, props.QuotaUsedBytes is >= 0 ? available + props.QuotaUsedBytes.Value : null);
+    }
+
     public async Task<bool> CreateDirectory(string? path)
     {
         if (string.IsNullOrEmpty(path))

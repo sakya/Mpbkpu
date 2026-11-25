@@ -41,6 +41,16 @@ namespace MpbkpuLib.FileManagers
             return Utility.Files.CombinePath(PathSeparator, paths);
         }
 
+        public async Task<StorageSpace?> GetSpace(string? path)
+        {
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentNullException(path);
+
+            // AVBL is an extension (draft-peterson-streamlined-ftp-command-extensions): "213 <bytes>", no total
+            var reply = await (await GetClient()).Execute($"AVBL {GetPath(path)}");
+            return reply.Success && long.TryParse(reply.Message?.Trim(), out var bytes) ? new StorageSpace(bytes, null) : null;
+        }
+
         public async Task<File> GetFileInfo(string? path)
         {
             if (string.IsNullOrEmpty(path))

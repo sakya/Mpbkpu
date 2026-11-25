@@ -28,11 +28,24 @@ public class AppSettings
         if (res == null)
             return null;
 
-        var secrets = GetSecretStore(fileName).Load();
+        Dictionary<string, string> secrets;
+        try {
+            secrets = GetSecretStore(fileName).Load();
+        } catch {
+            // No secure storage (e.g. Linux without a keyring): secrets are not saved
+            res.SecretStoreAvailable = false;
+            secrets = new Dictionary<string, string>();
+        }
         foreach (var job in res.Jobs)
             job.SetSecrets(secrets);
         return res;
     }
+
+    /// <summary>
+    /// False when the OS secure storage cannot be used: passwords cannot be remembered
+    /// </summary>
+    [JsonIgnore]
+    public bool SecretStoreAvailable { get; private set; } = true;
 
     /// <summary>
     /// True if the settings file still contains plain-text secrets (they are removed by <see cref="Save"/>)
@@ -46,7 +59,14 @@ public class AppSettings
         var secrets = new Dictionary<string, string>();
         foreach (var job in Jobs)
             job.GetSecrets(secrets);
-        GetSecretStore(fileName).Save(secrets);
+        if (SecretStoreAvailable) {
+            try {
+                GetSecretStore(fileName).Save(secrets);
+            } catch {
+                // No secure storage: the settings are saved anyway, without secrets
+                SecretStoreAvailable = false;
+            }
+        }
 
         await using var fs = new FileStream(fileName, FileMode.Create, FileAccess.Write);
         await using var sw = new StreamWriter(fs);

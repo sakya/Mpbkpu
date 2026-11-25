@@ -55,6 +55,33 @@ public abstract class Job
             set { OauthAppSecret = value; HasLegacySecrets = true; }
         }
 
+        /// <summary>
+        /// True for the local file system
+        /// </summary>
+        [JsonIgnore]
+        public bool IsLocal => Type == FileSystemTypes.FileSystem;
+
+        public OAuth2Settings GetOAuth2Settings()
+        {
+            return new OAuth2Settings()
+            {
+                AppName = OauthAppName,
+                AppId = OauthAppId,
+                AppSecret = OauthAppSecret,
+                ServerUrl = OauthServerUrl,
+                RedirectUrl = OauthRedirectUrl
+            };
+        }
+
+        /// <summary>
+        /// Create the file manager of this position
+        /// </summary>
+        /// <param name="path">The path to use with the file manager</param>
+        public IFileManager GetFileManager(out string path)
+        {
+            return FileManagerFactory.GetFileManager(FullPath, out path, User, Password, GetOAuth2Settings());
+        }
+
         public void GetSecrets(string prefix, IDictionary<string, string> secrets)
         {
             if (!string.IsNullOrEmpty(Password))
@@ -137,6 +164,12 @@ public abstract class Job
     public DateTime? LastRun { get; set; }
     public MpbkpuLib.DataModel.Backup.Results? LastResult { get; set; }
 
+    /// <summary>
+    /// Last space read from the destination (remote destinations are read only when asked or during a run)
+    /// </summary>
+    public StorageSpace? DestinationSpace { get; set; }
+    public DateTime? DestinationSpaceRead { get; set; }
+
     public Job Copy()
     {
         var settings = new JsonSerializerSettings()
@@ -156,13 +189,13 @@ public abstract class Job
     [JsonIgnore]
     public bool HasLegacySecrets => Source?.HasLegacySecrets == true || Destination?.HasLegacySecrets == true;
 
-    public void GetSecrets(IDictionary<string, string> secrets)
+    public virtual void GetSecrets(IDictionary<string, string> secrets)
     {
         Source?.GetSecrets($"{Id}.{nameof(Source)}", secrets);
         Destination?.GetSecrets($"{Id}.{nameof(Destination)}", secrets);
     }
 
-    public void SetSecrets(IReadOnlyDictionary<string, string> secrets)
+    public virtual void SetSecrets(IReadOnlyDictionary<string, string> secrets)
     {
         Source?.SetSecrets($"{Id}.{nameof(Source)}", secrets);
         Destination?.SetSecrets($"{Id}.{nameof(Destination)}", secrets);

@@ -90,14 +90,7 @@ public partial class DeleteBackupPage : BasePage
             BackupPath = destination.FullPath,
             BackupPathUser = destination.User,
             BackupPathPassword = destination.Password,
-            BackupOauthSettings = new OAuth2Settings()
-            {
-                AppName = destination.OauthAppName,
-                AppId = destination.OauthAppId,
-                AppSecret = destination.OauthAppSecret,
-                ServerUrl = destination.OauthServerUrl,
-                RedirectUrl = destination.OauthRedirectUrl
-            },
+            BackupOauthSettings = destination.GetOAuth2Settings(),
             BackupGuid = _backup.Guid,
             EncryptPassword = _job.Password
         };

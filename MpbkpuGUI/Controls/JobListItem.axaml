@@ -18,7 +18,7 @@
     <Border Classes="card hoverable" Padding="20">
         <Grid ColumnDefinitions="Auto,*,Auto">
             <Border Name="IconTile" Classes="iconTile">
-                <mi:MaterialIcon Name="Icon" Kind="ArchiveOutline" />
+                <mi:MaterialIcon Name="Icon" Kind="BackupOutline" />
             </Border>
 
             <StackPanel Grid.Column="1" Margin="20,0" Spacing="8" VerticalAlignment="Center">
@@ -60,6 +60,17 @@
                         <Ellipse Width="8" Height="8" VerticalAlignment="Center" Stroke="#6B7380" StrokeThickness="1.5" />
                         <TextBlock Classes="muted" VerticalAlignment="Center" Text="{i18n:Localize NeverRun}" />
                     </StackPanel>
+                </StackPanel>
+
+                <!-- Space of the destination: read live for local destinations, last value read for remote ones -->
+                <StackPanel Name="SpacePanel" Orientation="Horizontal" Spacing="10">
+                    <ProgressBar Name="SpaceBar" Classes="inline" Width="160" Minimum="0" Maximum="100"
+                                 VerticalAlignment="Center" />
+                    <TextBlock Name="SpaceText" Classes="muted" VerticalAlignment="Center" />
+                    <Button Name="SpaceRefresh" Classes="icon small" Click="OnRefreshSpaceClick" VerticalAlignment="Center"
+                            ToolTip.Tip="{i18n:Localize RefreshSpace}" AutomationProperties.Name="{i18n:Localize RefreshSpace}">
+                        <mi:MaterialIcon Kind="Refresh" Width="14" Height="14" />
+                    </Button>
                 </StackPanel>
             </StackPanel>
 

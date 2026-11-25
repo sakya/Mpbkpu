@@ -59,6 +59,18 @@ namespace NextcloudClient.Models
             [XmlElement("getcontentlength")]
             public long ContentLength { get; set; }
 
+            /// <summary>
+            /// Free space of a folder (negative: unknown or unlimited)
+            /// </summary>
+            [XmlElement("quota-available-bytes")]
+            public long? QuotaAvailableBytes { get; set; }
+
+            /// <summary>
+            /// Space used by the folder
+            /// </summary>
+            [XmlElement("quota-used-bytes")]
+            public long? QuotaUsedBytes { get; set; }
+
             [XmlElement("has-preview", Namespace = "http://owncloud.org/ns")]
             public bool HasPreview { get; set; }
 

@@ -57,6 +57,13 @@ public partial class BackupOpenPage : BasePage
         _model.SpinnerMessage = Localizer.Localizer.Instance["Step_OpenDatabase"];
         try {
             await Task.Run(OpenDatabase);
+        } catch (InvalidPasswordException) when (_backup.HasSavedPassword) {
+            _backup.ForgetPassword();
+            await App.Settings!.Save(App.SettingFile!);
+            await MessageDialog.ShowMessage(App.GetMainWindow(), Localizer.Localizer.Instance["SavedPasswordInvalid"],
+                MessageDialog.Icons.Warning);
+            await NavigateBack();
+            return;
         } catch (Exception ex) {
             await MessageDialog.ShowMessage(App.GetMainWindow(),
                 $"{Localizer.Localizer.Instance["AnErrorOccurred"]}{ex.Message}", MessageDialog.Icons.Error);
@@ -78,16 +85,7 @@ public partial class BackupOpenPage : BasePage
     private async Task OpenDatabase()
     {
         await Task.Delay(500);
-        var oauthSettings = new OAuth2Settings()
-        {
-            AppName = _backup.Destination!.OauthAppName,
-            AppId = _backup.Destination.OauthAppId,
-            AppSecret = _backup.Destination.OauthAppSecret,
-            ServerUrl = _backup.Destination.OauthServerUrl,
-            RedirectUrl = _backup.Destination.OauthRedirectUrl
-        };
-        using var fm = FileManagerFactory.GetFileManager(_backup.Destination.FullPath, out var backupPath,
-            _backup.Destination.User, _backup.Destination.Password, oauthSettings);
+        using var fm = _backup.Destination!.GetFileManager(out var backupPath);
         _backupFile = await BackupFile.OpenBackupFile(fm, backupPath, _backup.Password,
             progressAction: (bytes, total) =>
             {

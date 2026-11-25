@@ -24,6 +24,7 @@ public partial class JobRunningPage : BasePage
     private readonly Job _job;
     private readonly CancellationTokenSource _cts = new();
     private BaseJob? _backupJob;
+    private StorageSpace? _lastSpace;
     private Thread? _worker;
 
     public JobRunningPage()
@@ -97,26 +98,12 @@ public partial class JobRunningPage : BasePage
                 Source = bkp.Source!.FullPath,
                 SourceUser = bkp.Source.User,
                 SourcePassword = bkp.Source.Password,
-                SourceOauthSettings = new OAuth2Settings()
-                {
-                    AppName = bkp.Source.OauthAppName,
-                    AppId = bkp.Source.OauthAppId,
-                    AppSecret = bkp.Source.OauthAppSecret,
-                    ServerUrl = bkp.Source.OauthServerUrl,
-                    RedirectUrl = bkp.Source.OauthRedirectUrl
-                },
+                SourceOauthSettings = bkp.Source.GetOAuth2Settings(),
 
                 Destination = bkp.Destination!.FullPath,
                 DestinationUser = bkp.Destination.User,
                 DestinationPassword = bkp.Destination.Password,
-                DestinationOauthSettings = new OAuth2Settings()
-                {
-                    AppName = bkp.Destination.OauthAppName,
-                    AppId = bkp.Destination.OauthAppId,
-                    AppSecret = bkp.Destination.OauthAppSecret,
-                    ServerUrl = bkp.Destination.OauthServerUrl,
-                    RedirectUrl = bkp.Destination.OauthRedirectUrl
-                },
+                DestinationOauthSettings = bkp.Destination.GetOAuth2Settings(),
 
                 SkipHashCheck = bkp.SkipHashCheck,
                 RetryOnError = bkp.RetryOnError,
@@ -129,6 +116,7 @@ public partial class JobRunningPage : BasePage
             backupJob.Step += BackupJobOnStep;
             backupJob.ConfirmBackup += BackupJobOnConfirmBackup;
             backupJob.Progress += BackupJobOnProgress;
+            backupJob.SpaceChanged += BackupJobOnSpaceChanged;
 
             _backupJob = backupJob;
         } else if (_job is SyncJob sync) {
@@ -137,26 +125,12 @@ public partial class JobRunningPage : BasePage
                 Source = sync.Source!.FullPath,
                 SourceUser = sync.Source.User,
                 SourcePassword = sync.Source.Password,
-                SourceOauthSettings = new OAuth2Settings()
-                {
-                    AppName = sync.Source.OauthAppName,
-                    AppId = sync.Source.OauthAppId,
-                    AppSecret = sync.Source.OauthAppSecret,
-                    ServerUrl = sync.Source.OauthServerUrl,
-                    RedirectUrl = sync.Source.OauthRedirectUrl
-                },
+                SourceOauthSettings = sync.Source.GetOAuth2Settings(),
 
                 Destination = sync.Destination!.FullPath,
                 DestinationUser = sync.Destination.User,
                 DestinationPassword = sync.Destination.Password,
-                DestinationOauthSettings = new OAuth2Settings()
-                {
-                    AppName = sync.Destination.OauthAppName,
-                    AppId = sync.Destination.OauthAppId,
-                    AppSecret = sync.Destination.OauthAppSecret,
-                    ServerUrl = sync.Destination.OauthServerUrl,
-                    RedirectUrl = sync.Destination.OauthRedirectUrl
-                },
+                DestinationOauthSettings = sync.Destination.GetOAuth2Settings(),
 
                 SkipHashCheck = sync.SkipHashCheck,
                 RetryOnError = sync.RetryOnError,
@@ -166,6 +140,7 @@ public partial class JobRunningPage : BasePage
             backupJob.Step += BackupJobOnStep;
             backupJob.ConfirmBackup += BackupJobOnConfirmBackup;
             backupJob.Progress += BackupJobOnProgress;
+            backupJob.SpaceChanged += BackupJobOnSpaceChanged;
 
             _backupJob = backupJob;
         }
@@ -200,11 +175,16 @@ public partial class JobRunningPage : BasePage
             }
         } catch (Exception ex) {
             BackupJobOnLogEmitted(null, BaseJobSettings.LogLevels.Error, ex.Message);
+            var message = $"{Localizer.Localizer.Instance["AnErrorOccurred"]}{ex.Message}";
+            if (ex is MpbkpuLib.InvalidPasswordException && _job is BackupJob { HasSavedPassword: true } savedJob) {
+                // Saved with the next SaveLastRun
+                savedJob.ForgetPassword();
+                message = Localizer.Localizer.Instance["SavedPasswordInvalid"];
+            }
             await SaveLastRun(Backup.Results.Error);
             Dispatcher.UIThread.Post(() =>
             {
-                _ = MessageDialog.ShowMessage(App.GetMainWindow(),
-                    $"{Localizer.Localizer.Instance["AnErrorOccurred"]}{ex.Message}", MessageDialog.Icons.Error);
+                _ = MessageDialog.ShowMessage(App.GetMainWindow(), message, MessageDialog.Icons.Error);
             });
         } finally {
             _model.Running = false;
@@ -215,10 +195,25 @@ public partial class JobRunningPage : BasePage
     /// <summary>
     /// Save when the job ran and its result (shown in the job list)
     /// </summary>
+    private void BackupJobOnSpaceChanged(object sender, StorageSpace space)
+    {
+        _lastSpace = space;
+        Dispatcher.UIThread.Post(() =>
+        {
+            this.FindControl<Control>("SpacePanel")!.IsVisible = true;
+            Controls.SpaceDisplay.Show(space, this.FindControl<ProgressBar>("SpaceBar")!, this.FindControl<TextBlock>("SpaceText")!);
+        });
+    }
+
     private async Task SaveLastRun(Backup.Results result)
     {
         _job.LastRun = DateTime.Now;
         _job.LastResult = result;
+        if (_lastSpace != null) {
+            // Shown in the job list
+            _job.DestinationSpace = _lastSpace;
+            _job.DestinationSpaceRead = DateTime.Now;
+        }
         await App.Settings!.Save(App.SettingFile!);
     }
 

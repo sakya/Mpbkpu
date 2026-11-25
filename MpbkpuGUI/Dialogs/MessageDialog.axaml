@@ -13,22 +13,8 @@
 
     <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource LineBrush}" BorderThickness="1"
             CornerRadius="16" Padding="24" MinWidth="380" MaxWidth="560" BoxShadow="0 16 48 0 #99000000">
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="*" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-
-            <Grid Grid.ColumnSpan="2">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-
+        <Grid RowDefinitions="*,Auto">
+            <Grid ColumnDefinitions="Auto,*">
                 <mi:MaterialIcon
                     Width="22" Height="22"
                     Margin="0,0,14,0"
@@ -42,28 +28,25 @@
                            HorizontalAlignment="Left" />
             </Grid>
 
-            <Button Grid.Row="1"
-                    Grid.Column="{Binding Button2Data.Column}"
-                    Grid.ColumnSpan="{Binding Button2Data.ColumnSpan}"
-                    Classes="Small"
-                    MinWidth="110"
-                    Click="OnButton2Click"
-                    Content="{Binding Button2Data.Text}"
-                    IsVisible="{Binding Button2Data.IsVisible}"
-                    IsDefault="{Binding Button2Data.IsDefault}"
-                    IsCancel="{Binding Button2Data.IsCancel}"
-                    Margin="0,24,6,0" />
-            <Button Grid.Row="1"
-                    Grid.Column="{Binding Button1Data.Column}"
-                    Grid.ColumnSpan="{Binding Button1Data.ColumnSpan}"
-                    Classes="Small accent"
-                    MinWidth="110"
-                    Click="OnButton1Click"
-                    Content="{Binding Button1Data.Text}"
-                    IsVisible="{Binding Button1Data.IsVisible}"
-                    IsDefault="{Binding Button1Data.IsDefault}"
-                    IsCancel="{Binding Button2Data.IsCancel}"
-                    Margin="6,24,0,0" />
+            <!-- Buttons on the right: the secondary action before the primary one -->
+            <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12" Margin="0,24,0,0">
+                <Button Name="SecondaryButton"
+                        Classes="Small"
+                        MinWidth="110"
+                        Click="OnButton2Click"
+                        Content="{Binding Button2Data.Text}"
+                        IsVisible="{Binding Button2Data.IsVisible}"
+                        IsDefault="{Binding Button2Data.IsDefault}"
+                        IsCancel="{Binding Button2Data.IsCancel}" />
+                <Button Name="PrimaryButton"
+                        Classes="Small accent"
+                        MinWidth="110"
+                        Click="OnButton1Click"
+                        Content="{Binding Button1Data.Text}"
+                        IsVisible="{Binding Button1Data.IsVisible}"
+                        IsDefault="{Binding Button1Data.IsDefault}"
+                        IsCancel="{Binding Button1Data.IsCancel}" />
+            </StackPanel>
         </Grid>
     </Border>
 </UserControl>

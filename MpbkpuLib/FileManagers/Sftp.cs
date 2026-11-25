@@ -58,6 +58,21 @@ namespace MpbkpuLib.FileManagers
             return Utility.Files.CombinePath(PathSeparator, paths);
         }
 
+        public async Task<StorageSpace?> GetSpace(string? path)
+        {
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentNullException(path);
+
+            try {
+                // statvfs@openssh.com extension
+                var status = await GetClient().GetStatusAsync(GetPath(path), CancellationToken.None);
+                return new StorageSpace((long)(status.AvailableBlocks * status.BlockSize), (long)(status.TotalBlocks * status.BlockSize));
+            } catch (SshException) {
+                // Extension not supported by the server
+                return null;
+            }
+        }
+
         public async Task<File> GetFileInfo(string? path)
         {
             if (string.IsNullOrEmpty(path))

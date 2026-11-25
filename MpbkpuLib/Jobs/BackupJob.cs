@@ -121,6 +121,7 @@ public class BackupJob : BaseJob
         LogInfo("Opening database");
         Step?.Invoke(this, Steps.OpenDatabase);
         await CheckDestination();
+        await ReadDestinationSpace();
         using (var openRes = await BackupFile.OpenBackupFile(BackupFm, BackupPath, Settings.EncryptPassword, true, OnOpenBackup, _cancellationToken)) {
             var backupFile = openRes.BackupFile;
             // True when the database in the destination references this backup
@@ -160,6 +161,8 @@ public class BackupJob : BaseJob
 
         if (_chainsToDelete.Count > 0)
             await DeleteOldChains();
+        // The real space after the backup (compression and deletions make the estimate approximate)
+        await ReadDestinationSpace();
 
         return new BackupJobJobResult()
         {
@@ -401,6 +404,7 @@ public class BackupJob : BaseJob
                         long? backupFileSize = Files.GetDestinationFileSize(fileToBackup.Size, Settings.CompressionLevel, encryptor != null);
                         // On the last try accept a file changed during the copy (with a warning)
                         await BackupFileFromSource(backupFile, fileToBackup, encryptor, backupFileSize, tryCount == Settings.RetryOnError);
+                        DestinationSpaceUsed(backupFileSize ?? fileToBackup.Size);
                         _progressData.Bytes += fileToBackup.Size;
                         _progressData.FileIndex++;
                         Progress?.Invoke(this, new ProgressHandlerArgs(_progressData.FileIndex, cArgs.FilesToBackup, _progressData.Bytes, _progressData.TotalBytes, _progressData.Eta!.Update(_progressData.Bytes, _progressData.FileIndex)));

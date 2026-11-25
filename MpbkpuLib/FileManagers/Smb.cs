@@ -45,6 +45,15 @@ namespace MpbkpuLib.FileManagers
 
         public string? Host { get; }
 
+        public Task<StorageSpace?> GetSpace(string? path)
+        {
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentNullException(path);
+
+            // EzSmb does not expose the free space of a share
+            return Task.FromResult<StorageSpace?>(null);
+        }
+
         public async Task<File> GetFileInfo(string? path)
         {
             if (string.IsNullOrEmpty(path))

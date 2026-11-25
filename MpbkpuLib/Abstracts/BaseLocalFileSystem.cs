@@ -30,6 +30,20 @@ namespace MpbkpuLib.Abstracts
             return Utility.Files.CombinePath(PathSeparator, paths);
         }
 
+        public Task<StorageSpace?> GetSpace(string? path)
+        {
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentNullException(path);
+
+            // The drive (Windows) or mount point (Linux, macOS) containing the path; network shares are not listed
+            var fullPath = Path.GetFullPath(path);
+            var comparison = IsCaseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+            var drive = DriveInfo.GetDrives()
+                .Where(d => d.IsReady && fullPath.StartsWith(d.RootDirectory.FullName, comparison))
+                .MaxBy(d => d.RootDirectory.FullName.Length);
+            return Task.FromResult(drive == null ? null : new StorageSpace(drive.AvailableFreeSpace, drive.TotalSize));
+        }
+
         public Task<bool> CreateDirectory(string? path)
         {
             if (string.IsNullOrEmpty(path))

@@ -56,8 +56,6 @@ public partial class MessageDialog : BaseDialog
         switch (buttons) {
             case Buttons.Ok:
                 _model.Button2Data.IsVisible = false;
-                _model.Button1Data.Column = 0;
-                _model.Button1Data.ColumnSpan = 2;
                 _model.Button1Data.Text = Localizer.Localizer.Instance["Ok"];
                 _model.Button1Data.IsCancel = true;
                 _model.Button1Data.IsDefault = true;
@@ -75,6 +73,9 @@ public partial class MessageDialog : BaseDialog
                 _model.Button2Data.IsCancel = true;
                 break;
         }
+
+        if (buttons == Buttons.YesNo && icon == Icons.Warning)
+            SetDestructive();
 
         switch (icon) {
             case Icons.None:
@@ -105,6 +106,16 @@ public partial class MessageDialog : BaseDialog
                     _model.IconBrush = new SolidColorBrush(qc.Value);
                 break;
         }
+    }
+
+    /// <summary>
+    /// Confirmations with the warning icon are destructive (delete, abort): the confirm button uses the danger style
+    /// </summary>
+    private void SetDestructive()
+    {
+        var button = this.FindControl<Button>("PrimaryButton")!;
+        button.Classes.Remove("accent");
+        button.Classes.Add("danger");
     }
 
     private void InitializeComponent()

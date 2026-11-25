@@ -251,6 +251,11 @@
             <Setter Property="Height" Value="44" />
             <Setter Property="Padding" Value="0" />
         </Style>
+        <Style Selector="Button.icon.small">
+            <Setter Property="Width" Value="26" />
+            <Setter Property="Height" Value="26" />
+            <Setter Property="MinHeight" Value="0" />
+        </Style>
         <Style Selector="Button.danger">
             <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
             <Setter Property="BorderBrush" Value="{StaticResource DangerLineBrush}" />
@@ -314,6 +319,18 @@
             <Setter Property="CornerRadius" Value="5" />
             <Setter Property="Background" Value="{StaticResource LineBrush}" />
             <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+        </Style>
+        <!-- Thin bar for inline information (e.g. space of the destination) -->
+        <Style Selector="ProgressBar.inline">
+            <Setter Property="Height" Value="6" />
+            <Setter Property="MinHeight" Value="6" />
+            <Setter Property="CornerRadius" Value="3" />
+        </Style>
+        <Style Selector="ProgressBar.warning">
+            <Setter Property="Foreground" Value="{StaticResource WarningBrush}" />
+        </Style>
+        <Style Selector="ProgressBar.danger">
+            <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
         </Style>
 
         <!-- Log lists -->

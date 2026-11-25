@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -61,16 +62,31 @@ public partial class JobListPage : BasePage
     private async void OnJobRun(object sender, Job job)
     {
         if (await MessageDialog.ShowConfirmMessage(App.GetMainWindow(), Localizer.Localizer.Instance["ConfirmRunJob"])) {
-            if (job is BackupJob bkp && bkp.Encrypted) {
-                var pDlg = new PasswordDialog();
-                var pwd = await pDlg.Show<string>();
-                if (string.IsNullOrEmpty(pwd))
-                    return;
-
-                bkp.Password = pwd;
-            }
+            if (job is BackupJob bkp && !await EnsurePassword(bkp))
+                return;
             await MainWindow!.NavigateTo(new JobRunningPage(job));
         }
+    }
+
+    /// <summary>
+    /// Get the encryption password of a backup: the saved one, or asked to the user
+    /// </summary>
+    /// <returns>False if the user cancelled</returns>
+    private static async Task<bool> EnsurePassword(BackupJob bkp)
+    {
+        if (!bkp.Encrypted || bkp.HasSavedPassword)
+            return true;
+
+        var res = await new PasswordDialog(App.Settings!.SecretStoreAvailable).Show<PasswordDialog.Result?>();
+        if (res == null)
+            return false;
+
+        bkp.Password = res.Password;
+        if (res.Remember) {
+            bkp.RememberPassword = true;
+            await App.Settings.Save(App.SettingFile!);
+        }
+        return true;
     }
 
     private void SetJobList()
@@ -86,14 +102,8 @@ public partial class JobListPage : BasePage
     private async void OnJobOpen(object sender, Job job)
     {
         if (job is BackupJob bkp) {
-            if (bkp.Encrypted) {
-                var pDlg = new PasswordDialog();
-                var pwd = await pDlg.Show<string>();
-                if (string.IsNullOrEmpty(pwd))
-                    return;
-
-                bkp.Password = pwd;
-            }
+            if (!await EnsurePassword(bkp))
+                return;
             await MainWindow!.NavigateTo(new BackupOpenPage(bkp));
         }
     }

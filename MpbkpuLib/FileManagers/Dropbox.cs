@@ -79,6 +79,24 @@ public class Dropbox : IFileManager, IOAuth2
         return Files.CombinePath(PathSeparator, paths);
     }
 
+    public async Task<StorageSpace?> GetSpace(string? path)
+    {
+        if (string.IsNullOrEmpty(path))
+            throw new ArgumentNullException(path);
+
+        var usage = await (await GetClient()).Users.GetSpaceUsageAsync();
+        if (usage.Allocation.IsIndividual) {
+            var allocated = (long)usage.Allocation.AsIndividual.Value.Allocated;
+            return new StorageSpace(Math.Max(0, allocated - (long)usage.Used), allocated);
+        }
+        if (usage.Allocation.IsTeam) {
+            // Space shared by the team
+            var team = usage.Allocation.AsTeam.Value;
+            return new StorageSpace(Math.Max(0, (long)team.Allocated - (long)team.Used), (long)team.Allocated);
+        }
+        return null;
+    }
+
     public async Task<bool> CreateDirectory(string? path)
     {
         if (string.IsNullOrEmpty(path))

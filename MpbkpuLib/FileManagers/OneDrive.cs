@@ -90,6 +90,16 @@ namespace MpbkpuLib.FileManagers
             return Utility.Files.CombinePath(PathSeparator, paths);
         }
 
+        public async Task<StorageSpace?> GetSpace(string? path)
+        {
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentNullException(path);
+
+            var client = await GetClient();
+            var quota = (await client.Drives[_driveId].GetAsync())?.Quota;
+            return quota?.Remaining == null ? null : new StorageSpace(quota.Remaining.Value, quota.Total);
+        }
+
         public async Task<File> GetFileInfo(string? path)
         {
             if (string.IsNullOrEmpty(path))

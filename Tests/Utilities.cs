@@ -251,6 +251,52 @@ public class Utilities
         Assert.That(items.Update(0, 100)!.Value.TotalSeconds, Is.EqualTo(90).Within(0.5));
     }
 
+    [Test]
+    public async Task LocalAvailableSpaceIsTheFreeSpaceOfTheDrive()
+    {
+        var root = CreateTempDirectory();
+        using var fm = MpbkpuLib.FileManagers.FileManagerFactory.GetFileManager(root, out _);
+        var space = await fm.GetSpace(root);
+        var drive = new DriveInfo(Path.GetPathRoot(Path.GetFullPath(root))!);
+        Directory.Delete(root);
+
+        Assert.That(space, Is.Not.Null);
+        // Other processes may write in the meantime
+        Assert.That(space!.Available, Is.EqualTo(drive.AvailableFreeSpace).Within(100 * 1024 * 1024));
+        Assert.That(space.Total, Is.EqualTo(drive.TotalSize));
+        Assert.That(space.UsedPercentage, Is.InRange(0, 100));
+    }
+
+    [Test]
+    public void NextcloudPropertiesComeFromTheFoundPropStat()
+    {
+        // WebDAV returns one propstat per status: found properties (200) and missing ones (404)
+        const string xml = """
+            <?xml version="1.0"?>
+            <d:multistatus xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns" xmlns:nc="http://nextcloud.org/ns">
+              <d:response>
+                <d:href>/remote.php/dav/files/john/a.txt</d:href>
+                <d:propstat>
+                  <d:prop><d:getcontentlength>10</d:getcontentlength><d:quota-available-bytes>2048</d:quota-available-bytes></d:prop>
+                  <d:status>HTTP/1.1 200 OK</d:status>
+                </d:propstat>
+                <d:propstat>
+                  <d:prop><nc:contained-file-count /></d:prop>
+                  <d:status>HTTP/1.1 404 Not Found</d:status>
+                </d:propstat>
+              </d:response>
+            </d:multistatus>
+            """;
+        var ser = new System.Xml.Serialization.XmlSerializer(typeof(NextcloudClient.Models.ItemInfo), "DAV:");
+        using var sr = new StringReader(xml);
+        var info = (NextcloudClient.Models.ItemInfo)ser.Deserialize(sr)!;
+
+        var props = info.Response[0].PropStat.Properties;
+        Assert.That(props.ContentLength, Is.EqualTo(10));
+        Assert.That(props.QuotaAvailableBytes, Is.EqualTo(2048));
+        Assert.That(props.ContainedFileCount, Is.Null);
+    }
+
     [TestCase("mega://user@mail.com:secret/backups", "mega://user@mail.com:***/backups")]
     [TestCase("\"Destination\": \"mediafire://user:secret\"", "\"Destination\": \"mediafire://user:***\"")]
     [TestCase("ftp://user:p4ss@host:21/path", "ftp://user:***@host:21/path")]

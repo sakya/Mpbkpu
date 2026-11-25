@@ -12,6 +12,7 @@
 - [ ] Service picker with chips in the settings (today a ComboBox).
 
 ## Fixes
+- [ ] Warn before a backup/sync when the destination has less space than the bytes to copy (`GetSpace`); SMB returns null (EzSmb has no API).
 - [ ] Publish MediaFireApi 0.2.2 to NuGet (`../MediaFireApi`, not committed): without it Mpbkpu does not restore on other machines.
 - [ ] Try the MEGA, MediaFire, Nextcloud, OneDrive, Dropbox, FTP, SFTP and SMB fixes with real accounts (not covered by the offline
   tests). OneDrive: check that `LargeFileUploadTask` reads the upload stream sequentially (`UploadStream` rejects

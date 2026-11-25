@@ -56,6 +56,15 @@ public class Mega : IFileManager
         return Utility.Files.CombinePath(PathSeparator, paths);
     }
 
+    public async Task<StorageSpace?> GetSpace(string? path)
+    {
+        if (string.IsNullOrEmpty(path))
+            throw new ArgumentNullException(path);
+
+        var info = await (await GetClient()).GetAccountInformationAsync();
+        return new StorageSpace(Math.Max(0, info.TotalQuota - info.UsedQuota), info.TotalQuota);
+    }
+
     public async Task<bool> CreateDirectory(string? path)
     {
         if (string.IsNullOrEmpty(path))

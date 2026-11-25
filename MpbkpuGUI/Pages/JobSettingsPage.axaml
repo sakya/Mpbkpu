@@ -20,7 +20,7 @@
     <Grid RowDefinitions="*,Auto">
         <ScrollViewer>
             <StackPanel Margin="40,28,40,32" MaxWidth="960" Spacing="20">
-                <TextBlock Classes="h1" Text="{i18n:Localize JobSettings}" />
+                <TextBlock Name="PageHeader" Classes="h1" />
 
                 <!-- General -->
                 <Border Classes="card">
@@ -75,6 +75,11 @@
                                           IsChecked="{Binding Job.Encrypted, Mode=TwoWay}"
                                           Content="{i18n:Localize Encrypted}" />
                                 <TextBlock Classes="hint" Margin="0" Text="{i18n:Localize EncryptedHint}" />
+                                <StackPanel Name="SavedPasswordPanel" Orientation="Horizontal" Spacing="10" Margin="0,8,0,0">
+                                    <TextBlock Classes="muted" VerticalAlignment="Center" Text="{i18n:Localize PasswordSaved}" />
+                                    <Button Classes="Small" Click="OnForgetPasswordClick" Content="{i18n:Localize ForgetPassword}"
+                                            AutomationProperties.Name="{i18n:Localize ForgetPassword}" />
+                                </StackPanel>
                             </StackPanel>
                             <StackPanel Grid.Column="2">
                                 <Label Content="{i18n:Localize CompressionLevel}" />

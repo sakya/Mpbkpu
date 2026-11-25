@@ -37,6 +37,8 @@ namespace NextcloudClient
         <oc:permissions />
         <oc:size />
         <d:getcontentlength />
+        <d:quota-available-bytes />
+        <d:quota-used-bytes />
         <nc:has-preview />
         <oc:favorite />
         <oc:comments-href />
