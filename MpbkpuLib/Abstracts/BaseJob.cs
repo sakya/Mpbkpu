@@ -40,6 +40,7 @@ public abstract class BaseJob : IDisposable
 
     #region private members
     private readonly StreamWriter? _logWriter;
+    private readonly object _logLock = new();
     protected IFileManager? BackupFm;
     protected string? BackupPath;
     /// <summary>
@@ -310,18 +311,21 @@ public abstract class BaseJob : IDisposable
         }
         var logLine = $"[{DateTime.Now.ToString("yyyyMMdd HH:mm:ss.fff")}][{levelStr}] {message}";
 
-        if (_logWriter != null) {
-            _logWriter.WriteLine(logLine);
-            _logWriter.Flush();
-        }
+        // Jobs log from concurrent tasks
+        lock (_logLock) {
+            if (_logWriter != null) {
+                _logWriter.WriteLine(logLine);
+                _logWriter.Flush();
+            }
 
-        if (Settings.LogToConsole) {
-            Console.ForegroundColor = color;
-            Console.WriteLine(logLine);
-            Console.ResetColor();
-        }
+            if (Settings.LogToConsole) {
+                Console.ForegroundColor = color;
+                Console.WriteLine(logLine);
+                Console.ResetColor();
+            }
 
-        LogEmitted?.Invoke(this, level, message);
+            LogEmitted?.Invoke(this, level, message);
+        }
     }
 
     private async Task<bool> ReadPathContent(BackupFile? bkpFile, IFileManager? fileManager, string? rootPath,

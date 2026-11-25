@@ -28,16 +28,19 @@ Tests: 73 non-remote tests pass (`dotnet test Tests/Tests.csproj --filter "Fully
 
 ## Current state
 Working on **multiple destinations per backup** (files split among the destinations, database in all of them,
-parallel copies; design in DECISIONS.md, phases in TODO.md). Phases 1 and 2 done, not committed:
+parallel copies; design in DECISIONS.md, phases in TODO.md). Phases 1, 2 and 3 done, not committed:
 - Phase 1: settings (`BackupDestination`, `Destinations`, `ParallelFiles`, old single-destination keys still read),
   validation, table `Destinations` and `BackupVolume.DestinationId` (migration `MultipleDestinations`).
 - Phase 2: `BackupJob` splits the files among the destinations (sequential) through `DestinationSet`, reads the
   newest database and writes it to every destination (`BackupFile.SaveBackupFile`), space per destination
   (`SpaceEstimate`).
+- Phase 3: parallel copies with `ParallelFiles` (reader + workers on a `Channel`), `IFileManager.MaxParallelTransfers`,
+  database, progress and logging thread-safe, `NextcloudClient` token refresh under a lock.
 - Verified by the tests `LegacySingleDestinationSettingsAreRead`, `InvalidDestinationSettingsAreRejected`,
   `DatabaseBeforeMultipleDestinationsIsMigrated`, `FilesAreSplitAmongDestinationsAndDatabaseIsInAll`,
-  `LegacyVolumesBelongToTheDestinationOfTheDatabase`, `DatabaseCopyFailureOnOneDestinationIsAWarning` and the
-  existing suite (local folders only).
+  `LegacyVolumesBelongToTheDestinationOfTheDatabase`, `DatabaseCopyFailureOnOneDestinationIsAWarning`,
+  `ParallelBackupRestoresTheSource`, `ParallelProgressReachesTheTotal`, `FailedParallelBackupLeavesNoFiles`,
+  `ParallelBackupCanBeCancelled` and the existing suite (local folders only).
 - Restore, verify, delete and history still read one destination: the CLI and the GUI pass one destination only.
 
 ## Open issues and attempts so far
@@ -50,7 +53,8 @@ parallel copies; design in DECISIONS.md, phases in TODO.md). Phases 1 and 2 done
   dates restored shifted by the UTC offset (change detection is not affected).
 
 ## Next step
-Phase 3 of multiple destinations: parallel copies (`ParallelFiles`).
+Phase 4 of multiple destinations: Restore, Verify, Delete, List and ListContent read the volumes from their
+destination (reusing `DestinationSet`), then `KeepChains` with multiple destinations.
 
 Afterwards: try a backup and a sync on each remote service with a real account (upload, rename of `.mpbkpu-tmp`, database copy,
 history, download/restore), starting with the ones used in practice.

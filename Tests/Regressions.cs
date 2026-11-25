@@ -585,6 +585,84 @@ public class Regressions : BaseTest
         await AssertItemsInTheirDestinations(BackupDestination, 2);
     }
 
+    [TestCase(null)]
+    [TestCase(EncryptionPassword)]
+    public async Task ParallelBackupRestoresTheSource(string? password)
+    {
+        await RunBackup(Backup.BackupTypes.Full, password, s => s.ParallelFiles = 4);
+        CreateFile(Path.Combine(BackupSource, "newFile"), 100 * 1024);
+        var guid = await RunBackup(Backup.BackupTypes.Incremental, password, s => s.ParallelFiles = 4);
+
+        Assert.That((await Restore(guid, password)).Success, Is.True, "Restore failed");
+        AssertSameContent(BackupSource, RestoreDestination);
+    }
+
+    [Test]
+    public async Task ParallelProgressReachesTheTotal()
+    {
+        BaseJob.ProgressHandlerArgs? last = null;
+        using var job = new BackupJob(new BackupJobSettings()
+        {
+            BackupType = Backup.BackupTypes.Full,
+            Source = BackupSource,
+            Destinations = Destinations([BackupDestination, ..ExtraDestinations]),
+            ParallelFiles = 4,
+        });
+        job.Progress += (_, args) => last = args;
+        var res = await job.Run(CancellationToken.None);
+
+        Assert.That(res.Success, Is.True);
+        Assert.That(last, Is.Not.Null);
+        Assert.That(last!.File, Is.EqualTo(last.TotalFiles));
+        Assert.That(last.Bytes, Is.EqualTo(last.TotalBytes));
+        await AssertItemsInTheirDestinations(BackupDestination, 1 + ExtraDestinations.Length);
+    }
+
+    [Test]
+    public void FailedParallelBackupLeavesNoFiles()
+    {
+        using var job = new BackupJob(new BackupJobSettings()
+        {
+            BackupType = Backup.BackupTypes.Full,
+            Source = BackupSource,
+            Destinations = Destinations(BackupDestination, ExtraDestinations[0]),
+            ParallelFiles = 4,
+            RetryOnError = 1,
+        });
+        job.FileProgress += (_, _, bytes, _) =>
+        {
+            if (bytes > 0)
+                throw new IOException("Simulated failure");
+        };
+        // The error of the failed copy, not the cancellation of the other copies
+        Assert.That(async () => await job.Run(CancellationToken.None), Throws.TypeOf<IOException>());
+
+        Assert.That(Directory.GetDirectories(BackupDestination), Is.Empty);
+        Assert.That(Directory.GetDirectories(ExtraDestinations[0]), Is.Empty);
+    }
+
+    [Test]
+    public async Task ParallelBackupCanBeCancelled()
+    {
+        using var cts = new CancellationTokenSource();
+        using var job = new BackupJob(new BackupJobSettings()
+        {
+            BackupType = Backup.BackupTypes.Full,
+            Source = BackupSource,
+            Destinations = BackupDestinations(),
+            ParallelFiles = 4,
+        });
+        job.FileProgress += (_, _, bytes, _) =>
+        {
+            if (bytes > 0)
+                cts.Cancel();
+        };
+        var res = (BackupJobJobResult)await job.Run(cts.Token);
+
+        Assert.That(res.Result, Is.EqualTo(Backup.Results.Cancelled));
+        Assert.That((await GetBackups()).Single().Result, Is.EqualTo(Backup.Results.Cancelled));
+    }
+
     /// <summary>
     /// Check that every backed up item of the database in <paramref name="databaseDestination"/> is in the destination
     /// recorded for its volume

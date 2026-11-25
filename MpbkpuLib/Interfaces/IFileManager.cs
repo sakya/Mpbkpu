@@ -34,6 +34,12 @@ namespace MpbkpuLib.Interfaces
         bool SupportCompression { get; }
 
         /// <summary>
+        /// Maximum number of files a job can transfer at the same time with this instance. One by default: file
+        /// managers with a single connection, or not proven safe with concurrent transfers, copy one file at a time.
+        /// </summary>
+        int MaxParallelTransfers => 1;
+
+        /// <summary>
         /// Get the space available for writing and the total space
         /// </summary>
         /// <param name="path">A path of the file system (cloud services return the space of the account)</param>

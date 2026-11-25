@@ -1,6 +1,9 @@
 ﻿using System.IO.Compression;
 using System.Security.Cryptography;
+using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using System.Text;
+using System.Threading.Channels;
 using Newtonsoft.Json;
 using Microsoft.EntityFrameworkCore;
 using MpbkpuLib.Abstracts;
@@ -51,9 +54,19 @@ public class BackupJob : BaseJob
         public DestinationState(DestinationSet.Entry entry)
         {
             Entry = entry;
+            Limit = Math.Max(1, entry.Fm.MaxParallelTransfers);
         }
 
         public DestinationSet.Entry Entry { get; }
+        /// <summary>
+        /// Serializes the creation of the backup directory and of the volumes
+        /// </summary>
+        public SemaphoreSlim Lock { get; } = new(1, 1);
+        /// <summary>
+        /// Files being copied to the destination and maximum number of files copied at the same time
+        /// </summary>
+        public int Active { get; set; }
+        public int Limit { get; }
         public LastUsedVolume? LastUsedVolume { get; set; }
         /// <summary>
         /// Bytes assigned to the destination in this run (to balance the destinations)
@@ -69,6 +82,14 @@ public class BackupJob : BaseJob
     #region private members
     private Backup? _backup;
     private DestinationSet? _destinations;
+    /// <summary>
+    /// The database is used by the copy workers one at a time
+    /// </summary>
+    private readonly SemaphoreSlim _databaseLock = new(1, 1);
+    /// <summary>
+    /// Cancelled by the user or when a copy worker fails
+    /// </summary>
+    private CancellationToken _copyToken;
     private List<DestinationState> _states = new();
     private CancellationToken? _cancellationToken;
     private IFileManager? _sourceFm;
@@ -369,85 +390,43 @@ public class BackupJob : BaseJob
         // Backup files
         LogInfo("Backing up files");
         Step?.Invoke(this, Steps.BackupFiles);
-        EncryptDecrypt? encryptor = null;
-        if (!string.IsNullOrEmpty(Settings.EncryptPassword)) {
-            encryptor = new EncryptDecrypt(Settings.EncryptPassword);
-        }
-
         _progressData = new ProgressData()
         {
             Eta = StartEta(cArgs.BytesToBackup, cArgs.FilesToBackup, _states.Select(s => s.Entry.Fm).Prepend(_sourceFm).ToArray()),
             TotalBytes = cArgs.BytesToBackup,
             TotalFiles = cArgs.FilesToBackup
         };
-        var filesToBackup = backupFile.Files.AsNoTracking()
-                            .Where(f => f.FileAction == File.FileActions.Backup || f.FileAction == File.FileActions.Delete)
-                            .OrderBy(f => f.RelativePath);
-        foreach (var fileToBackup in filesToBackup) {
-            if (_cancellationToken?.IsCancellationRequested == true) {
-                LogInfo("Cancelled by user");
-                if (!await SetBackupResult(backupFile, Backup.Results.Cancelled))
-                    LogWarning("Cannot set backup result");
-                return;
-            }
 
-            if (fileToBackup.FileAction == File.FileActions.Backup) {
-                if (fileToBackup.Type == File.FileTyes.File) {
-                    try {
-                        var fInfo = await _sourceFm!.GetFileInfo(fileToBackup.FullPath);
-                        if (fInfo.Size != fileToBackup.Size || fInfo.LastModified != fileToBackup.LastModified) {
-                            LogWarning($"File {fileToBackup.FullPath} changed after the backup started");
-                            fileToBackup.Size = fInfo.Size;
-                            fileToBackup.LastModified = fInfo.LastModified;
-                        }
-                    } catch (FileNotFoundException) {
-                        LogWarning($"File {fileToBackup.FullPath} not found");
-
-                        _progressData.Bytes += fileToBackup.Size;
-                        _progressData.FileIndex++;
-                        Progress?.Invoke(this, new ProgressHandlerArgs(_progressData.FileIndex, cArgs.FilesToBackup, _progressData.Bytes, _progressData.TotalBytes, _progressData.Eta!.Update(_progressData.Bytes, _progressData.FileIndex)));
-                        continue;
-                    }
-                }
-
-                // Every try goes to the same destination
-                var destination = ChooseDestination(Files.GetDestinationFileSize(fileToBackup.Size, Settings.CompressionLevel, encryptor != null) ?? fileToBackup.Size);
-                var tryCount = 0;
-                while (++tryCount <= Settings.RetryOnError) {
-                    if (_cancellationToken?.IsCancellationRequested == true) {
-                        LogInfo("Cancelled by user");
-                        if (!await SetBackupResult(backupFile, Backup.Results.Cancelled))
-                            LogWarning("Cannot set backup result");
-                        return;
-                    }
-                    try {
-                        // Compute file size of the backup file if possible
-                        long? backupFileSize = Files.GetDestinationFileSize(fileToBackup.Size, Settings.CompressionLevel, encryptor != null);
-                        // On the last try accept a file changed during the copy (with a warning)
-                        await BackupFileFromSource(backupFile, destination, fileToBackup, encryptor, backupFileSize, tryCount == Settings.RetryOnError);
-                        DestinationSpaceUsed(destination, backupFileSize ?? fileToBackup.Size);
-                        _progressData.Bytes += fileToBackup.Size;
-                        _progressData.FileIndex++;
-                        Progress?.Invoke(this, new ProgressHandlerArgs(_progressData.FileIndex, cArgs.FilesToBackup, _progressData.Bytes, _progressData.TotalBytes, _progressData.Eta!.Update(_progressData.Bytes, _progressData.FileIndex)));
-                        break;
-                    } catch (Exception ex) when (tryCount == Settings.RetryOnError && IsSourceAccessError(ex)) {
-                        // A locked or protected file must not abort the whole backup
-                        await AddWarning(backupFile, $"File {fileToBackup.FullPath} has not been backed up: {ex.Message}");
-                        _progressData.Bytes += fileToBackup.Size;
-                        _progressData.FileIndex++;
-                        Progress?.Invoke(this, new ProgressHandlerArgs(_progressData.FileIndex, cArgs.FilesToBackup, _progressData.Bytes, _progressData.TotalBytes, _progressData.Eta!.Update(_progressData.Bytes, _progressData.FileIndex)));
-                        break;
-                    } catch (Exception ex) {
-                        if (tryCount == Settings.RetryOnError)
-                            throw;
-
-                        LogWarning($"Failed to backup {fileToBackup.FullPath}: {ex.Message}, retrying");
-                    }
-                }
-            } else {
-                await DeleteItem(backupFile, fileToBackup);
+        // A reader pages the files from the database, the workers copy them
+        var workers = GetWorkerCount();
+        LogInfo($"Copying up to {workers} files at the same time");
+        using (var copyCts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken ?? CancellationToken.None)) {
+            _copyToken = copyCts.Token;
+            var channel = Channel.CreateBounded<File>(workers * 2);
+            var tasks = new List<Task> { RunCopyTask(copyCts, () => ReadFilesToBackup(backupFile, channel.Writer)) };
+            for (var i = 0; i < workers; i++)
+                tasks.Add(RunCopyTask(copyCts, () => CopyFiles(backupFile, channel.Reader)));
+            try {
+                await Task.WhenAll(tasks);
+            } catch {
+                // After the first error the other tasks only report the cancellation
+                var error = tasks.Where(t => t.IsFaulted)
+                    .SelectMany(t => t.Exception!.InnerExceptions)
+                    .FirstOrDefault(e => e is not OperationCanceledException);
+                if (error != null)
+                    ExceptionDispatchInfo.Capture(error).Throw();
+                if (_cancellationToken?.IsCancellationRequested != true)
+                    throw;
             }
         }
+
+        if (_cancellationToken?.IsCancellationRequested == true) {
+            LogInfo("Cancelled by user");
+            if (!await SetBackupResult(backupFile, Backup.Results.Cancelled))
+                LogWarning("Cannot set backup result");
+            return;
+        }
+
         if (!await SetBackupResult(backupFile, _hasWarnings ? Backup.Results.CompletedWithWarnings : Backup.Results.Completed))
             LogWarning("Cannot set backup result");
         await backupFile.SaveChangesAsync();
@@ -455,6 +434,182 @@ public class BackupJob : BaseJob
             _chainsToDelete = await GetChainsToDelete(backupFile);
         await backupFile.EmptyFiles();
         LogInfo("Completed");
+    }
+
+    /// <summary>
+    /// Number of files copied at the same time: <see cref="BackupJobSettings.ParallelFiles"/> limited by the source and
+    /// by the destinations. The workers are never more than the free places of the destinations, so a worker always
+    /// finds a destination (<see cref="AcquireDestination"/>).
+    /// </summary>
+    private int GetWorkerCount()
+    {
+        var destinations = _states.Sum(s => (long)s.Limit);
+        return (int)Math.Min(Settings.ParallelFiles, Math.Min(destinations, _sourceFm!.MaxParallelTransfers));
+    }
+
+    /// <summary>
+    /// Run a task of the copy, cancelling the others when it fails
+    /// </summary>
+    private static Task RunCopyTask(CancellationTokenSource copyCts, Func<Task> task)
+    {
+        return Task.Run(async () =>
+        {
+            try {
+                await task();
+            } catch {
+                copyCts.Cancel();
+                throw;
+            }
+        });
+    }
+
+    /// <summary>
+    /// Read the files to backup or to record as deleted, a page at a time
+    /// </summary>
+    private async Task ReadFilesToBackup(BackupFile backupFile, ChannelWriter<File> writer)
+    {
+        try {
+            var lastId = 0;
+            while (true) {
+                var page = await WithDatabase(() => backupFile.Files.AsNoTracking()
+                    .Where(f => (f.FileAction == File.FileActions.Backup || f.FileAction == File.FileActions.Delete) && f.Id > lastId)
+                    .OrderBy(f => f.Id)
+                    .Take(500)
+                    .ToListAsync());
+                if (page.Count == 0)
+                    break;
+                foreach (var file in page)
+                    await writer.WriteAsync(file, _copyToken);
+                lastId = page[^1].Id;
+            }
+        } finally {
+            writer.TryComplete();
+        }
+    }
+
+    /// <summary>
+    /// A copy worker
+    /// </summary>
+    private async Task CopyFiles(BackupFile backupFile, ChannelReader<File> reader)
+    {
+        // One per worker: an instance must not be used by concurrent copies
+        var encryptor = string.IsNullOrEmpty(Settings.EncryptPassword) ? null : new EncryptDecrypt(Settings.EncryptPassword);
+        await foreach (var file in reader.ReadAllAsync(_copyToken)) {
+            if (file.FileAction == File.FileActions.Backup)
+                await CopyFile(backupFile, file, encryptor);
+            else
+                await WithDatabase(() => DeleteItem(backupFile, file));
+        }
+    }
+
+    /// <summary>
+    /// Backup a file to a destination, retrying on errors
+    /// </summary>
+    private async Task CopyFile(BackupFile backupFile, File fileToBackup, EncryptDecrypt? encryptor)
+    {
+        if (fileToBackup.Type == File.FileTyes.File) {
+            try {
+                var fInfo = await _sourceFm!.GetFileInfo(fileToBackup.FullPath);
+                if (fInfo.Size != fileToBackup.Size || fInfo.LastModified != fileToBackup.LastModified) {
+                    LogWarning($"File {fileToBackup.FullPath} changed after the backup started");
+                    fileToBackup.Size = fInfo.Size;
+                    fileToBackup.LastModified = fInfo.LastModified;
+                }
+            } catch (FileNotFoundException) {
+                LogWarning($"File {fileToBackup.FullPath} not found");
+                AddProgress(fileToBackup.Size, 1);
+                return;
+            }
+        }
+
+        // Every try goes to the same destination
+        var destination = AcquireDestination(Files.GetDestinationFileSize(fileToBackup.Size, Settings.CompressionLevel, encryptor != null) ?? fileToBackup.Size);
+        try {
+            var tryCount = 0;
+            while (++tryCount <= Settings.RetryOnError) {
+                if (_copyToken.IsCancellationRequested)
+                    return;
+
+                // Bytes of this try already counted in the progress
+                var copied = new StrongBox<long>();
+                try {
+                    // Compute file size of the backup file if possible
+                    long? backupFileSize = Files.GetDestinationFileSize(fileToBackup.Size, Settings.CompressionLevel, encryptor != null);
+                    // On the last try accept a file changed during the copy (with a warning)
+                    await BackupFileFromSource(backupFile, destination, fileToBackup, encryptor, backupFileSize, tryCount == Settings.RetryOnError, copied);
+                    DestinationSpaceUsed(destination, backupFileSize ?? fileToBackup.Size);
+                    AddProgress(fileToBackup.Size - copied.Value, 1);
+                    return;
+                } catch (OperationCanceledException) when (_copyToken.IsCancellationRequested) {
+                    AddProgress(-copied.Value, 0);
+                    return;
+                } catch (Exception ex) when (tryCount == Settings.RetryOnError && IsSourceAccessError(ex)) {
+                    // A locked or protected file must not abort the whole backup
+                    await AddWarning(backupFile, $"File {fileToBackup.FullPath} has not been backed up: {ex.Message}");
+                    AddProgress(fileToBackup.Size - copied.Value, 1);
+                    return;
+                } catch (Exception ex) {
+                    AddProgress(-copied.Value, 0);
+                    if (tryCount == Settings.RetryOnError)
+                        throw;
+
+                    LogWarning($"Failed to backup {fileToBackup.FullPath}: {ex.Message}, retrying");
+                }
+            }
+        } finally {
+            ReleaseDestination(destination);
+        }
+    }
+
+    /// <summary>
+    /// Run an operation on the database, one at a time
+    /// </summary>
+    private async Task<T> WithDatabase<T>(Func<Task<T>> operation)
+    {
+        await _databaseLock.WaitAsync();
+        try {
+            return await operation();
+        } finally {
+            _databaseLock.Release();
+        }
+    }
+
+    /// <inheritdoc cref="WithDatabase{T}"/>
+    private Task WithDatabase(Func<Task> operation)
+    {
+        return WithDatabase(async () =>
+        {
+            await operation();
+            return true;
+        });
+    }
+
+    /// <summary>
+    /// Add copied bytes and files to the progress
+    /// </summary>
+    /// <param name="bytes">Bytes copied (negative to remove the bytes of a failed try)</param>
+    /// <param name="files">Files completed</param>
+    /// <param name="notify">False to update the counters without raising <see cref="Progress"/></param>
+    private void AddProgress(long bytes, int files, bool notify = true)
+    {
+        lock (_progressData!) {
+            _progressData.Bytes += bytes;
+            _progressData.FileIndex += files;
+            if (notify) {
+                Progress?.Invoke(this, new ProgressHandlerArgs(_progressData.FileIndex, _progressData.TotalFiles, _progressData.Bytes,
+                    _progressData.TotalBytes, _progressData.Eta!.Update(_progressData.Bytes, _progressData.FileIndex)));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Raise <see cref="FileProgress"/> (one event at a time: the files are copied at the same time)
+    /// </summary>
+    private void ReportFileProgress(string filePath, long bytes, long totalBytes)
+    {
+        lock (_progressData!) {
+            FileProgress?.Invoke(this, filePath, bytes, totalBytes);
+        }
     }
 
     /// <summary>
@@ -545,22 +700,36 @@ public class BackupJob : BaseJob
     /// </summary>
     private void DestinationSpaceUsed(DestinationState destination, long bytes)
     {
-        destination.Entry.Space.Used(bytes);
-        OnSpaceChanged(SpaceEstimate.Sum(_states.Select(s => s.Entry.Space)));
+        lock (_states) {
+            destination.Entry.Space.Used(bytes);
+            OnSpaceChanged(SpaceEstimate.Sum(_states.Select(s => s.Entry.Space)));
+        }
     }
 
     /// <summary>
-    /// Choose the destination of a file: the one with the fewest bytes assigned in this run among the ones with
-    /// enough estimated space (unknown space counts as enough). When none has enough space the one with the most
-    /// space is chosen anyway: the estimate is approximate and the file manager reports a real lack of space.
+    /// Choose the destination of a file among the ones with a free place (<see cref="GetWorkerCount"/>): the one with
+    /// the fewest bytes assigned in this run among the ones with enough estimated space (unknown space counts as
+    /// enough). When none has enough space the one with the most space is chosen anyway: the estimate is approximate
+    /// and the file manager reports a real lack of space. Release it with <see cref="ReleaseDestination"/>.
     /// </summary>
-    private DestinationState ChooseDestination(long size)
+    private DestinationState AcquireDestination(long size)
     {
-        var res = _states.Where(s => s.Entry.Space.Current == null || s.Entry.Space.Current.Available >= size)
-                      .MinBy(s => s.AssignedBytes) ??
-                  _states.MaxBy(s => s.Entry.Space.Current!.Available)!;
-        res.AssignedBytes += size;
-        return res;
+        lock (_states) {
+            var free = _states.Where(s => s.Active < s.Limit).ToList();
+            var res = free.Where(s => s.Entry.Space.Current == null || s.Entry.Space.Current.Available >= size)
+                          .MinBy(s => s.AssignedBytes) ??
+                      free.MaxBy(s => s.Entry.Space.Current!.Available)!;
+            res.AssignedBytes += size;
+            res.Active++;
+            return res;
+        }
+    }
+
+    private void ReleaseDestination(DestinationState destination)
+    {
+        lock (_states) {
+            destination.Active--;
+        }
     }
 
     /// <summary>
@@ -596,13 +765,15 @@ public class BackupJob : BaseJob
     /// <param name="encryptor">The optional <see cref="Utility.EncryptDecrypt"/> to encrypt the file</param>
     /// <param name="backupFileSize">The size of the backup file, if known</param>
     /// <param name="acceptChanges">If false a file changed during the copy throws an exception (to retry)</param>
+    /// <param name="copied">Updated with the bytes added to the progress</param>
     /// <exception cref="ArgumentNullException"></exception>
     private async Task BackupFileFromSource(BackupFile? backupFile,
         DestinationState destination,
         File? sourceFile,
         EncryptDecrypt? encryptor,
         long? backupFileSize,
-        bool acceptChanges)
+        bool acceptChanges,
+        StrongBox<long> copied)
     {
         if (_sourceFm == null)
             throw new Exception("Source file manager not initialized");
@@ -611,7 +782,7 @@ public class BackupJob : BaseJob
         if (sourceFile == null)
             throw new ArgumentNullException(nameof(sourceFile));
 
-        var backupItem = await GetNextBackupItem(backupFile, destination);
+        var (backupItem, volumeName) = await GetNextBackupItem(backupFile, destination);
         backupItem.BackupId = _backup!.Id;
         backupItem.Action = sourceFile.Modified ? BackupItem.Actions.Modified : BackupItem.Actions.Added;
         backupItem.Type = sourceFile.Type;
@@ -625,7 +796,7 @@ public class BackupJob : BaseJob
         backupItem.OriginalSize = sourceFile.Size;
 
         var destFm = destination.Entry.Fm;
-        var destFilePath = destFm.CombinePath(destination.Entry.Path, _backup.Guid, destination.LastUsedVolume!.Name!, backupItem.Name!);
+        var destFilePath = destFm.CombinePath(destination.Entry.Path, _backup.Guid, volumeName, backupItem.Name!);
         try {
             switch (sourceFile.Type) {
                 case File.FileTyes.Directory:
@@ -637,34 +808,36 @@ public class BackupJob : BaseJob
                     }
 
                     var size = 9;
-                    FileProgress?.Invoke(this, sourceFile.RelativePath!, 0, size);
+                    ReportFileProgress(sourceFile.RelativePath!, 0, size);
                     using (var sourceStream = new MemoryStream(Encoding.ASCII.GetBytes("DIRECTORY"))) {
                         await using (var destStream = await destFm.OpenFile(destFilePath, true, size)) {
                             await sourceStream.CopyToAsync(destStream);
                         }
                     }
 
-                    FileProgress?.Invoke(this, sourceFile.RelativePath!, size, size);
+                    ReportFileProgress(sourceFile.RelativePath!, size, size);
                     break;
                 case File.FileTyes.File:
                     LogDebug($"Backing up {sourceFile.FullPath} to {destFilePath}");
-                    FileProgress?.Invoke(this, sourceFile.RelativePath!, 0, sourceFile.Size);
+                    ReportFileProgress(sourceFile.RelativePath!, 0, sourceFile.Size);
                     DateTime? lastFileProgress = null;
                     using (var sourceStream = await _sourceFm.OpenFile(sourceFile.FullPath)) {
                         using (var destStream = await destFm.OpenFile(destFilePath, true, backupFileSize)) {
-                            var progressAction = new Action<long>((copied) =>
+                            var progressAction = new Action<long>((bytes) =>
                             {
-                                if (lastFileProgress == null || copied == sourceFile.Size ||
-                                    (DateTime.UtcNow - lastFileProgress.Value).TotalMilliseconds >= 500) {
-                                    FileProgress?.Invoke(this, sourceFile.RelativePath!, copied, sourceFile.Size);
-                                    Progress?.Invoke(this, new ProgressHandlerArgs(_progressData!.FileIndex, _progressData.TotalFiles, _progressData.Bytes + copied, _progressData.TotalBytes, _progressData.Eta!.Update(_progressData.Bytes + copied, _progressData.FileIndex)));
+                                var notify = lastFileProgress == null || bytes == sourceFile.Size ||
+                                             (DateTime.UtcNow - lastFileProgress.Value).TotalMilliseconds >= 500;
+                                AddProgress(bytes - copied.Value, 0, notify);
+                                copied.Value = bytes;
+                                if (notify) {
+                                    ReportFileProgress(sourceFile.RelativePath!, bytes, sourceFile.Size);
                                     lastFileProgress = DateTime.UtcNow;
                                 }
                             });
 
                             if (encryptor != null)
                                 await encryptor.Encrypt(backupItem, sourceStream, destStream, Settings.CompressionLevel,
-                                    progressAction, _cancellationToken);
+                                    progressAction, _copyToken);
                             else if (Settings.CompressionLevel != CompressionLevel.NoCompression)
                                 await BackupFileFromSourceCompress(backupItem, sourceStream, destStream, Settings.CompressionLevel, progressAction);
                             else
@@ -689,8 +862,11 @@ public class BackupJob : BaseJob
             throw;
         }
 
-        backupFile.BackupItems.Add(backupItem);
-        await backupFile.SaveChangesAsync();
+        await WithDatabase(async () =>
+        {
+            backupFile.BackupItems.Add(backupItem);
+            await backupFile.SaveChangesAsync();
+        });
     }
 
     private async Task BackupFileFromSourceCopy(BackupItem backupItem, Stream sourceStream, Stream destStream, Action<long>? progressAction = null)
@@ -701,7 +877,7 @@ public class BackupJob : BaseJob
                 int read;
                 byte[] buffer = new byte[32768];
                 while ((read = await sourceStream.ReadAsync(buffer, 0, buffer.Length)) > 0) {
-                    _cancellationToken?.ThrowIfCancellationRequested();
+                    _copyToken.ThrowIfCancellationRequested();
                     await hashStream.WriteAsync(buffer, 0, read);
                     copied += read;
                     progressAction?.Invoke(copied);
@@ -724,7 +900,7 @@ public class BackupJob : BaseJob
                         int read;
                         byte[] buffer = new byte[32768];
                         while ((read = await sourceStream.ReadAsync(buffer, 0, buffer.Length)) > 0) {
-                            _cancellationToken?.ThrowIfCancellationRequested();
+                            _copyToken.ThrowIfCancellationRequested();
                             sourceHasher.TransformBlock(buffer, 0, read, null, 0);
                             await compressorStream.WriteAsync(buffer, 0, read);
                             copied += read;
@@ -768,65 +944,57 @@ public class BackupJob : BaseJob
     }
 
     /// <summary>
-    /// Get the next <see cref="DataModel.BackupItem"/>.
-    /// Find the first free <see cref="BackupVolume"/> or create a new one for the file
+    /// Get the next <see cref="DataModel.BackupItem"/> of a destination, creating the backup directory on the first
+    /// item and a new <see cref="BackupVolume"/> when the last one is full. Volumes belong to this backup only, so
+    /// they are counted in memory.
     /// </summary>
     /// <param name="backupFile">The <see cref="BackupFile"/> to backup</param>
     /// <param name="destination">The destination of the item</param>
-    /// <returns>A <see cref="DataModel.BackupItem"/></returns>
-    private async Task<BackupItem> GetNextBackupItem(BackupFile backupFile, DestinationState destination)
+    /// <returns>A new <see cref="DataModel.BackupItem"/> and the name of its volume</returns>
+    private async Task<(BackupItem Item, string VolumeName)> GetNextBackupItem(BackupFile backupFile, DestinationState destination)
     {
         var fm = destination.Entry.Fm;
-        if (!destination.BackupDirectoryCreated) {
-            var backupDirectory = fm.CombinePath(destination.Entry.Path, _backup!.Guid);
-            if (await fm.DirectoryExists(backupDirectory))
-                throw new Exception($"The backup destination {backupDirectory} exist");
-            await fm.CreateDirectory(backupDirectory);
-            destination.BackupDirectoryCreated = true;
-        }
+        await destination.Lock.WaitAsync(_copyToken);
+        try {
+            if (!destination.BackupDirectoryCreated) {
+                var backupDirectory = fm.CombinePath(destination.Entry.Path, _backup!.Guid);
+                if (await fm.DirectoryExists(backupDirectory))
+                    throw new Exception($"The backup destination {backupDirectory} exist");
+                await fm.CreateDirectory(backupDirectory);
+                destination.BackupDirectoryCreated = true;
+            }
 
-        int? volumeId;
-        string? volumeName;
-        var lastUsedVolume = destination.LastUsedVolume;
-        if (lastUsedVolume?.ItemsCount < Settings.MaxFilesPerDirectory) {
-            volumeId = lastUsedVolume.Id;
-            volumeName = lastUsedVolume.Name;
-            lastUsedVolume.ItemsCount++;
-        } else {
-            var destinationId = destination.Entry.RecordId;
-            var volume = await backupFile.BackupVolumes.AsNoTracking()
-                .Where(v => v.BackupId == _backup!.Id && v.DestinationId == destinationId && v.Items!.Count() < Settings.MaxFilesPerDirectory)
-                .FirstOrDefaultAsync();
-            if (volume == null) {
-                volume = new BackupVolume()
+            var volume = destination.LastUsedVolume;
+            if (volume == null || volume.ItemsCount >= Settings.MaxFilesPerDirectory) {
+                var record = new BackupVolume()
                 {
                     BackupId = _backup!.Id,
                     Name = Guid.NewGuid().ToString("N"),
-                    DestinationId = destinationId,
+                    DestinationId = destination.Entry.RecordId,
                 };
-                backupFile.BackupVolumes.Add(volume);
-                await backupFile.SaveChangesAsync();
+                await WithDatabase(async () =>
+                {
+                    backupFile.BackupVolumes.Add(record);
+                    await backupFile.SaveChangesAsync();
+                });
+                await fm.CreateDirectory(fm.CombinePath(destination.Entry.Path, _backup.Guid, record.Name));
+                destination.LastUsedVolume = volume = new LastUsedVolume()
+                {
+                    Id = record.Id,
+                    Name = record.Name,
+                    ItemsCount = 0
+                };
             }
 
-            volumeId = volume.Id;
-            volumeName = volume.Name;
-            destination.LastUsedVolume = new LastUsedVolume()
+            volume.ItemsCount++;
+            return (new BackupItem()
             {
-                Id = volume.Id,
-                Name = volume.Name,
-                ItemsCount = volume.Items?.Count() ?? 1
-            };
+                Name = Guid.NewGuid().ToString("N"),
+                VolumeId = volume.Id!.Value
+            }, volume.Name!);
+        } finally {
+            destination.Lock.Release();
         }
-
-        var res = new BackupItem()
-        {
-            Name = Guid.NewGuid().ToString("N"),
-            VolumeId = volumeId!.Value
-        };
-        var volumePath = fm.CombinePath(destination.Entry.Path, _backup!.Guid, volumeName!);
-        if (!await fm.DirectoryExists(volumePath))
-            await fm.CreateDirectory(volumePath);
-        return res;
     }
 
     /// <summary>
@@ -919,13 +1087,16 @@ public class BackupJob : BaseJob
     private async Task AddWarning(BackupFile backupFile, string message)
     {
         LogWarning(message);
-        _hasWarnings = true;
-        backupFile.BackupWarnings.Add(new BackupWarning()
+        await WithDatabase(async () =>
         {
-            BackupId = _backup!.Id,
-            Message = message.Length > 2048 ? message[..2048] : message
+            _hasWarnings = true;
+            backupFile.BackupWarnings.Add(new BackupWarning()
+            {
+                BackupId = _backup!.Id,
+                Message = message.Length > 2048 ? message[..2048] : message
+            });
+            await backupFile.SaveChangesAsync();
         });
-        await backupFile.SaveChangesAsync();
     }
 
     /// <summary>

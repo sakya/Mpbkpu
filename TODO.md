@@ -7,8 +7,9 @@
   - [x] Phase 2: `BackupJob` splits the files among the destinations (sequential, `DestinationSet`), database read
     from the newest copy and written to all, legacy volumes assigned, orphan cleanup on all destinations.
     `KeepChains` with more than one destination still refused (TODO in `BackupJob.ValidateSettings`).
-  - [ ] Phase 3: parallel copies (`Channel` + workers, `IFileManager.MaxParallelTransfers`, database writes serialized,
-    thread-safe progress, per-file progress events).
+  - [x] Phase 3: parallel copies (`Channel` + workers, `IFileManager.MaxParallelTransfers`, database writes serialized,
+    thread-safe progress and logging). Not verified: that copies really overlap (tests check results, not timing),
+    remote file managers in parallel (OneDrive, Dropbox, Nextcloud allow 4).
   - [ ] Phase 4: Restore, Verify, Delete, List, ListContent read the volumes from their destination (reuse
     `DestinationSet`); then `KeepChains` with multiple destinations.
   - [ ] Phase 5: CLI (repeatable `--destination`, `--parallel-files`, stable ids).

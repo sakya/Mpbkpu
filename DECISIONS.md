@@ -107,6 +107,19 @@
   their destination, so a volume never mixes destinations.
 - **`BackupDestination.Id` should still be stable** (GUI: persisted per destination): matching by path does not survive
   a destination moved to a new path.
+- **Parallel copies** (`BackupJob`): one reader pages the files from the database (by id, 500 at a time) into a
+  bounded `Channel`; `min(ParallelFiles, source limit, sum of the destination limits)` workers copy them, so a worker
+  always finds a destination with a free place (no waiting on destinations). One code path: `ParallelFiles = 1` is
+  the old sequential copy. The first failing worker cancels the others (linked token) and its error is rethrown;
+  a user cancellation still ends with the `Cancelled` result.
+- **`IFileManager.MaxParallelTransfers`**: default 1 (FTP, SFTP, SMB, MEGA, MediaFire: one connection or not proven
+  safe); local file systems unlimited; OneDrive, Dropbox and Nextcloud 4 (thread-safe HTTP clients, small limit for
+  the services' rate limits). `NextcloudClient` refreshes the token once under a lock (refresh tokens are single use).
+- **Shared state**: the `DbContext` is used under one `SemaphoreSlim` (`WithDatabase`); volumes and the backup
+  directory are created under a lock per destination and counted in memory (volumes belong to the running backup);
+  progress counts copied bytes exactly (failed tries are subtracted) and `Progress`/`FileProgress` are raised one at a
+  time; logging is serialized in `BaseJob.Log`. One `EncryptDecrypt` per worker.
+- **Files are copied in id order**, no longer in relative path order (nothing depends on it).
 - **`KeepChains` with more than one destination** is refused (`NotSupportedException`) until `DeleteJob` supports
   multiple destinations (phase 4).
 

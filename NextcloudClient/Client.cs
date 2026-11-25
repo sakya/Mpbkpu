@@ -24,6 +24,7 @@ namespace NextcloudClient
     {
         private readonly IClientSettings _settings;
         private readonly HttpClient _httpClient;
+        private readonly System.Threading.SemaphoreSlim _refreshLock = new System.Threading.SemaphoreSlim(1, 1);
 
         public const string PropfindDoc = @"<?xml version=""1.0""?>
 <d:propfind xmlns:d=""DAV:"" xmlns:oc=""http://owncloud.org/ns"" xmlns:nc=""http://nextcloud.org/ns"">
@@ -231,7 +232,17 @@ namespace NextcloudClient
                 throw new Exception("Not logged in");
 
             // Refresh before the expiration
-            if (forceRefresh || TokenExpiration == null || TokenExpiration <= DateTime.UtcNow.AddMinutes(1)) {
+            if (!forceRefresh && !IsTokenExpiring())
+                return;
+
+            // Refresh tokens are single use: concurrent requests must refresh once
+            var token = AccessToken;
+            await _refreshLock.WaitAsync();
+            try {
+                // Already refreshed by another request while waiting
+                if (AccessToken != token || (!forceRefresh && !IsTokenExpiring()))
+                    return;
+
                 await RequestToken(new Dictionary<string, string>()
                 {
                     { "grant_type", "refresh_token" },
@@ -239,7 +250,14 @@ namespace NextcloudClient
                 });
                 if (TokensRefreshed != null)
                     await TokensRefreshed();
+            } finally {
+                _refreshLock.Release();
             }
+        }
+
+        private bool IsTokenExpiring()
+        {
+            return TokenExpiration == null || TokenExpiration <= DateTime.UtcNow.AddMinutes(1);
         }
 
         private T Deserialize<T>(string content)
