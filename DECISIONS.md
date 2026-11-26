@@ -154,6 +154,12 @@
   file reported, so with parallel copies it alternates between files.
 
 ## GUI
+- **Backup browser**: double click on a directory of the file list selects it in the tree (its ancestors are
+  expanded first); right click on a file, a directory or a tree node selects it (`ItemsList` on the right button
+  press, the TreeView by itself) and offers "Download...": a folder picker, then
+  `RestoreJob` with `RestoreJobSettings.RelativePath`, which restores that item (a directory with its content) into
+  the folder with its name and without its parent directories, overwriting existing files and deleting nothing
+  (the destination is not read). The job settings come from the job (destinations, password) as for verify.
 - **SingleWindow navigation unchanged** (pages animated in `Container`, back arrow in the TitleBar); the sidebar is
   only on the job list.
 - **Cards with `ItemsControl`** instead of `ItemsList` for the job list and the history: `ItemsList` colors the row

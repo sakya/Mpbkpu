@@ -1,7 +1,6 @@
 # TODO
 
 ## Now
-- [ ] Commit the build warning fixes (`BackupJob.cs` CS8604, `PasswordDialog.axaml.cs` AVLN3001).
 - [ ] Raise `MaxParallelTransfers` for OneDrive, Dropbox, Nextcloud once verified with real accounts (local file
   systems done: no limit).
 - [ ] Try MEGA, Nextcloud, OneDrive, Dropbox, FTP, SFTP and SMB with real accounts (backup, sync, history, restore),
@@ -12,7 +11,8 @@
   than 1180 px.
 
 ## Mockup features not implemented
-- [ ] Restore from the GUI (today only from the CLI).
+- [ ] Restore of a whole backup from the GUI (today the CLI; the backup browser downloads single files and
+  directories). The download has no cancel button and no progress page.
 - [ ] Job list filters ("With warnings", "Never run").
 - [ ] Phase list (stepper) on the running page.
 - [ ] Service picker with chips in the settings (today a ComboBox).

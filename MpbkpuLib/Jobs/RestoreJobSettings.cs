@@ -41,4 +41,12 @@ public class RestoreJobSettings : BackupDestinationsJobSettings
     /// Skip hash check on existing file in the destination directory
     /// </summary>
     public bool SkipHashCheck { get; set; } = false;
+
+    /// <summary>
+    /// Restore only this item of the backup (its original relative path; a directory with its content, "" for the
+    /// backed up folder) into <see cref="Destination"/>, keeping its name but not its parent directories. Existing
+    /// files are overwritten and nothing else in <see cref="Destination"/> is deleted. Null restores the whole backup
+    /// and makes <see cref="Destination"/> identical to it.
+    /// </summary>
+    public string? RelativePath { get; set; }
 }

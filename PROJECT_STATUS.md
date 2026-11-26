@@ -25,16 +25,21 @@ in `Setup/`. MediaFire uses the author's `MediaFireApi` NuGet package (repositor
 | GUI | Redesign, delete page, history browser, dialogs, title bar, Windows animations (`WS_CAPTION`, not seen on screen) | screenshots; user |
 | Setup | `Setup/build.bat` + `Setup/Mpbkpu.iss` | installer compiled, published GUI started (installer not run) |
 
-Tests: 88 non-remote tests pass (`dotnet test Tests/Tests.csproj --filter "FullyQualifiedName!~FileManagers"`), run
+Tests: 90 non-remote tests pass (`dotnet test Tests/Tests.csproj --filter "FullyQualifiedName!~FileManagers"`), run
 after every change below. Clean build: 0 warnings, 0 errors.
 
 ## Current state
-Multiple destinations are done and committed (commits `#61`). Not committed: the two build warning
-fixes (`MpbkpuLib/Jobs/BackupJob.cs` CS8604, `MpbkpuGUI/Dialogs/PasswordDialog.axaml.cs` AVLN3001: parameterless
-constructor), the list of the files being copied on the running page (`FileCompleted`; seen on screen: 4 of 8 files copied at the same time, list emptied at the end), the
-parallel copies on local file systems (`BaseLocalFileSystem.MaxParallelTransfers` has no limit,
-test `LocalFileSystemsCopyFilesAtTheSameTime` sees overlapping copies) and this file. Every remote file manager is
-still limited to 1, so a backup with a remote source or only remote destinations copies one file at a time.
+Committed (`60e8f3e fix #61`): multiple destinations, the two build warning fixes, parallel copies on local file
+systems (`BaseLocalFileSystem.MaxParallelTransfers` has no limit, test `LocalFileSystemsCopyFilesAtTheSameTime`) and
+the list of the files being copied on the running page (`FileCompleted`; seen on screen: 4 of 8 files copied at the
+same time, list emptied at the end). Every remote file manager is still limited to 1, so a backup with a remote
+source or only remote destinations copies one file at a time.
+
+Not committed: the backup browser (double click opens a directory, right click downloads a file or directory with
+`RestoreJobSettings.RelativePath`, test `RestoreSingleItemKeepsOtherFiles`). On screen: double click, context menu
+and folder picker seen; the download itself is covered by the test only (the Windows folder picker could not be
+driven by UI Automation). Right click selects the row before the menu opens (`ItemsList`): built, not seen on
+screen; the tree is expected to select its node by itself (Avalonia TreeView), not checked.
 
 ## Open issues and attempts so far
 - Remote file managers other than MediaFire never tried with real accounts, also as additional destinations.
@@ -49,6 +54,6 @@ still limited to 1, so a backup with a remote source or only remote destinations
   dates restored shifted by the UTC offset (change detection is not affected).
 
 ## Next step
-Commit the two warning fixes, then run a backup and a sync on each remote service used in practice with a real
+Try a download from the backup browser by hand, commit it, then run a backup and a sync on each remote service used in practice with a real
 account (upload, `.mpbkpu-tmp` rename, database copy, history, verify, restore), also as an additional destination
 of a local backup.

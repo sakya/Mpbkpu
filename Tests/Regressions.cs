@@ -51,6 +51,32 @@ public class Regressions : BaseTest
         AssertSameContent(BackupSource, RestoreDestination);
     }
 
+    [TestCase(null)]
+    [TestCase(EncryptionPassword)]
+    public async Task RestoreSingleItemKeepsOtherFiles(string? password)
+    {
+        var docs = Path.Combine(BackupSource, "Docs");
+        Directory.CreateDirectory(Path.Combine(docs, "Sub"));
+        CreateFile(Path.Combine(docs, "Sub", "a"), 100 * 1024);
+        CreateFile(Path.Combine(docs, "b"), 1024);
+        var guid = await RunBackup(Backup.BackupTypes.Full, password);
+
+        Directory.CreateDirectory(RestoreDestination);
+        CreateFile(Path.Combine(RestoreDestination, "keep"), 1024);
+        // A directory: restored with its name and content, nothing else of the backup
+        Assert.That((await Restore(guid, password, relativePath: "Docs")).Success, Is.True);
+        AssertSameContent(docs, Path.Combine(RestoreDestination, "Docs"));
+        Assert.That(Directory.GetFileSystemEntries(RestoreDestination).Select(Path.GetFileName),
+            Is.EquivalentTo(new[] { "Docs", "keep" }));
+
+        // A file: restored without its parent directories, overwriting an existing copy
+        CreateFile(Path.Combine(RestoreDestination, "a"), 10);
+        Assert.That((await Restore(guid, password, relativePath: Path.Combine("Docs", "Sub", "a"))).Success, Is.True);
+        Assert.That(File.ReadAllBytes(Path.Combine(RestoreDestination, "a")),
+            Is.EqualTo(File.ReadAllBytes(Path.Combine(docs, "Sub", "a"))));
+        Assert.That(File.Exists(Path.Combine(RestoreDestination, "keep")), Is.True);
+    }
+
     [Test]
     public async Task RestoreRemovesExtraFilesAndOverwritesChanged()
     {
@@ -825,7 +851,8 @@ public class Regressions : BaseTest
         Assert.That((await Restore(guid)).Success, Is.True, "Restore failed");
     }
 
-    private async Task<BaseJobResult> Restore(string guid, string? password = null, string[]? destinations = null)
+    private async Task<BaseJobResult> Restore(string guid, string? password = null, string[]? destinations = null,
+        string? relativePath = null)
     {
         var job = new RestoreJob(new RestoreJobSettings()
         {
@@ -833,6 +860,7 @@ public class Regressions : BaseTest
             BackupGuid = guid,
             Destination = RestoreDestination,
             EncryptPassword = password,
+            RelativePath = relativePath,
         });
         using var cts = new CancellationTokenSource();
         return await job.Run(cts.Token);

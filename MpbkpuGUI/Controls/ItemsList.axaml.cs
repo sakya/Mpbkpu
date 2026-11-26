@@ -192,6 +192,13 @@ namespace MpbkpuGUI.Controls
             SelectedItem = ctrl?.DataContext;
         }
 
+        // A right click selects the item before its context menu opens (on release)
+        private void OnItemPointerPressed(object? sender, PointerPressedEventArgs e)
+        {
+            if (Selectable && e.GetCurrentPoint(sender as Visual).Properties.IsRightButtonPressed)
+                SelectedItem = (sender as ContentControl)?.DataContext;
+        }
+
         private void SetSelectedItemStyle()
         {
             var selectedIndex = _selectedItem != null ? _items?.ToList().IndexOf(_selectedItem) : null;

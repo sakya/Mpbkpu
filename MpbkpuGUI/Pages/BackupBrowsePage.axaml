@@ -6,6 +6,7 @@
              xmlns:controls="clr-namespace:MpbkpuGUI.Controls"
              xmlns:converters="clr-namespace:MpbkpuGUI.Converters"
              xmlns:models="clr-namespace:MpbkpuGUI.Models"
+             xmlns:i18n="clr-namespace:MpbkpuGUI.Localizer"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="MpbkpuGUI.Pages.BackupBrowsePage">
     <Design.DataContext>
@@ -39,7 +40,13 @@
             </TreeView.ItemsPanel>
             <TreeView.ItemTemplate>
                 <TreeDataTemplate ItemsSource="{Binding Children}">
-                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis">
+                        <TextBlock.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="{i18n:Localize DownloadEllipsis}" Click="OnDownloadClick" />
+                            </ContextMenu>
+                        </TextBlock.ContextMenu>
+                    </TextBlock>
                 </TreeDataTemplate>
             </TreeView.ItemTemplate>
         </TreeView>
@@ -54,7 +61,13 @@
                             Items="{Binding Files}">
             <controls:ItemsList.ItemTemplate>
                 <DataTemplate>
-                    <Border Padding="12,8" CornerRadius="8">
+                    <!-- Double click on a directory opens it, right click downloads the item -->
+                    <Border Padding="12,8" CornerRadius="8" Background="Transparent" DoubleTapped="OnItemDoubleTapped">
+                        <Border.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="{i18n:Localize DownloadEllipsis}" Click="OnDownloadClick" />
+                            </ContextMenu>
+                        </Border.ContextMenu>
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="30" />

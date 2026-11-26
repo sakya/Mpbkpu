@@ -13,6 +13,7 @@
           <DataTemplate>
             <ContentControl Content="{Binding}" ContentTemplate="{Binding #ScrollViewer.DataContext.ItemTemplate}"
                             Tapped="OnItemTapped"
+                            PointerPressed="OnItemPointerPressed"
                             PointerEntered="OnMouseEnter"
                             PointerExited="OnMouseLeave">
             </ContentControl>

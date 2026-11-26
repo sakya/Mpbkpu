@@ -168,29 +168,55 @@ public class RestoreJob : BaseJob
         var backupSettings = JsonConvert.DeserializeObject<BackupJobSettings>(bkp.Settings!);
         if (backupSettings == null)
             throw new Exception("Cannot read backup settings");
-        if (backupSettings.Source != Settings.Destination) {
-            LogWarning($"Restoring to a different destination (was {backupSettings.Source})");
-        }
+        // A single item is restored without reading the destination: nothing is compared or deleted there
+        var singleItem = Settings.RelativePath != null;
+        if (!singleItem) {
+            if (backupSettings.Source != Settings.Destination) {
+                LogWarning($"Restoring to a different destination (was {backupSettings.Source})");
+            }
 
-        // Read destination
-        Step?.Invoke(this, Steps.ReadDestination);
-        LogInfo($"Reading destination {Settings.Destination}");
-        if (!await ReadPathContent(backupFile, _destinationFm, _destinationPath, true, File.FileActions.Delete, _cancellationToken)) {
-            LogError("Failed to read destination");
-            return false;
+            // Read destination
+            Step?.Invoke(this, Steps.ReadDestination);
+            LogInfo($"Reading destination {Settings.Destination}");
+            if (!await ReadPathContent(backupFile, _destinationFm, _destinationPath, true, File.FileActions.Delete, _cancellationToken)) {
+                LogError("Failed to read destination");
+                return false;
+            }
+            if (_cancellationToken?.IsCancellationRequested == true) {
+                LogInfo("Cancelled by user");
+                return false;
+            }
+            await backupFile.SaveChangesAsync();
         }
-        if (_cancellationToken?.IsCancellationRequested == true) {
-            LogInfo("Cancelled by user");
-            return false;
-        }
-        await backupFile.SaveChangesAsync();
 
         Step?.Invoke(this, Steps.CalculateFilesToRestore);
         // Compute files to restore
+        char? separator = null;
         await foreach (var item in backupFile.GetBackupItems(bkp.Id)) {
             if (_cancellationToken?.IsCancellationRequested == true) {
                 LogInfo("Cancelled by user");
                 return false;
+            }
+
+            if (singleItem) {
+                if (separator == null) {
+                    using var sourceFm = FileManagerFactory.GetFileManager(item.OriginalPath, out _);
+                    separator = sourceFm.PathSeparator;
+                }
+                var relativePath = GetSingleItemPath(item.OriginalRelativePath!, separator.Value);
+                if (relativePath != null) {
+                    backupFile.Files.Add(new File()
+                    {
+                        BackupItemId = item.Id,
+                        Type = item.Type,
+                        FileAction = File.FileActions.Restore,
+                        FullPath = item.OriginalPath,
+                        RelativePath = relativePath,
+                        Name = item.OriginalName,
+                        Size = item.OriginalSize
+                    });
+                }
+                continue;
             }
 
             var file = await backupFile.Files
@@ -363,6 +389,22 @@ public class RestoreJob : BaseJob
             throw new ArgumentNullException(nameof(Settings.Destination), "Destination path cannot be empty");
         if (Settings.RetryOnError <= 0)
             throw new ArgumentException("RetryOnError must be greater than zero");
+    }
+
+    /// <summary>
+    /// Path in the destination of an item restored with <see cref="RestoreJobSettings.RelativePath"/>: relative to the
+    /// parent of the selected item, null when the item is not the selected one or inside it
+    /// </summary>
+    private string? GetSingleItemPath(string relativePath, char separator)
+    {
+        var selected = Settings.RelativePath!;
+        if (selected.Length == 0)
+            return relativePath;
+        if (relativePath != selected && !relativePath.StartsWith(selected + separator, StringComparison.Ordinal))
+            return null;
+
+        var parent = Files.GetParent(separator, selected, out _, addStartingSeparator: false);
+        return parent.Length == 0 ? relativePath : relativePath[(parent.Length + 1)..];
     }
 
     /// <summary>
