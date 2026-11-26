@@ -134,5 +134,12 @@
   "RememberPasswordHint": "Salvata nell'archivio sicuro del sistema operativo",
   "PasswordSaved": "Password salvata in modo sicuro",
   "ForgetPassword": "Dimentica password",
-  "SavedPasswordInvalid": "La password salvata non è corretta ed è stata dimenticata: inseriscila di nuovo."
+  "SavedPasswordInvalid": "La password salvata non è corretta ed è stata dimenticata: inseriscila di nuovo.",
+  "MoreDestinations": "Altre destinazioni",
+  "MoreDestinationsHint": "I file di un backup sono divisi tra tutte le destinazioni; ogni destinazione contiene una copia del database. Per il ripristino servono tutte le destinazioni.",
+  "AddDestination": "Aggiungi destinazione",
+  "RemoveDestination": "Rimuovi destinazione",
+  "MoreDestinationsCount": "(+{0} destinazioni)",
+  "ParallelFiles": "File copiati contemporaneamente",
+  "ParallelFilesHint": "Ogni file system può ridurlo."
 }

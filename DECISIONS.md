@@ -137,7 +137,20 @@
   parser errors). `--parallelFiles` (default 1) sets `ParallelFiles`. The CLI does not persist destination ids: the
   jobs match the recorded destinations by path. Built by `Arguments.GetDestinations` / `GetBackupDestinations`.
 - **Restore does not retry a `MissingDestinationException`**: the destination does not appear by retrying.
-- **GUI helper**: `Job.Position.ToBackupDestination()` builds the single destination the GUI passes today.
+- **GUI**: a backup job keeps its first destination in `Job.Destination` (old settings files load unchanged) and the
+  others in `BackupJob.MoreDestinations`; `Job.Destinations` lists them all, `Job.GetBackupDestinations()` converts
+  them for the library. Every `Position` has a persisted `Id` (positions saved before get one when loaded, kept from
+  the next save; until then the jobs match the destinations by path). `PositionDetail` keeps the id and the cached
+  space of the edited position. Secrets of the other destinations: `{jobId}.Destination.{positionId}.{field}`.
+- **Space per destination**: `SpaceChanged` carries the `BackupDestination.Id` (null for a synchronization);
+  `Position.Space`/`SpaceRead` replace `Job.DestinationSpace` (a cache: the old value is dropped and read again).
+  `Controls/DestinationSpaceView` shows one row per destination in the job list (path trimmed from the left with
+  `PathSegmentEllipsis` when there is more than one); the running page shows one bar per destination.
+- **History, verify, delete pages** use every destination of the job (`DestinationSet.OpenDatabase` for the history,
+  the job destinations for verify instead of the paths saved in the backup settings, which are masked and have no
+  password).
+- **Not done**: a list of the files being copied on the running page (copies run one at a time while every
+  `MaxParallelTransfers` is 1).
 
 ## GUI
 - **SingleWindow navigation unchanged** (pages animated in `Container`, back arrow in the TitleBar); the sidebar is

@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
@@ -24,7 +26,14 @@ public partial class JobRunningPage : BasePage
     private readonly Job _job;
     private readonly CancellationTokenSource _cts = new();
     private BaseJob? _backupJob;
-    private StorageSpace? _lastSpace;
+    /// <summary>
+    /// Last space of every destination, by <see cref="Job.Position.Id"/>
+    /// </summary>
+    private readonly Dictionary<string, StorageSpace> _lastSpaces = new();
+    /// <summary>
+    /// The space rows of the destinations, by <see cref="Job.Position.Id"/>
+    /// </summary>
+    private readonly Dictionary<string, (Control Row, ProgressBar Bar, TextBlock Text)> _spaceRows = new();
     private Thread? _worker;
 
     public JobRunningPage()
@@ -65,7 +74,8 @@ public partial class JobRunningPage : BasePage
 
         this.FindControl<TextBlock>("JobName")!.Text = _job.Name;
         _model.Source = _job.Source?.FullPath;
-        _model.Destination = _job.Destination?.FullPath;
+        _model.Destination = string.Join(", ", _job.Destinations.Select(d => d.FullPath));
+        CreateSpaceRows();
         _model.Running = true;
         _model.ButtonText = Localizer.Localizer.Instance["Cancel"];
         App.UpdateLayout();
@@ -100,7 +110,8 @@ public partial class JobRunningPage : BasePage
                 SourcePassword = bkp.Source.Password,
                 SourceOauthSettings = bkp.Source.GetOAuth2Settings(),
 
-                Destinations = [bkp.Destination!.ToBackupDestination()],
+                Destinations = bkp.GetBackupDestinations(),
+                ParallelFiles = bkp.ParallelFiles,
 
                 SkipHashCheck = bkp.SkipHashCheck,
                 RetryOnError = bkp.RetryOnError,
@@ -192,13 +203,53 @@ public partial class JobRunningPage : BasePage
     /// <summary>
     /// Save when the job ran and its result (shown in the job list)
     /// </summary>
-    private void BackupJobOnSpaceChanged(object sender, StorageSpace space)
+    /// <summary>
+    /// A hidden space row for every destination: the label is the path when the job has more than one
+    /// </summary>
+    private void CreateSpaceRows()
     {
-        _lastSpace = space;
+        var list = this.FindControl<StackPanel>("SpaceList")!;
+        var destinations = _job.Destinations;
+        foreach (var destination in destinations) {
+            var label = new TextBlock()
+            {
+                FontSize = 12,
+                Text = destinations.Count > 1 ? destination.FullPath : Localizer.Localizer.Instance["DestinationSpace"],
+                TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis
+            };
+            label.Classes.Add("muted");
+            var text = new TextBlock() { FontSize = 12 };
+            text.Classes.Add("muted");
+            Grid.SetColumn(text, 1);
+            var bar = new ProgressBar() { Minimum = 0, Maximum = 100 };
+            bar.Classes.Add("inline");
+            var row = new StackPanel()
+            {
+                Spacing = 6,
+                IsVisible = false,
+                Children =
+                {
+                    new Grid() { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Children = { label, text } },
+                    bar
+                }
+            };
+            list.Children.Add(row);
+            _spaceRows[destination.Id] = (row, bar, text);
+        }
+    }
+
+    private void BackupJobOnSpaceChanged(object sender, string? destinationId, StorageSpace space)
+    {
+        // A synchronization has one destination and does not name it
+        var id = destinationId ?? _job.Destination!.Id;
+        lock (_lastSpaces)
+            _lastSpaces[id] = space;
         Dispatcher.UIThread.Post(() =>
         {
-            this.FindControl<Control>("SpacePanel")!.IsVisible = true;
-            Controls.SpaceDisplay.Show(space, this.FindControl<ProgressBar>("SpaceBar")!, this.FindControl<TextBlock>("SpaceText")!);
+            if (!_spaceRows.TryGetValue(id, out var row))
+                return;
+            row.Row.IsVisible = true;
+            Controls.SpaceDisplay.Show(space, row.Bar, row.Text);
         });
     }
 
@@ -206,10 +257,14 @@ public partial class JobRunningPage : BasePage
     {
         _job.LastRun = DateTime.Now;
         _job.LastResult = result;
-        if (_lastSpace != null) {
-            // Shown in the job list
-            _job.DestinationSpace = _lastSpace;
-            _job.DestinationSpaceRead = DateTime.Now;
+        // Shown in the job list
+        lock (_lastSpaces) {
+            foreach (var destination in _job.Destinations) {
+                if (_lastSpaces.TryGetValue(destination.Id, out var space)) {
+                    destination.Space = space;
+                    destination.SpaceRead = DateTime.Now;
+                }
+            }
         }
         await App.Settings!.Save(App.SettingFile!);
     }

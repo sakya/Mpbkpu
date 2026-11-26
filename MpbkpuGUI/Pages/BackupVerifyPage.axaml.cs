@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,7 +13,6 @@ using MpbkpuGUI.Models;
 using MpbkpuLib.Abstracts;
 using MpbkpuLib.DataModel;
 using MpbkpuLib.Jobs;
-using Newtonsoft.Json;
 
 namespace MpbkpuGUI.Pages;
 
@@ -22,6 +22,7 @@ public partial class BackupVerifyPage : BasePage
     private readonly CancellationTokenSource _cts = new();
     private readonly Backup _backup;
     private readonly string? _password;
+    private readonly List<BackupDestination> _destinations = new();
     private VerifyJob? _verifyJob;
     private Thread? _worker;
 
@@ -31,9 +32,10 @@ public partial class BackupVerifyPage : BasePage
         InitializeComponent();
     }
 
-    public BackupVerifyPage(Backup backup, string? password)
+    public BackupVerifyPage(Backup backup, List<BackupDestination> destinations, string? password)
     {
         _backup = backup;
+        _destinations = destinations;
         _password = password;
         DataContext = _model;
         InitializeComponent();
@@ -82,15 +84,11 @@ public partial class BackupVerifyPage : BasePage
 
     private async void DoWork()
     {
-        var backupSettings = JsonConvert.DeserializeObject<BackupJobSettings>(_backup.Settings!);
-        if (backupSettings == null || backupSettings.Destinations.Count == 0)
-            return;
-
         var settings = new VerifyJobSettings()
         {
             EncryptPassword = _password,
             BackupGuid = _backup.Guid,
-            BackupDestinations = backupSettings.Destinations,
+            BackupDestinations = _destinations,
         };
 
         var verifyJob = new VerifyJob(settings);

@@ -1,12 +1,9 @@
-using System;
-using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using MpbkpuGUI.Abstracts;
-using MpbkpuGUI.Dialogs;
 using MpbkpuGUI.Models;
 using Material.Icons;
 using Material.Icons.Avalonia;
@@ -58,10 +55,7 @@ public partial class JobListItem : UserControl
                     this.FindControl<TextBlock>("RunText")!.Text = Localizer.Localizer.Instance["Synchronize"];
                 }
 
-                ShowSpace();
-                // Local destinations are cheap to read: always show the current space
-                if (_item?.Destination?.IsLocal == true)
-                    _ = RefreshSpace(false);
+                ShowDestinations();
             }
         }
     }
@@ -86,55 +80,18 @@ public partial class JobListItem : UserControl
         JobRun?.Invoke(this, _item!);
     }
 
-    private async void OnRefreshSpaceClick(object? sender, RoutedEventArgs e)
-    {
-        await RefreshSpace(true);
-    }
-
     /// <summary>
-    /// Read the space of the destination, save it in the job and show it
+    /// Show the paths of the job and the space of every destination
     /// </summary>
-    /// <param name="showErrors">Show a message if the space cannot be read</param>
-    private async Task RefreshSpace(bool showErrors)
+    private void ShowDestinations()
     {
-        var job = _item;
-        if (job?.Destination == null)
-            return;
+        var destinations = _item?.Destinations ?? [];
+        this.FindControl<TextBlock>("Paths")!.Text = _item?.GetPathsText();
 
-        var button = this.FindControl<Button>("SpaceRefresh")!;
-        button.IsEnabled = false;
-        try {
-            var space = await Task.Run(async () =>
-            {
-                using var fm = job.Destination.GetFileManager(out var path);
-                return await fm.GetSpace(path);
-            });
-            job.DestinationSpace = space;
-            job.DestinationSpaceRead = DateTime.Now;
-            if (!job.Destination.IsLocal)
-                await App.Settings!.Save(App.SettingFile!);
-        } catch (Exception ex) {
-            if (showErrors) {
-                await MessageDialog.ShowMessage(App.GetMainWindow(),
-                    $"{Localizer.Localizer.Instance["AnErrorOccurred"]}{ex.Message}", MessageDialog.Icons.Error);
-            }
-        } finally {
-            button.IsEnabled = true;
-        }
-
-        if (ReferenceEquals(job, _item))
-            ShowSpace();
-    }
-
-    private void ShowSpace()
-    {
-        var job = _item;
-        var bar = this.FindControl<ProgressBar>("SpaceBar")!;
-        var text = this.FindControl<TextBlock>("SpaceText")!;
-        this.FindControl<Button>("SpaceRefresh")!.IsVisible = job?.Destination?.IsLocal == false;
-        SpaceDisplay.Show(job?.DestinationSpace, bar, text);
-        ToolTip.SetTip(text, job?.DestinationSpaceRead == null ? null :
-            string.Format(Localizer.Localizer.Instance["SpaceReadAt"], job.DestinationSpaceRead.Value.ToString("g")));
+        var list = this.FindControl<StackPanel>("SpaceList")!;
+        list.Children.Clear();
+        foreach (var destination in destinations)
+            list.Children.Add(new DestinationSpaceView(destination, destinations.Count > 1));
     }
 
     private void OnOpenClick(object? sender, RoutedEventArgs e)

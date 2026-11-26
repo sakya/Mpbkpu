@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using MpbkpuLib.FileManagers;
 using MpbkpuLib.Jobs;
 using MpbkpuLib.Interfaces;
@@ -24,6 +25,10 @@ public abstract class Job
             Smb
         }
 
+        /// <summary>
+        /// Stable identifier: the backup database records the destination of each volume with it
+        /// </summary>
+        public string Id { get; set; } = Guid.NewGuid().ToString("N");
         public FileSystemTypes Type { get; set; }
         public string? Path { get; set; }
         public string? User { get; set; }
@@ -57,6 +62,12 @@ public abstract class Job
         }
 
         /// <summary>
+        /// Last space read from the position (remote positions are read only when asked or during a run)
+        /// </summary>
+        public StorageSpace? Space { get; set; }
+        public DateTime? SpaceRead { get; set; }
+
+        /// <summary>
         /// True for the local file system
         /// </summary>
         [JsonIgnore]
@@ -69,6 +80,7 @@ public abstract class Job
         {
             return new BackupDestination()
             {
+                Id = Id,
                 Path = FullPath,
                 User = User,
                 Password = Password,
@@ -180,10 +192,29 @@ public abstract class Job
     public MpbkpuLib.DataModel.Backup.Results? LastResult { get; set; }
 
     /// <summary>
-    /// Last space read from the destination (remote destinations are read only when asked or during a run)
+    /// Every destination of the job
     /// </summary>
-    public StorageSpace? DestinationSpace { get; set; }
-    public DateTime? DestinationSpaceRead { get; set; }
+    [JsonIgnore]
+    public virtual IReadOnlyList<Position> Destinations => Destination == null ? [] : [Destination];
+
+    /// <summary>
+    /// The destinations as the jobs of the library take them
+    /// </summary>
+    public List<BackupDestination> GetBackupDestinations()
+    {
+        return Destinations.Select(d => d.ToBackupDestination()).ToList();
+    }
+
+    /// <summary>
+    /// "source → destination", with the number of the other destinations
+    /// </summary>
+    public string GetPathsText()
+    {
+        var res = $"{Source?.FullPath}  →  {Destination?.FullPath}";
+        if (Destinations.Count > 1)
+            res += $"  {string.Format(Localizer.Localizer.Instance["MoreDestinationsCount"], Destinations.Count - 1)}";
+        return res;
+    }
 
     public Job Copy()
     {

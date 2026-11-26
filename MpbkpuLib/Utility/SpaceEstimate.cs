@@ -41,16 +41,4 @@ public class SpaceEstimate
     {
         _used += bytes;
     }
-
-    /// <summary>
-    /// The sum of the known spaces (the total only when every one reports it), null when none is known
-    /// </summary>
-    public static StorageSpace? Sum(IEnumerable<SpaceEstimate> estimates)
-    {
-        var known = estimates.Select(e => e.Current).OfType<StorageSpace>().ToList();
-        if (known.Count == 0)
-            return null;
-        return new StorageSpace(known.Sum(s => s.Available),
-            known.All(s => s.Total.HasValue) ? known.Sum(s => s.Total!.Value) : null);
-    }
 }

@@ -28,7 +28,8 @@ Tests: 73 non-remote tests pass (`dotnet test Tests/Tests.csproj --filter "Fully
 
 ## Current state
 Working on **multiple destinations per backup** (files split among the destinations, database in all of them,
-parallel copies; design in DECISIONS.md, phases in TODO.md). Phases 1 to 5 done, not committed:
+parallel copies; design in DECISIONS.md, phases in TODO.md). Phases 1 to 5 committed (`#61`); phase 6 done, not
+committed:
 - Phase 1: settings (`BackupDestination`, `Destinations`, `ParallelFiles`, old single-destination keys still read),
   validation, table `Destinations` and `BackupVolume.DestinationId` (migration `MultipleDestinations`).
 - Phase 2: `BackupJob` splits the files among the destinations (sequential) through `DestinationSet`, reads the
@@ -44,6 +45,11 @@ parallel copies; design in DECISIONS.md, phases in TODO.md). Phases 1 to 5 done,
   more than one destination; restore no longer retries a missing destination. Verified end to end in a real console
   (backup to 3 folders, list, verify, restore identical to the source, missing destination reported without retries,
   delete from every folder).
+- Phase 6: GUI with other destinations and files copied at the same time in the job settings, persisted position
+  ids, secrets per destination, space per destination (job list, running page), history/verify/delete on every
+  destination. Verified on screen (PrintWindow + UI Automation, Italian texts) with a job on 3 local folders: job list,
+  settings, run (15/15 files, one space bar per destination), job list after the run, history; files split among the
+  folders and the database in each; the saved settings keep ids, spaces and `ParallelFiles`. Settings restored.
 - Verified by the tests `LegacySingleDestinationSettingsAreRead`, `InvalidDestinationSettingsAreRejected`,
   `DatabaseBeforeMultipleDestinationsIsMigrated`, `FilesAreSplitAmongDestinationsAndDatabaseIsInAll`,
   `LegacyVolumesBelongToTheDestinationOfTheDatabase`, `DatabaseCopyFailureOnOneDestinationIsAWarning`,
@@ -51,8 +57,6 @@ parallel copies; design in DECISIONS.md, phases in TODO.md). Phases 1 to 5 done,
   `ParallelBackupCanBeCancelled`, `BackupsSplitAmongDestinationsAreRestoredVerifiedAndDeleted`,
   `MissingDestinationIsReported`, `KeepChainsDeletesOlderChainsInEveryDestination` and the existing suite (local
   folders only).
-- The GUI still passes one destination only (phase 6); its history page (`BackupOpenPage`) opens the database of
-  the job destination directly.
 - CLI problems found while testing (TODO.md): crash when the output is redirected, `--log` ignored by list, list
   content and verify, exit code always 0.
 
@@ -66,8 +70,8 @@ parallel copies; design in DECISIONS.md, phases in TODO.md). Phases 1 to 5 done,
   dates restored shifted by the UTC offset (change detection is not affected).
 
 ## Next step
-Phase 6 of multiple destinations: GUI (destination list with persisted ids, secrets per destination, space per
-destination, parallel files setting, history/verify/delete pages on every destination).
+Multiple destinations are complete. Next: try the remote services with real accounts (also as additional
+destinations), then raise `MaxParallelTransfers` where proven safe.
 
 Afterwards: try a backup and a sync on each remote service with a real account (upload, rename of `.mpbkpu-tmp`, database copy,
 history, download/restore), starting with the ones used in practice.

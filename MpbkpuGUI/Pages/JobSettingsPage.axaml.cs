@@ -1,7 +1,11 @@
 using System.Collections.Generic;
 using System.IO.Compression;
 using System.Linq;
+using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Layout;
+using Material.Icons;
+using Material.Icons.Avalonia;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.SingleWindow.Abstracts;
@@ -79,7 +83,49 @@ public partial class JobSettingsPage : BasePage
         if (_job is BackupJob backupJob) {
             cmbType.SelectedItem = backupJob.Type;
             cmbCompression.SelectedItem = backupJob.CompressionLevel;
+            foreach (var destination in backupJob.MoreDestinations)
+                AddMoreDestination(destination);
         }
+    }
+
+    /// <summary>
+    /// The editors of the destinations after the first one
+    /// </summary>
+    private IEnumerable<PositionDetail> MoreDestinationEditors =>
+        this.FindControl<StackPanel>("MoreDestinationsList")!.Children.OfType<Grid>()
+            .Select(g => g.Children.OfType<PositionDetail>().First());
+
+    /// <summary>
+    /// Add the editor of a destination after the first one, with a button to remove it
+    /// </summary>
+    private void AddMoreDestination(Job.Position position)
+    {
+        var list = this.FindControl<StackPanel>("MoreDestinationsList")!;
+        var removeText = Localizer.Localizer.Instance["RemoveDestination"];
+        var remove = new Button()
+        {
+            Content = new MaterialIcon() { Kind = MaterialIconKind.DeleteOutline },
+            VerticalAlignment = VerticalAlignment.Top,
+            Margin = new Avalonia.Thickness(12, 0, 0, 0)
+        };
+        remove.Classes.Add("icon");
+        remove.Classes.Add("dangerHover");
+        ToolTip.SetTip(remove, removeText);
+        AutomationProperties.SetName(remove, removeText);
+        Grid.SetColumn(remove, 1);
+
+        var item = new Grid()
+        {
+            ColumnDefinitions = new ColumnDefinitions("*,Auto"),
+            Children = { new PositionDetail() { Value = position }, remove }
+        };
+        remove.Click += (_, _) => list.Children.Remove(item);
+        list.Children.Add(item);
+    }
+
+    private void OnAddDestinationClick(object? sender, RoutedEventArgs e)
+    {
+        AddMoreDestination(new Job.Position());
     }
 
     public override void OnNavigatedTo(NavigationDirection direction)
@@ -99,6 +145,8 @@ public partial class JobSettingsPage : BasePage
         _job.Source = ctrl.Value;
         ctrl = this.FindControl<Controls.PositionDetail>("Destination")!;
         _job.Destination = ctrl.Value;
+        if (_job is BackupJob backupJob)
+            backupJob.MoreDestinations = MoreDestinationEditors.Select(d => d.Value!).ToList();
 
         if (!Validate())
             return;
@@ -140,8 +188,10 @@ public partial class JobSettingsPage : BasePage
         var sValid = ctrl.Validate();
         ctrl = this.FindControl<Controls.PositionDetail>("Destination")!;
         var dValid = ctrl.Validate();
+        // Validate every editor, to show all the errors
+        var moreValid = MoreDestinationEditors.Select(d => d.Validate()).ToList().All(v => v);
 
         _model.Errors = errors;
-        return sValid && dValid && errors.Count == 0;
+        return sValid && dValid && moreValid && errors.Count == 0;
     }
 }

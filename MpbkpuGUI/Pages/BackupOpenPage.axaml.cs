@@ -11,6 +11,8 @@ using MpbkpuGUI.Dialogs;
 using MpbkpuGUI.Models;
 using MpbkpuLib;
 using MpbkpuLib.FileManagers;
+using MpbkpuLib.Jobs;
+using BackupJob = MpbkpuGUI.Models.BackupJob;
 
 namespace MpbkpuGUI.Pages;
 
@@ -79,19 +81,20 @@ public partial class BackupOpenPage : BasePage
 
         PageTitle = $"{Localizer.Localizer.Instance["Backup"]}: {_backup.Name}";
         this.FindControl<TextBlock>("Title")!.Text = string.Format(Localizer.Localizer.Instance["HistoryOf"], _backup.Name);
-        this.FindControl<TextBlock>("Paths")!.Text = $"{_backup.Source?.FullPath}  →  {_backup.Destination?.FullPath}";
+        this.FindControl<TextBlock>("Paths")!.Text = _backup.GetPathsText();
     }
 
     private async Task OpenDatabase()
     {
         await Task.Delay(500);
-        using var fm = _backup.Destination!.GetFileManager(out var backupPath);
-        _backupFile = await BackupFile.OpenBackupFile(fm, backupPath, _backup.Password,
-            progressAction: (bytes, total) =>
+        // The newest copy of the database among the destinations
+        using var destinations = new DestinationSet(_backup.GetBackupDestinations());
+        _backupFile = await destinations.OpenDatabase(_backup.Password, false,
+            (bytes, total) =>
             {
                 double percentage = bytes / (double)total * 100.0;
                 _model.SpinnerMessage = $"{Localizer.Localizer.Instance["Step_OpenDatabase"]}: {percentage,5:0.0}%";
-            });
+            }, null);
 
         // Newest first, grouped by chain (a full backup and the following backups)
         var backups = _backupFile.BackupFile.Backups.OrderByDescending(b => b.Id)
@@ -151,7 +154,7 @@ public partial class BackupOpenPage : BasePage
     private async void OnVerifyClick(object? sender, RoutedEventArgs e)
     {
         if ((sender as Button)?.DataContext is BackupOpenPageModel.BackupData bkp)
-            await NavigateTo(new BackupVerifyPage(bkp.Backup!, _backup.Password));
+            await NavigateTo(new BackupVerifyPage(bkp.Backup!, _backup.GetBackupDestinations(), _backup.Password));
     }
 
     private async void OnOkClick(object? sender, RoutedEventArgs e)

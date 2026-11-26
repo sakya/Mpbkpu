@@ -6,6 +6,7 @@
              xmlns:i18n="clr-namespace:MpbkpuGUI.Localizer"
              xmlns:controls="clr-namespace:MpbkpuGUI.Controls"
              xmlns:converters="clr-namespace:MpbkpuGUI.Converters"
+             xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              mc:Ignorable="d" d:DesignWidth="1180" d:DesignHeight="740"
              x:Class="MpbkpuGUI.Pages.JobSettingsPage">
 
@@ -65,6 +66,24 @@
                     </Border>
                 </Grid>
 
+                <!-- More destinations: the files of a backup are split among all the destinations -->
+                <Border Classes="card" IsVisible="{Binding Job, Converter={StaticResource IsBackupJobConverter}}">
+                    <StackPanel Spacing="12">
+                        <StackPanel Spacing="4">
+                            <TextBlock Classes="h2" Text="{i18n:Localize MoreDestinations}" />
+                            <TextBlock Classes="hint" Margin="0" Text="{i18n:Localize MoreDestinationsHint}" />
+                        </StackPanel>
+                        <StackPanel Name="MoreDestinationsList" Spacing="20" />
+                        <Button Click="OnAddDestinationClick" HorizontalAlignment="Left"
+                                AutomationProperties.Name="{i18n:Localize AddDestination}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <mi:MaterialIcon Kind="Plus" Width="16" Height="16" />
+                                <TextBlock Text="{i18n:Localize AddDestination}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Border>
+
                 <!-- Security and compression -->
                 <Border Classes="card" IsVisible="{Binding Job, Converter={StaticResource IsBackupJobConverter}}">
                     <StackPanel Spacing="16">
@@ -121,12 +140,18 @@
                 <Border Classes="card" Padding="8">
                     <Expander Header="{i18n:Localize Advanced}" HorizontalAlignment="Stretch"
                               Background="Transparent" BorderThickness="0" FontWeight="SemiBold">
-                        <Grid ColumnDefinitions="*,24,*" Margin="8,0,8,8">
+                        <Grid ColumnDefinitions="*,24,*" RowDefinitions="Auto,Auto" Margin="8,0,8,8">
                             <CheckBox IsChecked="{Binding !Job.SkipHashCheck, Mode=TwoWay}" FontWeight="Normal"
                                       Content="{i18n:Localize HashCheck}" VerticalAlignment="Bottom" Margin="0,0,0,6" />
                             <StackPanel Grid.Column="2">
                                 <Label Content="{i18n:Localize RetryOnError}" FontWeight="Normal" />
                                 <NumericUpDown Value="{Binding Job.RetryOnError, Mode=TwoWay}" Minimum="1" Maximum="255" FormatString="0" FontWeight="Normal" />
+                            </StackPanel>
+                            <StackPanel Grid.Row="1" Margin="0,12,0,0"
+                                        IsVisible="{Binding Job, Converter={StaticResource IsBackupJobConverter}}">
+                                <Label Content="{i18n:Localize ParallelFiles}" FontWeight="Normal" />
+                                <NumericUpDown Value="{Binding Job.ParallelFiles, Mode=TwoWay}" Minimum="1" Maximum="64" FormatString="0" FontWeight="Normal" />
+                                <TextBlock Classes="hint" FontWeight="Normal" Text="{i18n:Localize ParallelFilesHint}" />
                             </StackPanel>
                         </Grid>
                     </Expander>

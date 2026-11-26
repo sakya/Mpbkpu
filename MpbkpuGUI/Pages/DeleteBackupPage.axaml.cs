@@ -86,7 +86,7 @@ public partial class DeleteBackupPage : BasePage
 
         var settings = new DeleteJobSettings()
         {
-            BackupDestinations = [_job.Destination!.ToBackupDestination()],
+            BackupDestinations = _job.GetBackupDestinations(),
             BackupGuid = _backup.Guid,
             EncryptPassword = _job.Password
         };

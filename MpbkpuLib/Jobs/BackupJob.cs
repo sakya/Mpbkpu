@@ -623,7 +623,8 @@ public class BackupJob : BaseJob
 
         DestinationSet.Validate(Settings.Destinations, nameof(Settings.Destinations));
         foreach (var destination in Settings.Destinations) {
-            if (Utility.Files.IsSameOrSubPath(Settings.Source, destination.Path)) {
+            // Paths checked by DestinationSet.Validate
+            if (Utility.Files.IsSameOrSubPath(Settings.Source, destination.Path!)) {
                 throw new ArgumentException(Utility.Files.IsSameOrSubPath(destination.Path, Settings.Source) ?
                     "Source and Destination cannot be the same" :
                     "Destination cannot be a subdirectory of Source");
@@ -669,9 +670,10 @@ public class BackupJob : BaseJob
     /// </summary>
     private async Task ReadDestinationsSpace()
     {
-        foreach (var state in _states)
+        foreach (var state in _states) {
             await ReadSpace(state.Entry.Space, state.Entry.Fm, state.Entry.Path);
-        OnSpaceChanged(SpaceEstimate.Sum(_states.Select(s => s.Entry.Space)));
+            OnSpaceChanged(state.Entry.Settings.Id, state.Entry.Space.Current);
+        }
     }
 
     /// <summary>
@@ -681,7 +683,7 @@ public class BackupJob : BaseJob
     {
         lock (_states) {
             destination.Entry.Space.Used(bytes);
-            OnSpaceChanged(SpaceEstimate.Sum(_states.Select(s => s.Entry.Space)));
+            OnSpaceChanged(destination.Entry.Settings.Id, destination.Entry.Space.Current);
         }
     }
 

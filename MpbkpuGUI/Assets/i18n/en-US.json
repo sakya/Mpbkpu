@@ -134,5 +134,12 @@
   "RememberPasswordHint": "Saved in the secure storage of the operating system",
   "PasswordSaved": "Password saved securely",
   "ForgetPassword": "Forget password",
-  "SavedPasswordInvalid": "The saved password is wrong and has been forgotten: type it again."
+  "SavedPasswordInvalid": "The saved password is wrong and has been forgotten: type it again.",
+  "MoreDestinations": "More destinations",
+  "MoreDestinationsHint": "The files of a backup are split among all the destinations; each destination holds a copy of the database. Restoring needs every destination.",
+  "AddDestination": "Add destination",
+  "RemoveDestination": "Remove destination",
+  "MoreDestinationsCount": "(+{0} destinations)",
+  "ParallelFiles": "Files copied at the same time",
+  "ParallelFilesHint": "Each file system can lower it."
 }

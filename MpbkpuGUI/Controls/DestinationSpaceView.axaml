@@ -1,0 +1,22 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:i18n="clr-namespace:MpbkpuGUI.Localizer"
+             mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="30"
+             x:Class="MpbkpuGUI.Controls.DestinationSpaceView">
+    <!-- Space of a destination: read live for local destinations, last value read for remote ones -->
+    <Grid ColumnDefinitions="Auto,Auto,Auto,*" ColumnSpacing="10">
+        <ProgressBar Name="SpaceBar" Classes="inline" Width="160" Minimum="0" Maximum="100"
+                     VerticalAlignment="Center" />
+        <TextBlock Grid.Column="1" Name="SpaceText" Classes="muted" VerticalAlignment="Center" />
+        <Button Grid.Column="2" Name="SpaceRefresh" Classes="icon small" Click="OnRefreshSpaceClick" VerticalAlignment="Center"
+                ToolTip.Tip="{i18n:Localize RefreshSpace}" AutomationProperties.Name="{i18n:Localize RefreshSpace}">
+            <mi:MaterialIcon Kind="Refresh" Width="14" Height="14" />
+        </Button>
+        <!-- The end of the path tells the destinations apart -->
+        <TextBlock Grid.Column="3" Name="PathText" Classes="mono muted" VerticalAlignment="Center" IsVisible="False"
+                   TextTrimming="PathSegmentEllipsis" />
+    </Grid>
+</UserControl>

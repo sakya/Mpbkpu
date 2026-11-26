@@ -1,4 +1,5 @@
 # Notes for agents
+Nella chat parla in italiano
 
 ## Structure
 - `MpbkpuLib/`: logic (jobs in `Jobs/`, file managers in `FileManagers/`, EF Core SQLite database in `BackupFile.cs`).

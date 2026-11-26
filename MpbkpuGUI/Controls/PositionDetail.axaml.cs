@@ -15,6 +15,10 @@ namespace MpbkpuGUI.Controls;
 public partial class PositionDetail : UserControl, IValidate
 {
     private readonly PositionDetailModel _model = new();
+    /// <summary>
+    /// The edited position: keeps what the editor does not show (id, cached space)
+    /// </summary>
+    private Job.Position? _value;
 
     public PositionDetail()
     {
@@ -26,6 +30,9 @@ public partial class PositionDetail : UserControl, IValidate
     {
         get => new()
         {
+            Id = _value?.Id ?? Guid.NewGuid().ToString("N"),
+            Space = _value?.Space,
+            SpaceRead = _value?.SpaceRead,
             Type = _model.Type,
             Path = _model.Path,
             User = _model.User,
@@ -39,6 +46,7 @@ public partial class PositionDetail : UserControl, IValidate
         };
         set
         {
+            _value = value;
             _model.Type = value?.Type ?? Job.Position.FileSystemTypes.FileSystem;
             _model.Path = value?.Path;
             _model.User = value?.User;

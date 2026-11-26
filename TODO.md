@@ -16,8 +16,10 @@
   - [ ] Raise `MaxParallelTransfers` (now 1 everywhere, so no parallel copies) once verified: local file systems
     first, then OneDrive, Dropbox, Nextcloud.
   - [x] Phase 5: CLI (repeatable `-d` and `-b`, `--parallelFiles`, single destination checked for restore and sync).
-  - [ ] Phase 6: GUI (destination list with persisted ids, secrets per destination, space per destination, active
-    files on the running page, open/browse/verify/delete pages).
+  - [x] Phase 6: GUI (other destinations and files copied at the same time in the job settings, persisted ids,
+    secrets per destination, space per destination in the job list and on the running page, history/verify/delete
+    on every destination).
+  - [ ] Running page: list of the files being copied, once `MaxParallelTransfers` allows parallel copies.
 - [ ] Try MEGA, Nextcloud, OneDrive, Dropbox, FTP, SFTP and SMB with real accounts (backup, sync, history, restore).
   OneDrive: check that `LargeFileUploadTask` reads the upload stream in order (`UploadStream` rejects backward seeks:
   a retried slice fails the upload instead of corrupting it).

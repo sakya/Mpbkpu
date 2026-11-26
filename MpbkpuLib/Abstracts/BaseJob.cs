@@ -66,9 +66,11 @@ public abstract class BaseJob : IDisposable
     /// </summary>
     public event LogHandler? LogEmitted;
 
-    public delegate void SpaceHandler(object sender, StorageSpace space);
+    /// <param name="destinationId">The <see cref="BackupDestination.Id"/> of the destination, null for the destination of
+    /// a synchronization</param>
+    public delegate void SpaceHandler(object sender, string? destinationId, StorageSpace space);
     /// <summary>
-    /// Emitted with the space of the destination: read at the start and at the end of the job, estimated in between
+    /// Emitted with the space of a destination: read at the start and at the end of the job, estimated in between
     /// </summary>
     public event SpaceHandler? SpaceChanged;
 
@@ -100,7 +102,7 @@ public abstract class BaseJob : IDisposable
         if (BackupFm == null || string.IsNullOrEmpty(BackupPath))
             return;
         await ReadSpace(_space, BackupFm, BackupPath);
-        OnSpaceChanged(_space.Current);
+        OnSpaceChanged(null, _space.Current);
     }
 
     /// <summary>
@@ -118,10 +120,10 @@ public abstract class BaseJob : IDisposable
     /// <summary>
     /// Raise <see cref="SpaceChanged"/> when the space is known
     /// </summary>
-    protected void OnSpaceChanged(StorageSpace? space)
+    protected void OnSpaceChanged(string? destinationId, StorageSpace? space)
     {
         if (space != null)
-            SpaceChanged?.Invoke(this, space);
+            SpaceChanged?.Invoke(this, destinationId, space);
     }
 
     /// <summary>
@@ -130,7 +132,7 @@ public abstract class BaseJob : IDisposable
     protected void DestinationSpaceUsed(long bytes)
     {
         _space.Used(bytes);
-        OnSpaceChanged(_space.Current);
+        OnSpaceChanged(null, _space.Current);
     }
 
     public virtual void Dispose()
