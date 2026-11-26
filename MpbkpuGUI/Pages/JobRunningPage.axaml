@@ -56,6 +56,30 @@
                             </StackPanel>
                         </Border>
                     </Grid>
+                    <StackPanel Spacing="8" IsVisible="{Binding HasCopyingFiles}">
+                        <TextBlock Classes="muted" FontSize="12" Text="{i18n:Localize FilesBeingCopied}" />
+                        <ItemsControl ItemsSource="{Binding CopyingFiles}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Spacing="6" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid ColumnDefinitions="*,12,160,12,44">
+                                        <TextBlock Classes="mono" FontSize="12" VerticalAlignment="Center"
+                                                   TextTrimming="LeadingCharacterEllipsis" Text="{Binding Path}"
+                                                   ToolTip.Tip="{Binding Path}" />
+                                        <ProgressBar Grid.Column="2" Classes="inline" Minimum="0" Maximum="100"
+                                                     VerticalAlignment="Center" Value="{Binding Progress}" />
+                                        <TextBlock Grid.Column="4" Classes="muted" FontSize="12" TextAlignment="Right"
+                                                   VerticalAlignment="Center"
+                                                   Text="{Binding Progress, StringFormat='{}{0:0}%'}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
                     <!-- Space of the destination: read at the start and at the end, estimated during the job -->
                     <!-- One row per destination, shown when its space is known -->
                     <StackPanel Name="SpaceList" Spacing="10" />

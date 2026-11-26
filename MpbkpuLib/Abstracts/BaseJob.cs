@@ -77,6 +77,12 @@ public abstract class BaseJob : IDisposable
     public delegate void OpenBackupHandler(object sender, long bytes, long totalBytes);
     public event OpenBackupHandler? OpenBackup;
     public event OpenBackupHandler? CopyBackup;
+
+    public delegate void FileCompletedHandler(object sender, string filePath);
+    /// <summary>
+    /// Emitted when the copy of a file reported by the job's FileProgress ends, also when it failed or was cancelled
+    /// </summary>
+    public event FileCompletedHandler? FileCompleted;
     #endregion
 
     protected BaseJob(BaseJobSettings? settings)
@@ -227,6 +233,11 @@ public abstract class BaseJob : IDisposable
     protected void OnCopyBackup(long bytes, long totalBytes)
     {
         CopyBackup?.Invoke(this, bytes, totalBytes);
+    }
+
+    protected void OnFileCompleted(string filePath)
+    {
+        FileCompleted?.Invoke(this, filePath);
     }
 
     /// <summary>

@@ -72,15 +72,14 @@
   libsecret), keys `{jobId}.{Source|Destination}.{field}`. Old plain-text values are read through private
   `Legacy*` setters and removed at startup.
 
-## Multiple destinations (in progress, see TODO.md)
+## Multiple destinations
 - **Split, not mirrored**: every file of a backup is stored in one destination only; every destination holds a copy
   of the database (needed to find the files). A file goes to the destination with the fewest assigned bytes among
   those with enough estimated space.
 - **A destination that fails** fails the job after `RetryOnError` tries (no reassignment to another destination).
 - **`ParallelFiles`** (default 1) is the total number of files copied at the same time, further limited by what each
-  file manager (source included) supports; FTP, SFTP, SMB and MEGA copy one file at a time per destination until
-  they are proven safe with concurrent transfers (one connection per instance; more connections would mean more
-  logins and concurrent OAuth refreshes).
+  file manager (source included) supports (`MaxParallelTransfers`, below). Several connections per destination were
+  rejected: more logins and concurrent OAuth refreshes.
 - **Settings**: `BackupJobSettings.Destinations` (`BackupDestination`: `Id`, `Path`, `User`, `Password`
   `[JsonIgnore]`, `OauthSettings`). The old single-destination keys (`Destination`, `DestinationUser`,
   `DestinationOauthSettings`) are read by private write-only properties into the first destination and never written
@@ -92,30 +91,29 @@
 - **`DestinationSet`** (shared by the jobs): one file manager per destination; the database is read from the newest
   copy (modification date of `mpbkpu.db`, or of `mpbkpu.db.bak` when missing), always through a temporary file when
   there is more than one destination (`OpenBackupFile(copyToTemp)`); `Register` matches the destinations with the
-  `Destinations` records by id, then by masked path, so a destination whose id is not persisted (CLI, GUI today)
-  keeps its record as long as its path does not change; it records new destinations and assigns the legacy volumes
-  (null `DestinationId`) to the destination the database was read from.
+  `Destinations` records by id, then by masked path, so a destination whose id is not persisted (CLI) keeps its
+  record as long as its path does not change (a moved destination needs the persisted id of the GUI); it records new
+  destinations and assigns the legacy volumes (null `DestinationId`) to the destination the database was read from.
 - **Database written to every destination** with `BackupFile.SaveBackupFile` (moved from `BaseJob`): with more than
   one destination a failure is a warning (job result `CompletedWithWarnings`, the database inside still says
   `Completed`) as long as one copy succeeds; when all fail the job fails and the new files are deleted. A stale copy
   is replaced by the next run, which reads the newest one.
 - **Risk not handled**: a destination holding the database of another backup set would be read if newer. There is no
   backup set identifier to detect it.
-- **Space**: `Utility/SpaceEstimate` (read + estimated use) per destination; `SpaceChanged` reports the sum of the
-  known spaces until the GUI shows one bar per destination.
 - **The backup directory `{guid}`** is created in a destination only when its first file goes there; volumes have
   their destination, so a volume never mixes destinations.
-- **`BackupDestination.Id` should still be stable** (GUI: persisted per destination): matching by path does not survive
-  a destination moved to a new path.
 - **Parallel copies** (`BackupJob`): one reader pages the files from the database (by id, 500 at a time) into a
   bounded `Channel`; `min(ParallelFiles, source limit, sum of the destination limits)` workers copy them, so a worker
   always finds a destination with a free place (no waiting on destinations). One code path: `ParallelFiles = 1` is
   the old sequential copy. The first failing worker cancels the others (linked token) and its error is rethrown;
   a user cancellation still ends with the `Cancelled` result.
-- **`IFileManager.MaxParallelTransfers`**: 1 for every file manager for now (the user's choice, 2026-11-25). Since
-  the source counts too, the workers are 1 and nothing is copied in parallel until a limit is raised (local file
-  systems and the HTTP services OneDrive, Dropbox, Nextcloud are the candidates). `NextcloudClient` already refreshes
-  the token once under a lock (refresh tokens are single use).
+- **`IFileManager.MaxParallelTransfers`**: the transfers an instance can run safely at the same time, for reads and
+  writes alike (one limit, not two: a worker reads, compresses, encrypts and writes the same file, so parallel reads
+  would only pay off with a read-ahead pipeline; the bottleneck of a remote destination is the network). Local file
+  systems: no limit (no state per instance; `ParallelFiles` decides, also for slow disks), since 2026-11-26. Every
+  remote file manager: 1 (the user's choice, 2026-11-25; one connection per instance), so the workers are 1 when the
+  source or every destination is remote. Next candidates: OneDrive, Dropbox, Nextcloud. `NextcloudClient` already
+  refreshes the token once under a lock (refresh tokens are single use).
 - **Shared state**: the `DbContext` is used under one `SemaphoreSlim` (`WithDatabase`); volumes and the backup
   directory are created under a lock per destination and counted in memory (volumes belong to the running backup);
   progress counts copied bytes exactly (failed tries are subtracted) and `Progress`/`FileProgress` are raised one at a
@@ -142,15 +140,18 @@
   them for the library. Every `Position` has a persisted `Id` (positions saved before get one when loaded, kept from
   the next save; until then the jobs match the destinations by path). `PositionDetail` keeps the id and the cached
   space of the edited position. Secrets of the other destinations: `{jobId}.Destination.{positionId}.{field}`.
-- **Space per destination**: `SpaceChanged` carries the `BackupDestination.Id` (null for a synchronization);
+- **Space per destination**: `Utility/SpaceEstimate` (read + estimated use) per destination; `SpaceChanged` carries
+  the `BackupDestination.Id` (null for a synchronization);
   `Position.Space`/`SpaceRead` replace `Job.DestinationSpace` (a cache: the old value is dropped and read again).
   `Controls/DestinationSpaceView` shows one row per destination in the job list (path trimmed from the left with
   `PathSegmentEllipsis` when there is more than one); the running page shows one bar per destination.
 - **History, verify, delete pages** use every destination of the job (`DestinationSet.OpenDatabase` for the history,
   the job destinations for verify instead of the paths saved in the backup settings, which are masked and have no
   password).
-- **Not done**: a list of the files being copied on the running page (copies run one at a time while every
-  `MaxParallelTransfers` is 1).
+- **Files being copied**: `FileProgress` adds a file (its first report), `BaseJob.FileCompleted` removes it; it is
+  raised for every file that leaves the copy, also failed or cancelled (a failed file never reports 100%). The GUI
+  running page lists them under the progress tiles (sync: one at a time). The CLI progress line still shows the last
+  file reported, so with parallel copies it alternates between files.
 
 ## GUI
 - **SingleWindow navigation unchanged** (pages animated in `Container`, back arrow in the TitleBar); the sidebar is

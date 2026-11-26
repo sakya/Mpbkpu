@@ -82,4 +82,31 @@ public class JobRunningPageModel : BaseModel
         get => _buttonText;
         set => SetField(ref _buttonText, value);
     }
+
+    /// <summary>
+    /// A file being copied
+    /// </summary>
+    public class CopyingFile : BaseModel
+    {
+        public string? Path { get; init; }
+
+        private double _progress;
+        public double Progress
+        {
+            get => _progress;
+            set => SetField(ref _progress, value);
+        }
+    }
+
+    /// <summary>
+    /// The files being copied: changed on the UI thread only
+    /// </summary>
+    public ObservableCollection<CopyingFile> CopyingFiles { get; } = new();
+
+    private bool _hasCopyingFiles;
+    public bool HasCopyingFiles
+    {
+        get => _hasCopyingFiles;
+        set => SetField(ref _hasCopyingFiles, value);
+    }
 }

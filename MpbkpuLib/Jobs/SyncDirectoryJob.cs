@@ -275,6 +275,8 @@ public class SyncDirectoryJob : BaseJob
             } catch (Exception) when (_cancellationToken?.IsCancellationRequested == true) {
                 // Also an aborted upload of a file manager when the copy is cancelled
                 return Cancelled();
+            } finally {
+                OnFileCompleted(item.RelativePath!);
             }
             DestinationSpaceUsed(item.Size);
             _progressData.BackupBytes += item.Size;

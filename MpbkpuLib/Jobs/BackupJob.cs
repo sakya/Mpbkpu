@@ -557,6 +557,7 @@ public class BackupJob : BaseJob
             }
         } finally {
             ReleaseDestination(destination);
+            OnFileCompleted(fileToBackup.RelativePath!);
         }
     }
 
@@ -623,9 +624,10 @@ public class BackupJob : BaseJob
 
         DestinationSet.Validate(Settings.Destinations, nameof(Settings.Destinations));
         foreach (var destination in Settings.Destinations) {
-            // Paths checked by DestinationSet.Validate
-            if (Utility.Files.IsSameOrSubPath(Settings.Source, destination.Path!)) {
-                throw new ArgumentException(Utility.Files.IsSameOrSubPath(destination.Path, Settings.Source) ?
+            // Checked by DestinationSet.Validate
+            var path = destination.Path!;
+            if (Utility.Files.IsSameOrSubPath(Settings.Source, path)) {
+                throw new ArgumentException(Utility.Files.IsSameOrSubPath(path, Settings.Source) ?
                     "Source and Destination cannot be the same" :
                     "Destination cannot be a subdirectory of Source");
             }

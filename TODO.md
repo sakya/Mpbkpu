@@ -1,26 +1,11 @@
 # TODO
 
 ## Now
-- [ ] Multiple destinations per backup (design in DECISIONS.md):
-  - [x] Phase 1: `BackupDestination`, `Destinations`/`ParallelFiles` settings with legacy keys, validation, table
-    `Destinations` + `BackupVolume.DestinationId` (migration `MultipleDestinations`).
-  - [x] Phase 2: `BackupJob` splits the files among the destinations (sequential, `DestinationSet`), database read
-    from the newest copy and written to all, legacy volumes assigned, orphan cleanup on all destinations.
-    `KeepChains` with more than one destination still refused (TODO in `BackupJob.ValidateSettings`).
-  - [x] Phase 3: parallel copies (`Channel` + workers, `IFileManager.MaxParallelTransfers`, database writes serialized,
-    thread-safe progress and logging). Not verified: that copies really overlap (tests check results, not timing),
-    remote file managers in parallel (OneDrive, Dropbox, Nextcloud allow 4).
-  - [x] Phase 4: Restore, Verify, Delete, List, ListContent read the volumes from their destination
-    (`BackupDestinations` settings, `DestinationSet.Match`/`GetEntry`, `MissingDestinationException`); `KeepChains`
-    with multiple destinations.
-  - [ ] Raise `MaxParallelTransfers` (now 1 everywhere, so no parallel copies) once verified: local file systems
-    first, then OneDrive, Dropbox, Nextcloud.
-  - [x] Phase 5: CLI (repeatable `-d` and `-b`, `--parallelFiles`, single destination checked for restore and sync).
-  - [x] Phase 6: GUI (other destinations and files copied at the same time in the job settings, persisted ids,
-    secrets per destination, space per destination in the job list and on the running page, history/verify/delete
-    on every destination).
-  - [ ] Running page: list of the files being copied, once `MaxParallelTransfers` allows parallel copies.
-- [ ] Try MEGA, Nextcloud, OneDrive, Dropbox, FTP, SFTP and SMB with real accounts (backup, sync, history, restore).
+- [ ] Commit the build warning fixes (`BackupJob.cs` CS8604, `PasswordDialog.axaml.cs` AVLN3001).
+- [ ] Raise `MaxParallelTransfers` for OneDrive, Dropbox, Nextcloud once verified with real accounts (local file
+  systems done: no limit).
+- [ ] Try MEGA, Nextcloud, OneDrive, Dropbox, FTP, SFTP and SMB with real accounts (backup, sync, history, restore),
+  also as additional destinations.
   OneDrive: check that `LargeFileUploadTask` reads the upload stream in order (`UploadStream` rejects backward seeks:
   a retried slice fails the upload instead of corrupting it).
 - [ ] Check by hand: Windows animations (minimize, maximize, restore), warnings box in the history, windows narrower
@@ -34,6 +19,8 @@
 - [ ] Message dialogs with a title and a detail line (today one message string).
 
 ## Fixes and improvements
+- [ ] Multiple destinations: detect a destination holding the database of another backup set (it is read if newer;
+  there is no backup set identifier).
 - [ ] Warn before a backup/sync when the destination has less space than the bytes to copy (`GetSpace`).
 - [ ] `BackupJob` ignores `Exclude` (CLI `--exclude`): reuse `ReadPathContent(..., exclude)` as the sync job does.
 - [ ] CLI: `RestoreAction` and `SyncAction` ignore the job result, so failures are not reported; the exit code is

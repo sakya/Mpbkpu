@@ -38,3 +38,13 @@ AutomationId, `TogglePattern` for Expanders, `ScrollPattern` to scroll). Setting
 both before using test data and restore them afterwards. In UI Automation look for buttons by `ControlType` too
 (text blocks share the names); Windows PowerShell 5.1 reads `.ps1` files without BOM as ANSI, so avoid non-ASCII
 literals (e.g. "Sì") in scripts.
+The test settings replace the ones the user's own GUI is using: ask the user to close the GUI first. Do the copy,
+restore and cleanup of files outside the repository with a script run from the same terminal that starts the GUI
+(agent shell tools may see a sandboxed copy of those files). A hand-written `settings.json` needs `$type` as the first
+property of every object (Newtonsoft; use `[ordered]@{}` with `ConvertTo-Json`, otherwise the GUI exits at start); "Run"
+opens a confirmation dialog ("Yes" button).
+
+## CLI verification
+Run the CLI in a real console (a terminal tab): with redirected output it crashes on `Console.CursorVisible` (TODO.md),
+and the exit code is always 0, so check the results on disk or in the `--log` file (ignored by list,
+list content and verify).

@@ -20,7 +20,12 @@ public partial class PasswordDialog : BaseDialog
     private readonly PasswordDialogModel _model;
 
     /// <param name="canRemember">Show the option to remember the password</param>
-    public PasswordDialog(bool canRemember = false)
+    // The XAML runtime loader needs a constructor without parameters
+    public PasswordDialog() : this(false)
+    {
+    }
+
+    public PasswordDialog(bool canRemember)
     {
         _model = new PasswordDialogModel() { CanRemember = canRemember };
         DataContext = _model;

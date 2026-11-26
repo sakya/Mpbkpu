@@ -598,6 +598,48 @@ public class Regressions : BaseTest
     }
 
     [Test]
+    public async Task LocalFileSystemsCopyFilesAtTheSameTime()
+    {
+        for (var i = 0; i < 8; i++)
+            CreateFile(Path.Combine(BackupSource, $"large{i}"), 4 * 1024 * 1024);
+
+        string? workersMessage = null;
+        var active = new System.Collections.Generic.HashSet<string>();
+        var maxActive = 0;
+        using var job = new BackupJob(new BackupJobSettings()
+        {
+            BackupType = Backup.BackupTypes.Full,
+            Source = BackupSource,
+            Destinations = BackupDestinations(),
+            ParallelFiles = 4,
+        });
+        job.LogEmitted += (_, _, message) =>
+        {
+            if (message.StartsWith("Copying up to"))
+                workersMessage = message;
+        };
+        // A file is being copied from its first progress to its completion
+        job.FileProgress += (_, path, _, _) =>
+        {
+            lock (active) {
+                active.Add(path);
+                maxActive = Math.Max(maxActive, active.Count);
+            }
+        };
+        job.FileCompleted += (_, path) =>
+        {
+            lock (active)
+                active.Remove(path);
+        };
+        var res = await job.Run(CancellationToken.None);
+
+        Assert.That(res.Success, Is.True);
+        Assert.That(workersMessage, Is.EqualTo("Copying up to 4 files at the same time"));
+        Assert.That(maxActive, Is.GreaterThan(1), "No files copied at the same time");
+        Assert.That(active, Is.Empty, "Files never completed");
+    }
+
+    [Test]
     public async Task ParallelProgressReachesTheTotal()
     {
         BaseJob.ProgressHandlerArgs? last = null;

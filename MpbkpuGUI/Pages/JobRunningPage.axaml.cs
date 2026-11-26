@@ -125,6 +125,7 @@ public partial class JobRunningPage : BasePage
             backupJob.ConfirmBackup += BackupJobOnConfirmBackup;
             backupJob.Progress += BackupJobOnProgress;
             backupJob.SpaceChanged += BackupJobOnSpaceChanged;
+            backupJob.FileProgress += BackupJobOnFileProgress;
 
             _backupJob = backupJob;
         } else if (_job is SyncJob sync) {
@@ -149,6 +150,7 @@ public partial class JobRunningPage : BasePage
             backupJob.ConfirmBackup += BackupJobOnConfirmBackup;
             backupJob.Progress += BackupJobOnProgress;
             backupJob.SpaceChanged += BackupJobOnSpaceChanged;
+            backupJob.FileProgress += BackupJobOnFileProgress;
 
             _backupJob = backupJob;
         }
@@ -164,6 +166,7 @@ public partial class JobRunningPage : BasePage
                 throw new Exception("BackupJob not initialized");
 
             _backupJob.LogEmitted += BackupJobOnLogEmitted;
+            _backupJob.FileCompleted += BackupJobOnFileCompleted;
             _model.Running = true;
             _model.ButtonText = Localizer.Localizer.Instance["Cancel"];
             var backupRes = await _backupJob.Run(_cts.Token);
@@ -195,6 +198,11 @@ public partial class JobRunningPage : BasePage
                 _ = MessageDialog.ShowMessage(App.GetMainWindow(), message, MessageDialog.Icons.Error);
             });
         } finally {
+            Dispatcher.UIThread.Post(() =>
+            {
+                _model.CopyingFiles.Clear();
+                _model.HasCopyingFiles = false;
+            });
             _model.Running = false;
             _model.ButtonText = Localizer.Localizer.Instance["Close"];
         }
@@ -339,6 +347,33 @@ public partial class JobRunningPage : BasePage
         _model.ProgressMessageEta = MpbkpuLib.Utility.String.EtaToString(args.Eta);
         _model.ProgressMessageFiles = $"{args.File}/{args.TotalFiles}";
         _model.ProgressMessageBytes = $"{MpbkpuLib.Utility.String.BytesToString(args.Bytes)}/{MpbkpuLib.Utility.String.BytesToString(args.TotalBytes)}";
+    }
+
+    // Posted to the UI thread in the order the job raises them, so a file is never added after its completion
+    private void BackupJobOnFileProgress(object sender, string filePath, long bytes, long totalBytes)
+    {
+        var progress = totalBytes > 0 ? Math.Min(100, bytes * 100.0 / totalBytes) : 0;
+        Dispatcher.UIThread.Post(() =>
+        {
+            var file = _model.CopyingFiles.FirstOrDefault(f => f.Path == filePath);
+            if (file == null) {
+                file = new JobRunningPageModel.CopyingFile() { Path = filePath };
+                _model.CopyingFiles.Add(file);
+                _model.HasCopyingFiles = true;
+            }
+            file.Progress = progress;
+        });
+    }
+
+    private void BackupJobOnFileCompleted(object sender, string filePath)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            var file = _model.CopyingFiles.FirstOrDefault(f => f.Path == filePath);
+            if (file != null)
+                _model.CopyingFiles.Remove(file);
+            _model.HasCopyingFiles = _model.CopyingFiles.Count > 0;
+        });
     }
 
     private async void OnOkClick(object? sender, RoutedEventArgs e)

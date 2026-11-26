@@ -25,6 +25,9 @@ namespace MpbkpuLib.Abstracts
 
         public bool SupportCompression => true;
 
+        // No connection or state per instance: the job's ParallelFiles is the only limit
+        public int MaxParallelTransfers => int.MaxValue;
+
         public string CombinePath(params string[] paths)
         {
             return Utility.Files.CombinePath(PathSeparator, paths);
