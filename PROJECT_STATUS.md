@@ -35,13 +35,12 @@ the list of the files being copied on the running page (`FileCompleted`; seen on
 same time, list emptied at the end). Every remote file manager is still limited to 1, so a backup with a remote
 source or only remote destinations copies one file at a time.
 
-Not committed: light theme (`ThemeDictionaries` in `App.axaml`, `AppSettings.Theme`, sidebar button System/Light/Dark;
-built, not seen on screen), "Copy command" in the job list (`MpbkpuLib.Utility.CommandLine`, tests in `Tests/CommandLine.cs`;
-a command of the same form run in a real console made the backup; the button not seen on screen), the backup browser (double click opens a directory, right click downloads a file or directory with
-`RestoreJobSettings.RelativePath`, test `RestoreSingleItemKeepsOtherFiles`). On screen: double click, context menu
-and folder picker seen; the download itself is covered by the test only (the Windows folder picker could not be
-driven by UI Automation). Right click selects the row before the menu opens (`ItemsList`): built, not seen on
-screen; the tree is expected to select its node by itself (Avalonia TreeView), not checked.
+Committed (`e3e8012`, `3339fb1`), all confirmed working on screen by the user (2026-11-26):
+- light theme (`ThemeDictionaries` in `App.axaml`, `AppSettings.Theme`, sidebar button System/Light/Dark);
+- "Copy command" in the job list (`MpbkpuLib.Utility.CommandLine`, tests in `Tests/CommandLine.cs`; a command of the
+  same form also run in a real console);
+- the backup browser: double click opens a directory, right click selects the row and downloads a file or directory
+  (`RestoreJobSettings.RelativePath`, test `RestoreSingleItemKeepsOtherFiles`).
 
 ## Open issues and attempts so far
 - Remote file managers other than MediaFire never tried with real accounts, also as additional destinations.
@@ -56,6 +55,6 @@ screen; the tree is expected to select its node by itself (Avalonia TreeView), n
   dates restored shifted by the UTC offset (change detection is not affected).
 
 ## Next step
-Try a download from the backup browser by hand, commit it, then run a backup and a sync on each remote service used in practice with a real
+Run a backup and a sync on each remote service used in practice with a real
 account (upload, `.mpbkpu-tmp` rename, database copy, history, verify, restore), also as an additional destination
 of a local backup.
