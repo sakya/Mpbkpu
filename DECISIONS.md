@@ -154,6 +154,21 @@
   file reported, so with parallel copies it alternates between files.
 
 ## GUI
+- **Themes**: `App.axaml` keeps one color set per theme variant in `ThemeDictionaries` (Dark: the original palette,
+  Light); the brushes (`BgBrush`, `TextBrush`, ...) take their color with `DynamicResource`, and every page refers to
+  colors and brushes with `DynamicResource`, so the theme changes without restarting. No fixed colors in pages or
+  code: add a color to both dictionaries (code binds with `GetResourceObservable`). `AppSettings.Theme`
+  (System, the default, Light, Dark) is applied by `App.ApplyTheme` at startup and by the sidebar button that cycles
+  it.
+- **Copy command** (job list): `MpbkpuLib.Utility.CommandLine` builds the CLI command of a backup or sync job from the
+  same settings the GUI runs (`BackupJob.CreateSettings`, `SyncJob.CreateSettings`), in PowerShell syntax (single
+  quotes, `&` before a quoted executable: `mpbkpu.exe` next to the GUI, else `mpbkpu` from the PATH), with `-y` and
+  only the options that differ from the CLI defaults. No secret is written: an encrypted backup gets `-i`, passwords
+  and OAuth secrets become `<password>`. The CLI takes credentials only for the first destination, so the others get
+  them in the path (`scheme://user:<password>@host/...` for FTP/SFTP/SMB, `scheme://user:<password>/...` for
+  MEGA/MediaFire); destinations with OAuth settings or a password that cannot go in the path (Nextcloud) are listed
+  in the dialog as not reachable. `Tests/CommandLine.cs` parses the commands with the CLI `Arguments` (the test
+  project references `Mpbkpu`), so a renamed option fails a test.
 - **Backup browser**: double click on a directory of the file list selects it in the tree (its ancestors are
   expanded first); right click on a file, a directory or a tree node selects it (`ItemsList` on the right button
   press, the TreeView by itself) and offers "Download...": a folder picker, then

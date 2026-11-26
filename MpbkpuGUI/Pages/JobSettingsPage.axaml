@@ -159,7 +159,7 @@
             </StackPanel>
         </ScrollViewer>
 
-        <Border Grid.Row="1" Background="{StaticResource ChromeBrush}" BorderBrush="{StaticResource LineBrush}"
+        <Border Grid.Row="1" Background="{DynamicResource ChromeBrush}" BorderBrush="{DynamicResource LineBrush}"
                 BorderThickness="0,1,0,0" Padding="40,14">
             <controls:OkCancelButtons
                 MaxWidth="960"

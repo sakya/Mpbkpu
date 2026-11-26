@@ -66,6 +66,7 @@ namespace MpbkpuGUI
             }
 
             Localizer.Localizer.Instance.LoadLanguage(App.Settings.Language);
+            App.ApplyTheme(App.Settings.Theme);
 
             return new Views.MainWindow();
         }

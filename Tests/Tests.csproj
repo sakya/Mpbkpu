@@ -19,6 +19,8 @@
 
     <ItemGroup>
       <ProjectReference Include="..\MpbkpuLib\MpbkpuLib.csproj" />
+      <!-- CommandLine tests parse the generated commands with the CLI arguments -->
+      <ProjectReference Include="..\Mpbkpu\Mpbkpu.csproj" />
     </ItemGroup>
 
 </Project>

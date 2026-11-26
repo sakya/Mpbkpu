@@ -9,11 +9,18 @@
              x:Class="MpbkpuGUI.Pages.JobListPage">
     <Grid ColumnDefinitions="232,*">
         <!-- Sidebar -->
-        <Border Background="{StaticResource ChromeBrush}" BorderBrush="#1E222A" BorderThickness="0,0,1,0" Padding="12,20">
+        <Border Background="{DynamicResource ChromeBrush}" BorderBrush="{DynamicResource TileLineBrush}" BorderThickness="0,0,1,0" Padding="12,20">
             <DockPanel>
                 <TextBlock DockPanel.Dock="Top" Text="mpbkpu" FontSize="18" FontWeight="Bold" LetterSpacing="-0.3"
                            Margin="12,4,12,16" />
                 <StackPanel DockPanel.Dock="Bottom" Spacing="4">
+                    <!-- Switches System, Light and Dark theme -->
+                    <Button Classes="nav" Name="ThemeButton" Click="OnThemeClick">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <mi:MaterialIcon Kind="ThemeLightDark" />
+                            <TextBlock Name="ThemeText" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
                     <Button Classes="nav" Click="OnAboutClick" AutomationProperties.Name="{i18n:Localize Information}">
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <mi:MaterialIcon Kind="InformationOutline" />
@@ -32,7 +39,7 @@
                         <Grid ColumnDefinitions="Auto,*,Auto" Width="184">
                             <mi:MaterialIcon Kind="ArchiveOutline" />
                             <TextBlock Grid.Column="1" Text="{i18n:Localize Jobs}" Margin="12,0,0,0" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="2" Name="JobCount" FontSize="12" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="2" Name="JobCount" FontSize="12" Foreground="{DynamicResource MutedTextBrush}" VerticalAlignment="Center" />
                         </Grid>
                     </Button>
                     <Button Classes="nav" Click="OnNewBackupClick" AutomationProperties.Name="{i18n:Localize _NewBackup}">
@@ -77,7 +84,7 @@
 
                 <Border Name="EmptyState" Classes="card" IsVisible="False" Padding="32">
                     <StackPanel Spacing="12" HorizontalAlignment="Center">
-                        <mi:MaterialIcon Kind="BackupOutline" Width="32" Height="32" Foreground="{StaticResource MutedTextBrush}" />
+                        <mi:MaterialIcon Kind="BackupOutline" Width="32" Height="32" Foreground="{DynamicResource MutedTextBrush}" />
                         <TextBlock Classes="subtitle" Text="{i18n:Localize NoJobs}" HorizontalAlignment="Center" />
                     </StackPanel>
                 </Border>

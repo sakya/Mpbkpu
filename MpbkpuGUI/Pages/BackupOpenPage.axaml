@@ -86,13 +86,13 @@
                                         <Border Classes="warningBox" IsVisible="{Binding HasWarnings}">
                                             <StackPanel Spacing="8">
                                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                                    <mi:MaterialIcon Kind="AlertOutline" Width="16" Height="16" Foreground="{StaticResource WarningBrush}" />
-                                                    <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#F5D48A" Text="{i18n:Localize WarningsTitle}" />
+                                                    <mi:MaterialIcon Kind="AlertOutline" Width="16" Height="16" Foreground="{DynamicResource WarningBrush}" />
+                                                    <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource WarningTitleBrush}" Text="{i18n:Localize WarningsTitle}" />
                                                 </StackPanel>
                                                 <ItemsControl ItemsSource="{Binding Warnings}" Margin="24,0,0,0">
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate>
-                                                            <TextBlock FontSize="13" Foreground="#E8DCC0" TextWrapping="Wrap" Margin="0,2" Text="{Binding}" />
+                                                            <TextBlock FontSize="13" Foreground="{DynamicResource WarningTextBrush}" TextWrapping="Wrap" Margin="0,2" Text="{Binding}" />
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
                                                 </ItemsControl>

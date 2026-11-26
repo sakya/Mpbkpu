@@ -3,6 +3,8 @@ using System.IO.Compression;
 using Newtonsoft.Json;
 using MpbkpuGUI.Abstracts;
 using MpbkpuLib.DataModel;
+using MpbkpuLib.Jobs;
+using MpbkpuLib.Utility;
 
 namespace MpbkpuGUI.Models;
 
@@ -72,4 +74,34 @@ public class BackupJob : Job
 
     [JsonIgnore]
     public bool IsCompressed => CompressionLevel != CompressionLevel.NoCompression;
+
+    /// <summary>
+    /// The settings of the library job that runs this backup
+    /// </summary>
+    public BackupJobSettings CreateSettings()
+    {
+        return new BackupJobSettings()
+        {
+            BackupType = Type ?? Backup.BackupTypes.Full,
+            EncryptPassword = Password,
+            Source = Source!.FullPath,
+            SourceUser = Source.User,
+            SourcePassword = Source.Password,
+            SourceOauthSettings = Source.GetOAuth2Settings(),
+
+            Destinations = GetBackupDestinations(),
+            ParallelFiles = ParallelFiles,
+
+            SkipHashCheck = SkipHashCheck,
+            RetryOnError = RetryOnError,
+            CompressionLevel = CompressionLevel,
+            FullBackupEveryDays = FullBackupEveryDays,
+            KeepChains = KeepChains
+        };
+    }
+
+    public override CommandLine.Result GetCommandLine(string executable)
+    {
+        return CommandLine.ForBackup(executable, CreateSettings(), Encrypted);
+    }
 }

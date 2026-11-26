@@ -13,7 +13,7 @@
         Title="Multi Platform Backup Utility">
     <DockPanel>
         <controls:TitleBar Name="TitleBar" DockPanel.Dock="Top"/>
-        <Grid Name="Container" Background="{StaticResource BgBrush}">
+        <Grid Name="Container" Background="{DynamicResource BgBrush}">
             <controls:Spinner Name="Spinner"></controls:Spinner>
         </Grid>
     </DockPanel>

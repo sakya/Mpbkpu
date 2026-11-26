@@ -19,6 +19,8 @@
 - [ ] Message dialogs with a title and a detail line (today one message string).
 
 ## Fixes and improvements
+- [ ] CLI: credential and OAuth options for every destination (today only the first one; the others take the
+  credentials in the path and cannot use OAuth), so "Copy command" can reproduce every job.
 - [ ] Multiple destinations: detect a destination holding the database of another backup set (it is read if newer;
   there is no backup set identifier).
 - [ ] Warn before a backup/sync when the destination has less space than the bytes to copy (`GetSpace`).

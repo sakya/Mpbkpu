@@ -101,26 +101,7 @@ public partial class JobRunningPage : BasePage
     private async void DoWork()
     {
         if (_job is BackupJob bkp) {
-            var settings = new BackupJobSettings()
-            {
-                BackupType = bkp.Type ?? Backup.BackupTypes.Full,
-                EncryptPassword = bkp.Password,
-                Source = bkp.Source!.FullPath,
-                SourceUser = bkp.Source.User,
-                SourcePassword = bkp.Source.Password,
-                SourceOauthSettings = bkp.Source.GetOAuth2Settings(),
-
-                Destinations = bkp.GetBackupDestinations(),
-                ParallelFiles = bkp.ParallelFiles,
-
-                SkipHashCheck = bkp.SkipHashCheck,
-                RetryOnError = bkp.RetryOnError,
-                CompressionLevel = bkp.CompressionLevel,
-                FullBackupEveryDays = bkp.FullBackupEveryDays,
-                KeepChains = bkp.KeepChains
-            };
-
-            var backupJob = new MpbkpuLib.Jobs.BackupJob(settings);
+            var backupJob = new MpbkpuLib.Jobs.BackupJob(bkp.CreateSettings());
             backupJob.Step += BackupJobOnStep;
             backupJob.ConfirmBackup += BackupJobOnConfirmBackup;
             backupJob.Progress += BackupJobOnProgress;
@@ -129,23 +110,7 @@ public partial class JobRunningPage : BasePage
 
             _backupJob = backupJob;
         } else if (_job is SyncJob sync) {
-            var settings = new SyncDirectoryJobSettings()
-            {
-                Source = sync.Source!.FullPath,
-                SourceUser = sync.Source.User,
-                SourcePassword = sync.Source.Password,
-                SourceOauthSettings = sync.Source.GetOAuth2Settings(),
-
-                Destination = sync.Destination!.FullPath,
-                DestinationUser = sync.Destination.User,
-                DestinationPassword = sync.Destination.Password,
-                DestinationOauthSettings = sync.Destination.GetOAuth2Settings(),
-
-                SkipHashCheck = sync.SkipHashCheck,
-                RetryOnError = sync.RetryOnError,
-            };
-
-            var backupJob = new SyncDirectoryJob(settings);
+            var backupJob = new SyncDirectoryJob(sync.CreateSettings());
             backupJob.Step += BackupJobOnStep;
             backupJob.ConfirmBackup += BackupJobOnConfirmBackup;
             backupJob.Progress += BackupJobOnProgress;

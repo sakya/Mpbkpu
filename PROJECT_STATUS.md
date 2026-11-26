@@ -25,7 +25,7 @@ in `Setup/`. MediaFire uses the author's `MediaFireApi` NuGet package (repositor
 | GUI | Redesign, delete page, history browser, dialogs, title bar, Windows animations (`WS_CAPTION`, not seen on screen) | screenshots; user |
 | Setup | `Setup/build.bat` + `Setup/Mpbkpu.iss` | installer compiled, published GUI started (installer not run) |
 
-Tests: 90 non-remote tests pass (`dotnet test Tests/Tests.csproj --filter "FullyQualifiedName!~FileManagers"`), run
+Tests: 94 non-remote tests pass (`dotnet test Tests/Tests.csproj --filter "FullyQualifiedName!~FileManagers"`), run
 after every change below. Clean build: 0 warnings, 0 errors.
 
 ## Current state
@@ -35,7 +35,9 @@ the list of the files being copied on the running page (`FileCompleted`; seen on
 same time, list emptied at the end). Every remote file manager is still limited to 1, so a backup with a remote
 source or only remote destinations copies one file at a time.
 
-Not committed: the backup browser (double click opens a directory, right click downloads a file or directory with
+Not committed: light theme (`ThemeDictionaries` in `App.axaml`, `AppSettings.Theme`, sidebar button System/Light/Dark;
+built, not seen on screen), "Copy command" in the job list (`MpbkpuLib.Utility.CommandLine`, tests in `Tests/CommandLine.cs`;
+a command of the same form run in a real console made the backup; the button not seen on screen), the backup browser (double click opens a directory, right click downloads a file or directory with
 `RestoreJobSettings.RelativePath`, test `RestoreSingleItemKeepsOtherFiles`). On screen: double click, context menu
 and folder picker seen; the download itself is covered by the test only (the Windows folder picker could not be
 driven by UI Automation). Right click selects the row before the menu opens (`ItemsList`): built, not seen on

@@ -1,4 +1,6 @@
+using System;
 using System.Threading.Tasks;
+using Avalonia.Automation;
 using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -28,7 +30,24 @@ public partial class JobListPage : BasePage
     public override void OnNavigatedTo(NavigationDirection direction)
     {
         SetJobList();
+        SetThemeText();
         base.OnNavigatedTo(direction);
+    }
+
+    private void SetThemeText()
+    {
+        var text = $"{Localizer.Localizer.Instance["Theme"]}: {Localizer.Localizer.Instance[$"Theme_{App.Settings!.Theme}"]}";
+        this.FindControl<TextBlock>("ThemeText")!.Text = text;
+        AutomationProperties.SetName(this.FindControl<Button>("ThemeButton")!, text);
+    }
+
+    private async void OnThemeClick(object? sender, RoutedEventArgs e)
+    {
+        var modes = Enum.GetValues<AppSettings.ThemeModes>();
+        App.Settings!.Theme = modes[(Array.IndexOf(modes, App.Settings.Theme) + 1) % modes.Length];
+        App.ApplyTheme(App.Settings.Theme);
+        SetThemeText();
+        await App.Settings.Save(App.SettingFile!);
     }
 
     private async void OnJobSettings(object sender, Job job)

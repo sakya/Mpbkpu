@@ -1,9 +1,13 @@
+using System;
+using System.IO;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using MpbkpuGUI.Abstracts;
+using MpbkpuGUI.Dialogs;
 using MpbkpuGUI.Models;
 using Material.Icons;
 using Material.Icons.Avalonia;
@@ -49,8 +53,8 @@ public partial class JobListItem : UserControl
                 } else {
                     // Synchronizations use a green tile to tell them apart from backups
                     icon.Kind = MaterialIconKind.Sync;
-                    icon.Foreground = new SolidColorBrush(Color.Parse("#6EE7B7"));
-                    this.FindControl<Border>("IconTile")!.Background = new SolidColorBrush(Color.Parse("#1C2A26"));
+                    icon.Bind(MaterialIcon.ForegroundProperty, this.GetResourceObservable("SyncBrush"));
+                    this.FindControl<Border>("IconTile")!.Bind(Border.BackgroundProperty, this.GetResourceObservable("SyncSoftBrush"));
                     typeText.Text = Localizer.Localizer.Instance["Sync"];
                     this.FindControl<TextBlock>("RunText")!.Text = Localizer.Localizer.Instance["Synchronize"];
                 }
@@ -63,6 +67,33 @@ public partial class JobListItem : UserControl
     private void InitializeComponent()
     {
         AvaloniaXamlLoader.Load(this);
+    }
+
+    /// <summary>
+    /// Copy to the clipboard the CLI command that runs the job, without secrets
+    /// </summary>
+    private async void OnCopyCommandClick(object? sender, RoutedEventArgs e)
+    {
+        if (_item == null || TopLevel.GetTopLevel(this)?.Clipboard is not { } clipboard)
+            return;
+
+        // The installer puts the CLI next to the GUI; otherwise rely on the PATH
+        var executable = Path.Combine(AppContext.BaseDirectory, OperatingSystem.IsWindows() ? "mpbkpu.exe" : "mpbkpu");
+        if (!File.Exists(executable))
+            executable = "mpbkpu";
+        var res = _item.GetCommandLine(executable);
+        await clipboard.SetTextAsync(res.Command);
+
+        var localizer = Localizer.Localizer.Instance;
+        var message = localizer["CommandCopied"];
+        if (_item is BackupJob { Encrypted: true })
+            message += $"\n{localizer["CommandEncryptionPassword"]}";
+        if (res.HasPlaceholders)
+            message += $"\n{string.Format(localizer["CommandPlaceholders"], MpbkpuLib.Utility.CommandLine.PasswordPlaceholder)}";
+        if (res.UnsupportedPaths.Count > 0)
+            message += $"\n{string.Format(localizer["CommandUnsupported"], string.Join(", ", res.UnsupportedPaths))}";
+        await MessageDialog.ShowMessage(App.GetMainWindow(), message,
+            res.UnsupportedPaths.Count > 0 ? MessageDialog.Icons.Warning : MessageDialog.Icons.Info);
     }
 
     private void OnSettingsClick(object? sender, RoutedEventArgs e)

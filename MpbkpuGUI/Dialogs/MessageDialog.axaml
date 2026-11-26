@@ -11,7 +11,7 @@
         <models:MessageDialogModel />
     </Design.DataContext>
 
-    <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource LineBrush}" BorderThickness="1"
+    <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1"
             CornerRadius="16" Padding="24" MinWidth="380" MaxWidth="560" BoxShadow="0 16 48 0 #99000000">
         <Grid RowDefinitions="*,Auto">
             <Grid ColumnDefinitions="Auto,*">

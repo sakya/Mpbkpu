@@ -10,6 +10,16 @@ namespace MpbkpuGUI.Models;
 
 public class AppSettings
 {
+    public enum ThemeModes
+    {
+        /// <summary>
+        /// Follow the theme of the operating system
+        /// </summary>
+        System,
+        Light,
+        Dark
+    }
+
     public AppSettings()
     {
         Language = "en-US";
@@ -17,6 +27,7 @@ public class AppSettings
     }
 
     public string Language { get; set; }
+    public ThemeModes Theme { get; set; } = ThemeModes.System;
     public List<Job> Jobs { get; set; }
 
     public static async Task<AppSettings?> Load(string fileName)

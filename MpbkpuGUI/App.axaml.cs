@@ -6,6 +6,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using MpbkpuGUI.Models;
 
@@ -65,6 +66,21 @@ namespace MpbkpuGUI
             if (Current is App app && app.MainWindow != null) {
                 app.MainWindow.UpdateLayout();
             }
+        }
+
+        /// <summary>
+        /// Apply a theme: the palette of App.axaml has a color set per theme variant
+        /// </summary>
+        public static void ApplyTheme(AppSettings.ThemeModes mode)
+        {
+            if (Current == null)
+                return;
+            Current.RequestedThemeVariant = mode switch
+            {
+                AppSettings.ThemeModes.Light => ThemeVariant.Light,
+                AppSettings.ThemeModes.Dark => ThemeVariant.Dark,
+                _ => ThemeVariant.Default
+            };
         }
 
         public static Color? GetStyleColor(string name)

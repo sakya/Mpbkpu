@@ -20,7 +20,8 @@ Nella chat parla in italiano
 - GUI: no compiled bindings and no generated name fields; use `FindControl` and reflection bindings.
 - GUI: every new text goes in **both** `it-IT.json` and `en-US.json`; icon-only buttons have `ToolTip.Tip` and
   `AutomationProperties.Name`.
-- GUI: use the styles and resources of `App.axaml` (classes `card`, `chip`, `h1`, `h2`, `muted`, `mono`, `hint`,
+- GUI: colors only from the theme dictionaries of `App.axaml`, referenced with `DynamicResource` (light and dark
+  theme); use the styles and resources of `App.axaml` (classes `card`, `chip`, `h1`, `h2`, `muted`, `mono`, `hint`,
   `accent`, `danger`, `dangerHover`, `icon`, `nav`, `log`) instead of local colors.
 - CRLF line endings (`.gitattributes`).
 - Always write comments and documentation in English.

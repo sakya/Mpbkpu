@@ -17,7 +17,7 @@
             <Border Classes="card" HorizontalAlignment="Center" VerticalAlignment="Center"
                     Margin="40" Padding="40" MaxWidth="560">
                 <StackPanel Spacing="10">
-                    <Border Width="64" Height="64" CornerRadius="16" Background="{StaticResource AccentBrush}"
+                    <Border Width="64" Height="64" CornerRadius="16" Background="{DynamicResource AccentBrush}"
                             HorizontalAlignment="Center" Margin="0,0,0,10">
                         <mi:MaterialIcon Kind="TrayArrowDown" Width="36" Height="36" Foreground="#FFFFFF" />
                     </Border>
@@ -25,12 +25,12 @@
                                TextWrapping="Wrap" TextAlignment="Center" Text="{Binding Title}" />
                     <TextBlock Classes="muted" HorizontalAlignment="Center" TextWrapping="Wrap" Text="{Binding Copyright}" />
                     <TextBlock Margin="0,14,0,0" TextWrapping="Wrap" TextAlignment="Center" TextTrimming="None"
-                               Foreground="{StaticResource SubtleTextBrush}" Text="{Binding Description}" />
+                               Foreground="{DynamicResource SubtleTextBrush}" Text="{Binding Description}" />
                 </StackPanel>
             </Border>
         </ScrollViewer>
 
-        <Border Grid.Row="1" Background="{StaticResource ChromeBrush}" BorderBrush="{StaticResource LineBrush}"
+        <Border Grid.Row="1" Background="{DynamicResource ChromeBrush}" BorderBrush="{DynamicResource LineBrush}"
                 BorderThickness="0,1,0,0" Padding="40,14">
             <controls:OkCancelButtons CancelVisible="False"
                                       OkText="{i18n:Localize Close}"

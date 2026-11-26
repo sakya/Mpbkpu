@@ -31,7 +31,7 @@
                         <StackPanel Orientation="Horizontal" Spacing="14">
                             <TextBlock FontSize="44" FontWeight="Bold" LetterSpacing="-1"
                                        Text="{Binding Progress, StringFormat='{}{0:0}%'}" />
-                            <TextBlock FontSize="15" Foreground="{StaticResource SubtleTextBrush}" VerticalAlignment="Bottom"
+                            <TextBlock FontSize="15" Foreground="{DynamicResource SubtleTextBrush}" VerticalAlignment="Bottom"
                                        Margin="0,0,0,10" Text="{Binding Step}" />
                         </StackPanel>
                     </Grid>

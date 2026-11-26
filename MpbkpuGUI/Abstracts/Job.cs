@@ -216,6 +216,12 @@ public abstract class Job
         return res;
     }
 
+    /// <summary>
+    /// The CLI command that runs this job, without secrets
+    /// </summary>
+    /// <param name="executable">The CLI executable</param>
+    public abstract MpbkpuLib.Utility.CommandLine.Result GetCommandLine(string executable);
+
     public Job Copy()
     {
         var settings = new JsonSerializerSettings()
