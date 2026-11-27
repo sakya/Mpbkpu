@@ -1,4 +1,5 @@
 using MpbkpuLib.Interfaces;
+using MpbkpuLib.Utility;
 
 namespace MpbkpuLib.FileManagers;
 
@@ -22,6 +23,16 @@ public class FileSystemStream : Stream
     {
         get => _baseStream.Position;
         set => _baseStream.Position = value;
+    }
+
+    /// <summary>
+    /// All the data has been written. Required for a file written with an unknown size (<see cref="UploadStream"/>):
+    /// closing it without this call discards it.
+    /// </summary>
+    public void EndOfData()
+    {
+        if (_baseStream is UploadStream us)
+            us.EndOfData();
     }
 
     protected override void Dispose(bool disposing)

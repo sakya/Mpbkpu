@@ -184,6 +184,14 @@ public partial class JobSettingsPage : BasePage
         if (string.IsNullOrEmpty(_model.Job!.Name))
             errors.Add(new ErrorContainer.ErrorData("Name", Localizer.Localizer.Instance["RequiredError"]));
 
+        // The destinations must accept files of unknown size (compressed)
+        if (_job is BackupJob { IsCompressed: true } compressed) {
+            var unsupported = compressed.Destinations.FirstOrDefault(d => !Job.Position.SupportsCompression(d.Type));
+            if (unsupported != null)
+                errors.Add(new ErrorContainer.ErrorData("CompressionLevel", string.Format(Localizer.Localizer.Instance["CompressionNotSupported"],
+                    Localizer.Localizer.Instance[$"Fs_{unsupported.Type}"])));
+        }
+
         var ctrl = this.FindControl<Controls.PositionDetail>("Source")!;
         var sValid = ctrl.Validate();
         ctrl = this.FindControl<Controls.PositionDetail>("Destination")!;

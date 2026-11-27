@@ -5,30 +5,33 @@ namespace MpbkpuLib.Utility;
 
 /// <summary>
 /// Write side of an upload done by an API that reads its data from a stream.
-/// The job writes to this stream, the upload reads from <see cref="ReadStream"/>; the pipe keeps a bounded buffer.
-/// Call <see cref="CompleteAsync"/> when the job has written all the data.
+/// The job writes to this stream, the upload reads from the pipe, which keeps a bounded buffer.
+/// Call <see cref="CompleteAsync"/> when the job has written all the data. With an unknown length (compressed files)
+/// the end of the data is told by <see cref="EndOfData"/>: completing without it cancels the upload, so an
+/// interrupted copy never becomes a truncated file.
 /// </summary>
 public sealed class UploadStream : Stream
 {
     #region classes
     /// <summary>
-    /// Read side given to the upload API: it reports the declared length
+    /// Read side given to the upload API: it reports the declared length, if known (not seekable otherwise)
     /// </summary>
     private sealed class PipeReadStream : Stream
     {
         private readonly Stream _inner;
+        private readonly long? _length;
         private long _position;
 
-        public PipeReadStream(PipeReader reader, long length)
+        public PipeReadStream(PipeReader reader, long? length)
         {
             _inner = reader.AsStream(true);
-            Length = length;
+            _length = length;
         }
 
         public override bool CanRead => true;
-        public override bool CanSeek => true;
+        public override bool CanSeek => _length != null;
         public override bool CanWrite => false;
-        public override long Length { get; }
+        public override long Length => _length ?? throw new NotSupportedException();
 
         public override long Position
         {
@@ -42,7 +45,7 @@ public sealed class UploadStream : Stream
 
         public override int Read(byte[] buffer, int offset, int count)
         {
-            var read = _inner.Read(buffer, offset, (int)Math.Min(count, Length - _position));
+            var read = _inner.Read(buffer, offset, _length == null ? count : (int)Math.Min(count, _length.Value - _position));
             _position += read;
             return read;
         }
@@ -71,14 +74,16 @@ public sealed class UploadStream : Stream
     private readonly Pipe _pipe = new();
     private readonly CancellationTokenSource _cts = new();
     private readonly Task _uploadTask;
+    private readonly long? _length;
     private long _written;
     private bool _completed;
+    private bool _endOfData;
 
-    /// <param name="length">Number of bytes that will be written</param>
-    /// <param name="upload">The upload: it reads from the given stream until the declared length</param>
-    public UploadStream(long length, Func<Stream, CancellationToken, Task> upload)
+    /// <param name="length">Number of bytes that will be written, null when unknown</param>
+    /// <param name="upload">The upload: it reads from the given stream until its end</param>
+    public UploadStream(long? length, Func<Stream, CancellationToken, Task> upload)
     {
-        Length = length;
+        _length = length;
         var readStream = new PipeReadStream(_pipe.Reader, length);
         _uploadTask = Task.Run(() => upload(readStream, _cts.Token));
         // When the upload stops (also on error) the writer must not wait for a reader anymore
@@ -88,7 +93,7 @@ public sealed class UploadStream : Stream
     public override bool CanRead => false;
     public override bool CanSeek => false;
     public override bool CanWrite => true;
-    public override long Length { get; }
+    public override long Length => _length ?? _written;
 
     public override long Position
     {
@@ -100,8 +105,8 @@ public sealed class UploadStream : Stream
     {
         if (_completed)
             throw new ObjectDisposedException(nameof(UploadStream));
-        if (_written + count > Length)
-            throw new IOException($"Cannot write more than the declared {Length} bytes");
+        if (_written + count > _length)
+            throw new IOException($"Cannot write more than the declared {_length} bytes");
 
         FlushResult res;
         try {
@@ -112,8 +117,16 @@ public sealed class UploadStream : Stream
             // The pipe rethrows the error of the failed upload
             throw new IOException("The upload failed", ex);
         }
-        if (res.IsCompleted && _written < Length)
+        if (res.IsCompleted && (_length == null || _written < _length))
             throw new IOException("The upload stopped before receiving all the data", _uploadTask.Exception?.InnerException);
+    }
+
+    /// <summary>
+    /// All the data has been written: needed to complete an upload of unknown length
+    /// </summary>
+    public void EndOfData()
+    {
+        _endOfData = true;
     }
 
     /// <summary>
@@ -126,7 +139,7 @@ public sealed class UploadStream : Stream
             return;
         _completed = true;
 
-        if (_written != Length) {
+        if (_length == null ? !_endOfData : _written != _length) {
             // Never upload a truncated file
             await _cts.CancelAsync();
             await _pipe.Writer.CompleteAsync(new OperationCanceledException());
@@ -135,7 +148,9 @@ public sealed class UploadStream : Stream
             } catch {
                 // The upload has been cancelled
             }
-            throw new IOException($"Upload incomplete: {_written} of {Length} bytes written");
+            throw new IOException(_length == null ?
+                $"Upload incomplete: {_written} bytes written, the end of the data was not reached" :
+                $"Upload incomplete: {_written} of {_length} bytes written");
         }
 
         await _pipe.Writer.CompleteAsync();

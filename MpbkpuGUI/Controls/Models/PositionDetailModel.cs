@@ -19,7 +19,6 @@ public sealed class PositionDetailModel : BaseModel
                 OnPropertyChanged(nameof(SupportPassword));
                 OnPropertyChanged(nameof(SupportOAuth));
                 OnPropertyChanged(nameof(SupportOAuthServerUrl));
-                OnPropertyChanged(nameof(SupportCompression));
             }
         }
     }
@@ -98,9 +97,6 @@ public sealed class PositionDetailModel : BaseModel
         Job.Position.FileSystemTypes.Sftp => Localizer.Localizer.Instance["PathHintSftp"],
         _ => null
     };
-
-    public bool SupportCompression =>
-        Type is Job.Position.FileSystemTypes.FileSystem or Job.Position.FileSystemTypes.Ftp or Job.Position.FileSystemTypes.Sftp or Job.Position.FileSystemTypes.Smb;
 
     public bool SupportUser =>
         Type is Job.Position.FileSystemTypes.Ftp or Job.Position.FileSystemTypes.Mega or Job.Position.FileSystemTypes.Nextcloud or

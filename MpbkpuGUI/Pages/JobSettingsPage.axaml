@@ -103,13 +103,18 @@
                             </StackPanel>
                             <StackPanel Grid.Column="2">
                                 <Label Content="{i18n:Localize CompressionLevel}" />
-                                <ComboBox Name="CmbCompressionLevel" SelectedItem="{Binding Job.CompressionLevel, Mode=TwoWay}">
-                                    <ComboBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Converter={StaticResource EnumToLocalizedStringConverter}, ConverterParameter=Compression_}" />
-                                        </DataTemplate>
-                                    </ComboBox.ItemTemplate>
-                                </ComboBox>
+                                <controls:ErrorContainer FieldName="CompressionLevel"
+                                                         Errors="{Binding $parent.DataContext.Errors}">
+                                    <controls:ErrorContainer.Control>
+                                        <ComboBox Name="CmbCompressionLevel" SelectedItem="{Binding $parent[3].DataContext.Job.CompressionLevel, Mode=TwoWay}">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding Converter={StaticResource EnumToLocalizedStringConverter}, ConverterParameter=Compression_}" />
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                    </controls:ErrorContainer.Control>
+                                </controls:ErrorContainer>
                             </StackPanel>
                         </Grid>
                     </StackPanel>

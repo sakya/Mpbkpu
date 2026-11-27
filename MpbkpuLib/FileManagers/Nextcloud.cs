@@ -47,7 +47,8 @@ public class Nextcloud : IFileManager, IOAuth2
 
     public bool CanOpenDatabase => false;
 
-    public bool SupportCompression => false;
+    // Files of unknown size (compressed) are uploaded with chunked transfer encoding
+    public bool SupportCompression => true;
 
     public string CombinePath(params string[] paths)
     {
@@ -194,11 +195,8 @@ public class Nextcloud : IFileManager, IOAuth2
         if (!write) {
             res = await NextcloudClient.File.Download(client, filePath);
         } else {
-            if (size == null)
-                throw new ArgumentNullException(nameof(size));
-
             var uploadPath = filePath;
-            res = new UploadStream(size.Value, (stream, _) => NextcloudClient.File.Upload(client, uploadPath, stream, size.Value));
+            res = new UploadStream(size, (stream, _) => NextcloudClient.File.Upload(client, uploadPath, stream, size));
         }
 
         return new FileSystemStream(this, res);

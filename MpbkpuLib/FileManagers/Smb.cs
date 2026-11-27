@@ -36,7 +36,8 @@ namespace MpbkpuLib.FileManagers
 
         public bool CanOpenDatabase => false;
 
-        public bool SupportCompression => true;
+        // EzSmb writes streams of known length only: the size of a compressed file is not known in advance
+        public bool SupportCompression => false;
 
         public string CombinePath(params string[] paths)
         {

@@ -85,6 +85,7 @@
   "Information": "About",
   "Files": "Files",
   "FilesBeingCopied": "Being copied",
+  "CompressionNotSupported": "{0} does not support compression: choose no compression or another destination",
   "PathHintFtp": "host/folder. Add ?tls=required to refuse servers without TLS, ?fingerprint=... to trust a self-signed certificate (the error shows its fingerprint).",
   "PathHintSftp": "host/folder. Password 'keyfile=path' (or 'keyfile=path;passphrase=...') for a key; add ?hostkey=... to accept a changed host key (the error shows it).",
   "ConfirmNotEnoughSpace": "The destinations have {0} free and the job has to write {1} (before compression). Continue?",

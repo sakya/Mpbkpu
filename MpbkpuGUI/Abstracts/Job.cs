@@ -142,7 +142,26 @@ public abstract class Job
             }
         }
 
+        /// <summary>
+        /// True when backups to this type of position can be compressed (the file manager accepts files of unknown size)
+        /// </summary>
+        public static bool SupportsCompression(FileSystemTypes type)
+        {
+            using var fm = CreatePlaceholder(type);
+            return fm?.SupportCompression ?? true;
+        }
+
         private static string? GetScheme(FileSystemTypes type, out char? pathSeparator)
+        {
+            using var fm = CreatePlaceholder(type);
+            pathSeparator = fm?.PathSeparator;
+            return fm?.GetScheme();
+        }
+
+        /// <summary>
+        /// A file manager of the type with placeholder credentials, to read its properties; null for the local file system
+        /// </summary>
+        private static IFileManager? CreatePlaceholder(FileSystemTypes type)
         {
             IFileManager? fm = null;
             switch (type) {
@@ -175,8 +194,7 @@ public abstract class Job
                     break;
             }
 
-            pathSeparator = fm?.PathSeparator;
-            return fm?.GetScheme();
+            return fm;
         }
     }
 

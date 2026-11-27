@@ -66,6 +66,10 @@ Not committed: pCloud support (OAuth like Dropbox, US/EU server, library + GUI +
 the OAuth options), the OAuth browser login shared with Dropbox, the account paths of the factory unified. Offline
 tests only (factory, dates, servers); never tried on a pCloud account.
 
+Not committed: compression on Dropbox and Nextcloud (uploads of unknown size), SMB no longer claims compression
+support (it failed on the first file), the job settings refuse compression with destinations that do not support it.
+Offline tests only (`UploadStream` of unknown length, cancellation without `EndOfData`); no real account tried.
+
 ## Open issues and attempts so far
 - Remote file managers other than MediaFire never tried with real accounts, also as additional destinations.
 - Parallel copies only on local file systems (tests); remote file managers limited to 1, never tried in parallel.

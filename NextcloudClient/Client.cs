@@ -112,7 +112,8 @@ namespace NextcloudClient
             return await res.Content.ReadAsStreamAsync();
         }
 
-        public async Task UploadStream(Uri uri, Stream stream, long length)
+        /// <param name="length">The length of the data, null when unknown: the body is sent with chunked transfer encoding</param>
+        public async Task UploadStream(Uri uri, Stream stream, long? length)
         {
             var content = new StreamContent(stream);
             content.Headers.ContentLength = length;

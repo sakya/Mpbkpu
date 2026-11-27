@@ -22,6 +22,8 @@
   (`-e a -e a`, `--destinationUser bob --destinationUser bob`); the CLI works around it with `N=value`.
 - [ ] CLI: `--exclude` is accepted by restore but `RestoreJob` has no `Exclude`.
 - [ ] Restore: no free space check before writing (backup and sync have one).
+- [ ] Compression to Dropbox and Nextcloud (uploads of unknown size): try a compressed backup and restore with real
+  accounts; Nextcloud behind some proxies may refuse chunked transfer encoding.
 - [ ] pCloud: try with a real account and a registered app (backup, sync, history, restore, verify); check that
   `uploadfile` honours `mtime`, the behaviour of names that differ only in case (`IsCaseSensitive`), and the EU server.
   For the explicit `FileManagers` tests add to `filemanagers-settings.json` an entry with `"Path":

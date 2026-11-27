@@ -55,7 +55,8 @@ public class Dropbox : IFileManager, IOAuth2
 
     public bool CanOpenDatabase => false;
 
-    public bool SupportCompression => false;
+    // Files of unknown size (compressed) are uploaded with an upload session
+    public bool SupportCompression => true;
 
     public string CombinePath(params string[] paths)
     {
@@ -185,10 +186,7 @@ public class Dropbox : IFileManager, IOAuth2
             return new FileSystemStream(this, await downloadRes.GetContentAsStreamAsync());
         }
 
-        if (size == null)
-            throw new ArgumentNullException(nameof(size));
-
-        var res = new UploadStream(size.Value, (stream, token) => Upload(client, apiPath, stream, size.Value, token));
+        var res = new UploadStream(size, (stream, token) => Upload(client, apiPath, stream, token));
         return new FileSystemStream(this, res);
     }
 
@@ -311,12 +309,13 @@ public class Dropbox : IFileManager, IOAuth2
     }
 
     /// <summary>
-    /// Upload the data read from a stream: one request up to <see cref="ChunkSize"/>, an upload session otherwise.
+    /// Upload the data read from a stream until its end (the size may be unknown): one request when it fits in
+    /// <see cref="ChunkSize"/>, an upload session otherwise; a chunk shorter than <see cref="ChunkSize"/> is the last.
     /// Every request gets its own buffer of known length, so a failed request never leaves the stream in an odd state.
     /// </summary>
-    private static async Task Upload(DropboxClient client, string apiPath, Stream stream, long size, CancellationToken token)
+    private static async Task Upload(DropboxClient client, string apiPath, Stream stream, CancellationToken token)
     {
-        var buffer = new byte[(int)Math.Min(ChunkSize, Math.Max(size, 1))];
+        var buffer = new byte[ChunkSize];
 
         async Task<MemoryStream> ReadChunk()
         {
@@ -327,24 +326,22 @@ public class Dropbox : IFileManager, IOAuth2
             return new MemoryStream(buffer, 0, read, false);
         }
 
-        var commit = new CommitInfo(apiPath, WriteMode.Overwrite.Instance);
-        if (size <= ChunkSize) {
-            await client.Files.UploadAsync(new UploadArg(apiPath, WriteMode.Overwrite.Instance), await ReadChunk());
-            return;
-        }
-
         string sessionId;
         ulong offset;
-        using (var chunk = await ReadChunk()) {
-            sessionId = (await client.Files.UploadSessionStartAsync(body: chunk)).SessionId;
-            offset = (ulong)chunk.Length;
+        using (var first = await ReadChunk()) {
+            if (first.Length < ChunkSize) {
+                await client.Files.UploadAsync(new UploadArg(apiPath, WriteMode.Overwrite.Instance), first);
+                return;
+            }
+            sessionId = (await client.Files.UploadSessionStartAsync(body: first)).SessionId;
+            offset = (ulong)first.Length;
         }
+
+        var commit = new CommitInfo(apiPath, WriteMode.Overwrite.Instance);
         while (true) {
             using var chunk = await ReadChunk();
-            if (chunk.Length == 0)
-                throw new IOException($"Upload of {apiPath} incomplete: {offset} of {size} bytes");
             var cursor = new UploadSessionCursor(sessionId, offset);
-            if ((long)offset + chunk.Length >= size) {
+            if (chunk.Length < ChunkSize) {
                 await client.Files.UploadSessionFinishAsync(cursor, commit, body: chunk);
                 return;
             }

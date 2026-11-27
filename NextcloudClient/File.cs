@@ -116,7 +116,8 @@ namespace NextcloudClient
         /// <param name="stream">The <see cref="Stream"/></param>
         /// <param name="length">The number of bytes to upload</param>
         /// <exception cref="ArgumentNullException"></exception>
-        public static async Task Upload(Client client, string path, Stream stream, long length)
+        /// <param name="length">The length of the data, null when unknown (chunked transfer encoding)</param>
+        public static async Task Upload(Client client, string path, Stream stream, long? length)
         {
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(nameof(path));

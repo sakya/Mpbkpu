@@ -68,6 +68,17 @@
   `OAuthTokenCache` keeps tokens without refresh token or expiry and an `ApiHost`.
 - **Account paths** (`FileManagerFactory.GetAccount`): OneDrive, Dropbox, Nextcloud and pCloud read the account from
   `scheme://account/position` (else from the user) the same way.
+- **Compression on remote destinations** (2026-11-27): a compressed file has an unknown size, so a destination
+  supports compression (`IFileManager.SupportCompression`) only if it can upload a stream of unknown length.
+  Compressing to a temporary file first was rejected by the user (time and disk space with large files), and
+  compressing twice to measure the size costs as much. Supported: local, FTP, SFTP (streams), Dropbox (upload
+  session, the end found by a chunk shorter than 4 MB), Nextcloud (PUT with chunked transfer encoding, to verify on a
+  real server). Not supported: OneDrive (Graph wants the total size in every fragment), MEGA and MediaFire (the size
+  is part of the upload protocol), SMB (EzSmb writes streams of known length; it claimed support and failed on the
+  first file), pCloud (rclone does not upload unknown sizes and pCloud refuses chunked encoding). `UploadStream`
+  takes a null length; such an upload is committed only after `FileSystemStream.EndOfData()`, called by the backup
+  after the last byte, so a copy interrupted by an error is cancelled instead of becoming a truncated file. The GUI
+  checks the destinations when the job is saved (`Job.Position.SupportsCompression`, read from the file manager).
 - **MEGA 2FA**: the code is asked, not stored (the user's choice, 2026-11-27): a login failing with
   `TwoFactorAuthenticationError` calls `Mega.TwoFactorCodeProvider` (GUI: `PasswordDialog` with a custom label, at
   least 6 characters; CLI: a console line). The session is kept in memory per account and reused by the other

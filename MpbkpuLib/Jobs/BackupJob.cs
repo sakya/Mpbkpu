@@ -804,6 +804,8 @@ public class BackupJob : BaseJob
                                 await BackupFileFromSourceCompress(backupItem, sourceStream, destStream, Settings.CompressionLevel, progressAction);
                             else
                                 await BackupFileFromSourceCopy(backupItem, sourceStream, destStream, progressAction);
+                            // A compressed file has an unknown size: tell the destination that it is complete
+                            destStream.EndOfData();
                         }
                     }
 

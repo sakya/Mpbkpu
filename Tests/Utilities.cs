@@ -44,6 +44,46 @@ public class Utilities
     }
 
     [Test]
+    public async Task UploadStreamOfUnknownLengthDeliversAllTheData()
+    {
+        var data = new byte[3 * 1024 * 1024 + 7];
+        Random.Shared.NextBytes(data);
+        var uploaded = new MemoryStream();
+        var seekable = true;
+
+        var stream = new UploadStream(null, (s, _) =>
+        {
+            // The upload API must not rely on a length (Dropbox sessions, chunked transfer encoding)
+            seekable = s.CanSeek;
+            return s.CopyToAsync(uploaded);
+        });
+        for (var offset = 0; offset < data.Length; offset += 32768)
+            await stream.WriteAsync(data.AsMemory(offset, Math.Min(32768, data.Length - offset)));
+        Assert.That(stream.Length, Is.EqualTo(data.Length));
+        stream.EndOfData();
+        await stream.CompleteAsync().WaitAsync(Timeout);
+
+        Assert.That(seekable, Is.False);
+        Assert.That(uploaded.ToArray(), Is.EqualTo(data));
+    }
+
+    [Test]
+    public async Task UploadStreamOfUnknownLengthIsCancelledWithoutEndOfData()
+    {
+        // An interrupted copy (the stream closed without EndOfData) must not become a truncated file
+        var cancelled = false;
+        var stream = new UploadStream(null, async (s, token) =>
+        {
+            token.Register(() => cancelled = true);
+            await s.CopyToAsync(Stream.Null, token);
+        });
+        await stream.WriteAsync(new byte[500]);
+
+        await Assert.ThrowsAsync<IOException>(() => stream.CompleteAsync().WaitAsync(Timeout));
+        Assert.That(cancelled, Is.True);
+    }
+
+    [Test]
     public async Task UploadStreamDoesNotHangWhenTheUploadFails()
     {
         var stream = new UploadStream(10 * 1024 * 1024, (_, _) => throw new InvalidOperationException("upload failed"));

@@ -85,6 +85,7 @@
   "Information": "Informazioni",
   "Files": "File",
   "FilesBeingCopied": "In copia",
+  "CompressionNotSupported": "{0} non supporta la compressione: scegli nessuna compressione o un'altra destinazione",
   "PathHintFtp": "host/cartella. Aggiungi ?tls=required per rifiutare i server senza TLS, ?fingerprint=... per fidarti di un certificato self-signed (l'errore ne mostra l'impronta).",
   "PathHintSftp": "host/cartella. Password 'keyfile=percorso' (o 'keyfile=percorso;passphrase=...') per una chiave; aggiungi ?hostkey=... per accettare una chiave host cambiata (l'errore la mostra).",
   "ConfirmNotEnoughSpace": "Le destinazioni hanno {0} liberi e il job deve scrivere {1} (prima della compressione). Continuare?",
