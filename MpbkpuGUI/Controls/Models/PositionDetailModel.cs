@@ -23,6 +23,39 @@ public sealed class PositionDetailModel : BaseModel
         }
     }
 
+    private bool _isTesting;
+    public bool IsTesting
+    {
+        get => _isTesting;
+        set => SetField(ref _isTesting, value);
+    }
+
+    private bool? _testResult;
+    /// <summary>
+    /// Result of the last connection test, null when not tested (or the settings changed since)
+    /// </summary>
+    public bool? TestResult
+    {
+        get => _testResult;
+        set
+        {
+            if (SetField(ref _testResult, value)) {
+                OnPropertyChanged(nameof(TestSucceeded));
+                OnPropertyChanged(nameof(TestFailed));
+            }
+        }
+    }
+
+    public bool TestSucceeded => TestResult == true;
+    public bool TestFailed => TestResult == false;
+
+    private string? _testMessage;
+    public string? TestMessage
+    {
+        get => _testMessage;
+        set => SetField(ref _testMessage, value);
+    }
+
     private List<ErrorContainer.ErrorData>? _errors;
     public List<ErrorContainer.ErrorData>? Errors
     {

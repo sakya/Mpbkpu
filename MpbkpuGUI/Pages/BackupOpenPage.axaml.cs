@@ -169,6 +169,12 @@ public partial class BackupOpenPage : BasePage
             await NavigateTo(new BackupVerifyPage(bkp.Backup!, _backup.GetBackupDestinations(), _backup.Password));
     }
 
+    public override Task<bool> OnNavigatingFrom(NavigationDirection direction)
+    {
+        // The back arrow during a restore asks to cancel it
+        return ItemRestore.ConfirmLeave(this.FindControl<Controls.Spinner>("Spinner")!);
+    }
+
     private async void OnOkClick(object? sender, RoutedEventArgs e)
     {
         await NavigateBack();

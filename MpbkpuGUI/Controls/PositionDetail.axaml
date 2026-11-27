@@ -44,6 +44,8 @@
 
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <Label Grid.Row="0" Content="{i18n:Localize Type}" />
@@ -153,5 +155,28 @@
                          IsVisible="{Binding $parent[3].DataContext.SupportOAuth}"/>
             </controls:ErrorContainer.Control>
         </controls:ErrorContainer>
+
+        <!-- Connects with the typed settings: login, folder, free space -->
+        <StackPanel Grid.Row="18" Spacing="8" Margin="0,14,0,0">
+            <Button HorizontalAlignment="Left" Click="OnTestConnectionClick" IsEnabled="{Binding !IsTesting}"
+                    AutomationProperties.Name="{i18n:Localize TestConnection}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <mi:MaterialIcon Kind="LanConnect" Width="16" Height="16" />
+                    <TextBlock Text="{i18n:Localize TestConnection}" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+            <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding IsTesting}"
+                       Text="{i18n:Localize TestingConnection}" />
+            <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding TestSucceeded}">
+                <mi:MaterialIcon Kind="CheckCircle" Width="16" Height="16" VerticalAlignment="Top"
+                                 Foreground="{DynamicResource SuccessBrush}" />
+                <TextBlock TextWrapping="Wrap" Text="{Binding TestMessage}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding TestFailed}">
+                <mi:MaterialIcon Kind="AlertCircle" Width="16" Height="16" VerticalAlignment="Top"
+                                 Foreground="{DynamicResource DangerBrush}" />
+                <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource DangerBrush}" Text="{Binding TestMessage}" />
+            </StackPanel>
+        </StackPanel>
     </Grid>
 </UserControl>

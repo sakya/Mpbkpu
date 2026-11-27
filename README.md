@@ -43,6 +43,7 @@ are never deleted.
 
 1. Click **New backup** or **New synchronization**.
 2. Pick the source folder and one or more destinations. For cloud services you sign in to your account in the browser.
+   **Test connection** checks the settings and shows the free space before you save.
 3. Set the options: backup type, encryption, compression, files to exclude, how many backups to keep.
 4. Click **Run**.
 

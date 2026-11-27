@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -8,6 +9,7 @@ using Avalonia.Markup.Xaml;
 using MpbkpuGUI.Abstracts;
 using MpbkpuGUI.Controls.Models;
 using MpbkpuGUI.Interfaces;
+using MpbkpuLib.FileManagers;
 using Avalonia.Platform.Storage;
 
 namespace MpbkpuGUI.Controls;
@@ -86,6 +88,7 @@ public partial class PositionDetail : UserControl, IValidate
         if (sender is ComboBox { SelectedItem: { } } cmb) {
             _model.Type = (Job.Position.FileSystemTypes)cmb.SelectedItem;
             _model.Errors = null;
+            _model.TestResult = null;
             TypeChanged?.Invoke(this, EventArgs.Empty);
         }
     }
@@ -98,6 +101,51 @@ public partial class PositionDetail : UserControl, IValidate
             _model.Path = dir;
         }
     }
+
+    /// <summary>
+    /// Connect with the settings typed in the editor: log in, check the folder and read the free space
+    /// </summary>
+    private async void OnTestConnectionClick(object? sender, RoutedEventArgs e)
+    {
+        _model.TestResult = null;
+        if (!Validate())
+            return;
+
+        var position = Value!;
+        _model.IsTesting = true;
+        try {
+            var test = Task.Run(async () =>
+            {
+                using var fm = position.GetFileManager(out var path);
+                var exists = await fm.DirectoryExists(path);
+                StorageSpace? space = null;
+                try {
+                    space = await fm.GetSpace(path);
+                } catch (Exception) {
+                    // The space is optional (some file systems cannot report it)
+                }
+                return (exists, space);
+            });
+            // A browser login abandoned by the user would wait forever
+            if (await Task.WhenAny(test, Task.Delay(TestTimeout)) != test)
+                throw new TimeoutException(Localizer.Localizer.Instance["TestConnectionTimeout"]);
+
+            var (exists, space) = await test;
+            var message = Localizer.Localizer.Instance[exists ? "TestConnectionOk" : "TestConnectionNoFolder"];
+            if (space != null)
+                message += " " + string.Format(Localizer.Localizer.Instance["TestConnectionSpace"],
+                    MpbkpuLib.Utility.String.BytesToString(space.Available));
+            _model.TestMessage = message;
+            _model.TestResult = true;
+        } catch (Exception ex) {
+            _model.TestMessage = $"{Localizer.Localizer.Instance["TestConnectionFailed"]}{ex.Message}";
+            _model.TestResult = false;
+        } finally {
+            _model.IsTesting = false;
+        }
+    }
+
+    private static readonly TimeSpan TestTimeout = TimeSpan.FromMinutes(3);
 
     public bool Validate()
     {

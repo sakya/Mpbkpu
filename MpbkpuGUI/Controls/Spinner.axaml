@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              xmlns:models="clr-namespace:MpbkpuGUI.Controls.Models"
+             xmlns:i18n="clr-namespace:MpbkpuGUI.Localizer"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="MpbkpuGUI.Controls.Spinner">
     <Design.DataContext>
@@ -29,10 +30,15 @@
                         Kind="Loading" />
             </StackPanel>
         </StackPanel>
-        <TextBlock Grid.Row="2"
-                   Margin="0,16,0,0"
-                   Foreground="{DynamicResource SubtleTextBrush}"
-                   HorizontalAlignment="Center"
-                   Text="{Binding Message}"/>
+        <StackPanel Grid.Row="2" Margin="0,16,0,0" Spacing="10" HorizontalAlignment="Center">
+            <TextBlock Foreground="{DynamicResource SubtleTextBrush}"
+                       HorizontalAlignment="Center"
+                       Text="{Binding Message}"/>
+            <!-- Optional: progress of a long operation (ShowProgress) and a cancel button (CancelRequested) -->
+            <ProgressBar Name="Progress" Width="360" Maximum="100" IsVisible="False" />
+            <TextBlock Name="Detail" Classes="muted" HorizontalAlignment="Center" IsVisible="False" />
+            <Button Name="CancelButton" HorizontalAlignment="Center" IsVisible="False" Click="OnCancelClick"
+                    Content="{i18n:Localize Cancel}" AutomationProperties.Name="{i18n:Localize Cancel}" />
+        </StackPanel>
     </Grid>
 </UserControl>

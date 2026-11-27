@@ -47,6 +47,8 @@ Not committed:
 - Restore of a whole backup from the history (button per backup, folder picker, confirmation; nothing deleted in the
   folder; shared `Utility/ItemRestore` with the browser download): build and
   `Regressions.RestoreWholeBackupIntoFolderKeepsOtherFiles` pass, not seen on screen.
+- "Test connection" in the job settings and progress/cancel for download and restore (`Spinner`): build passes; not
+  seen on screen, not tried with remote services.
 
 ## Open issues and attempts so far
 - Remote file managers other than MediaFire never tried with real accounts (also as additional destinations).

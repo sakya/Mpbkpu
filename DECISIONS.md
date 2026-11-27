@@ -262,7 +262,16 @@
   restored into the folder with its relative path, overwriting existing files and deleting nothing. A full restore
   (`RelativePath` null, like the CLI) would make the folder identical to the backup and delete everything else in it:
   too dangerous with a folder picker. The download of the backup browser and this restore share
-  `Utility/ItemRestore` (picker, spinner with percentage, result message); still no cancel button.
+  `Utility/ItemRestore` (picker, spinner with steps, progress bar, files/bytes/time left and a cancel button; a
+  cancelled restore keeps the files restored so far). The progress lives in the `Spinner` overlay
+  (`ShowProgress`, `CancelRequested`: the button is shown while a handler is attached) instead of a dedicated page.
+  The back arrow during a download or restore is the same as the cancel button (`ItemRestore.ConfirmLeave` in
+  `OnNavigatingFrom`): both ask for a confirmation, cancel and keep the page to show the result, like the verify and
+  backup pages.
+- **Test connection** (`PositionDetail`, every source and destination): validates the fields, then creates the file
+  manager from the typed settings, checks the folder (`DirectoryExists`) and reads the free space (optional). A
+  missing folder is reported as success with a note (a backup creates it). Cloud services may open the browser to
+  sign in: the test gives up after 3 minutes. Nothing is saved.
 - **SingleWindow navigation unchanged** (pages animated in `Container`, back arrow in the TitleBar); the sidebar is
   only on the job list.
 - **Cards with `ItemsControl`** instead of `ItemsList` for the job list and the history: `ItemsList` colors the row

@@ -12,7 +12,8 @@
 
 ## Mockup features not implemented
 - [x] Restore of a whole backup from the GUI (history, into a chosen folder, deleting nothing).
-- [ ] Download and restore from the GUI have no cancel button and no progress page (spinner with percentage).
+- [x] Download and restore from the GUI: progress bar, files, bytes, time left and cancel button.
+- [x] "Test connection" for every source and destination in the job settings.
 - [ ] Job list filters ("With warnings", "Never run").
 - [ ] Phase list (stepper) on the running page.
 - [ ] Message dialogs with a title and a detail line (today one message string).
