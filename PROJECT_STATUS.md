@@ -1,87 +1,56 @@
 # Project status
 
-_Updated: 2026-11-26_
+_Updated: 2026-11-27_
 
 ## Goal
 Mpbkpu: a multi-platform backup utility with encryption and compression, on local and remote file systems
 (FTP, SFTP, SMB, OneDrive, Dropbox, MEGA, Nextcloud, MediaFire, pCloud). A backup can be split among more destinations.
 Projects: library `MpbkpuLib`, CLI `Mpbkpu`, Avalonia GUI `MpbkpuGUI`, `NextcloudClient`, `Tests` (NUnit), installer
-in `Setup/`. MediaFire uses the author's `MediaFireApi` NuGet package (repository `../MediaFireApi`).
+in `Setup/`. MediaFire uses the author's `MediaFireApi` NuGet package (repository `../MediaFireApi`), the CLI the
+author's `CmdLineArgsParser` (`../CmdLineArgsParser`).
 
 ## Completed and verified
 | Area | What | How it was verified |
 |---|---|---|
-| Platform | .NET 10, Avalonia 12.2, AvaloniaSingleWindow 1.2.0, Material.Icons, EF Core 10, current NuGet packages | build, app started |
-| Backup logic | Review issues fixed, chains (`FullBackupEveryDays`, `KeepChains`), encryption v2 with HMAC, locked/changed files as warnings | `Tests/Regressions.cs` |
-| Sync | Unchanged files no longer deleted and recopied, hidden/excluded/unreadable items never deleted, `Exclude` applied, temp file + rename, result with warnings/cancellation | `Tests/Sync.cs` |
-| File managers | Rename, uploads (`UploadStream`), paths consistent with the job root, root folders, not-found exceptions, credentials, tokens, TLS/host keys, UTC dates (details in DECISIONS.md) | offline tests in `Tests/Utilities.cs`; real account: **MediaFire only** |
-| MediaFire login | "Cannot get security code" fixed in MediaFireApi 0.2.2 (NuGet) | user's backup to MediaFire |
-| Credentials | Passwords and OAuth secrets in the OS secure storage (`SecretStore`); passwords in `scheme://user:password` paths masked in logs and backup database | scratch round trip, `CredentialsAreMasked` |
-| Encryption password | Optional "remember", "Forget password", wrong saved password forgotten (`InvalidPasswordException`) | tests + on screen |
-| Free space / time left | `IFileManager.GetSpace`, space read/estimated during jobs; `EtaEstimator` | tests + screenshots |
-| Multiple destinations (library) | Files split among the destinations (fewest assigned bytes), database read from the newest copy and written to all, legacy databases migrated (`MultipleDestinations`), list/restore/verify/delete/`KeepChains` on every destination, `MissingDestinationException`, parallel copy engine (`ParallelFiles`, workers) | 13 tests in `Tests/Regressions.cs` (local folders) |
-| Multiple destinations (CLI) | Repeatable `-d` / `-b`, `--parallelFiles`, restore and sync take one destination, restore does not retry a missing destination | end to end in a real console on 3 folders (backup, list, verify, restore identical, missing destination, delete) |
-| Multiple destinations (GUI) | Other destinations and "files copied at the same time" in the job settings, persisted position ids, secrets per destination, space per destination (job list, running page), history/verify/delete on every destination | on screen with a job on 3 local folders (PrintWindow + UI Automation); verify of a MediaFire backup confirmed by the user |
-| GUI | Redesign, delete page, history browser, dialogs, title bar, Windows animations (`WS_CAPTION`, not seen on screen) | screenshots; user |
-| Setup | `Setup/build.bat` + `Setup/Mpbkpu.iss` | installer compiled, published GUI started (installer not run) |
+| Platform | .NET 10, Avalonia 12.2, AvaloniaSingleWindow 1.2.0, Material.Icons, EF Core 10 | build, app started |
+| Backup logic | Chains (`FullBackupEveryDays`, `KeepChains`), encryption v2 with HMAC, locked/changed files as warnings, `Exclude` honoured, free space in the confirmation, `ForeignDatabaseException` (destinations holding different backups), verify with errors is a failure | `Tests/Regressions.cs` |
+| Sync | Unchanged files kept, hidden/excluded/unreadable items never deleted, temp file + rename | `Tests/Sync.cs` |
+| Multiple destinations | Library, CLI, GUI; parallel copy engine; local file systems copy in parallel (no `MaxParallelTransfers` limit) | 13+ regression tests; CLI end to end on 3 folders; GUI on screen (4 of 8 files copied at once) |
+| CLI | Works with redirected output, exit codes (0 ok, 1 error, 2 cancelled, -1 invalid arguments), `--log` for every action, credentials per destination as `N=value`, actions on `BaseAction.RunJob` | `Tests/CommandLine.cs`; by hand in a real console (each exit code, redirected output, `--log`, `--exclude`) |
+| Credentials | OS secure storage (`SecretStore`), passwords masked in logs and database | tests |
+| MediaFire | Backup and verify with the user's account (MediaFireApi 0.2.2) | user |
+| GUI | Light/dark theme, "Copy command", backup browser (double click, right click download), files being copied, history result icons | on screen by the user (2026-11-26/27) |
+| Setup | `Setup/build.bat` + `Setup/Mpbkpu.iss` | installer compiled (not run) |
 
-Tests: 101 tests pass with `dotnet test Tests/Tests.csproj` (the `FileManagers` tests on real accounts are explicit
-and skipped without `filemanagers-settings.json`). Clean build: 0 warnings, 0 errors.
+Tests: 112 pass with `dotnet test Tests/Tests.csproj` (`FileManagers` tests on real accounts are explicit, skipped
+without `filemanagers-settings.json`). Clean build: 0 warnings, 0 errors.
 
 ## Current state
-Committed (`60e8f3e fix #61`): multiple destinations, the two build warning fixes, parallel copies on local file
-systems (`BaseLocalFileSystem.MaxParallelTransfers` has no limit, test `LocalFileSystemsCopyFilesAtTheSameTime`) and
-the list of the files being copied on the running page (`FileCompleted`; seen on screen: 4 of 8 files copied at the
-same time, list emptied at the end). Every remote file manager is still limited to 1, so a backup with a remote
-source or only remote destinations copies one file at a time.
+Committed up to `54add34` (2026-11-27). Implemented but **not verified on a real service or on screen**:
+- service options (offline tests only): FTP `?tls=required`/`?fingerprint=`, SFTP key passphrase and `?hostkey=`,
+  MEGA modification date on upload and 2FA code prompt, MediaFire session renewal, SMB dates as UTC;
+- pCloud file manager (OAuth, US/EU server), OAuth browser login shared with Dropbox (`Utility/OAuthBrowserLogin`),
+  account paths unified in `FileManagerFactory.GetAccount`;
+- compression on Dropbox (upload session) and Nextcloud (chunked transfer encoding) through `UploadStream` of unknown
+  length + `FileSystemStream.EndOfData`; SMB no longer claims compression; job settings refuse unsupported compression;
+- GUI not seen on screen: switches instead of check boxes, free space dialog, FTP/SFTP path hints, compression error
+  in the job settings.
 
-Committed (`e3e8012`, `3339fb1`), all confirmed working on screen by the user (2026-11-26):
-- light theme (`ThemeDictionaries` in `App.axaml`, `AppSettings.Theme`, sidebar button System/Light/Dark);
-- "Copy command" in the job list (`MpbkpuLib.Utility.CommandLine`, tests in `Tests/CommandLine.cs`; a command of the
-  same form also run in a real console);
-- the backup browser: double click opens a directory, right click selects the row and downloads a file or directory
-  (`RestoreJobSettings.RelativePath`, test `RestoreSingleItemKeepsOtherFiles`).
-
-Not committed (2026-11-27), the "Fixes and improvements" without accounts: CLI (no crash with redirected output,
-exit codes, `--log` for every action, credentials for every destination as `N=value`, actions rewritten on
-`BaseAction.RunJob`), `BackupJob` honours `Exclude`, free space warning before backup and sync (CLI question, GUI
-dialog), `ForeignDatabaseException` for destinations holding different backups, verify with errors is a failure,
-explicit `FileManagers` tests, history result icons visible again (`App.GetStyleColor` reads the theme dictionaries).
-Tested by unit tests; the CLI also by hand in a real console: backup with redirected output and `--exclude` (exit
-0), list with `--log`, list content without the excluded file, verify of a damaged backup (exit 1, error message),
-confirmation declined from redirected input (exit 2), invalid credential values with redirected output (exit -1).
-The GUI space dialog has not been seen on screen.
-
-Not committed (2026-11-27), service limits: FTP path options `tls=required` and `fingerprint=` (self-signed
-certificates), SFTP key passphrase and `hostkey=` for a changed host key, MEGA modification date on upload
-(`OpenFile` takes `lastModified`; restore now also passes the size), MediaFire session renewal, SMB dates normalized
-to UTC, path hints in the GUI. Offline tests only (parsing, masking, dates): none of these tried on a real server.
-MEGA 2FA: the code is asked when the account needs it (GUI dialog, CLI prompt), once per account and run.
-Not done: MediaFire modification date (no API), SMB free space/hidden/connections (EzSmb).
-
-Not committed: check boxes replaced by switches (remember password, encrypted, hash check); built, not seen on
-screen.
-
-Not committed: pCloud support (OAuth like Dropbox, US/EU server, library + GUI + factory, CLI through the path and
-the OAuth options), the OAuth browser login shared with Dropbox, the account paths of the factory unified. Offline
-tests only (factory, dates, servers); never tried on a pCloud account.
-
-Not committed: compression on Dropbox and Nextcloud (uploads of unknown size), SMB no longer claims compression
-support (it failed on the first file), the job settings refuse compression with destinations that do not support it.
-Offline tests only (`UploadStream` of unknown length, cancellation without `EndOfData`); no real account tried.
+Not committed: the uninstaller asks whether to delete settings and credentials (`Setup/Mpbkpu.iss`, `[Code]`);
+script compiled, uninstall never run.
 
 ## Open issues and attempts so far
-- Remote file managers other than MediaFire never tried with real accounts, also as additional destinations.
-- Parallel copies only on local file systems (tests); remote file managers limited to 1, never tried in parallel.
-- "Value cannot be null (password)" on verify of a MediaFire backup (2026-11-26): after the user recreated the job
-  (they had deleted `settings.json`) it works. Probable cause, not proven: the GUI screen test overwrote
-  `settings.json`/`secrets` while the user's GUI was using them. The code passes the job password to verify.
-- `Tests/FileManagers` need real credentials and may wait on an OAuth login: explicit, run them only by name.
-- Not verified on screen: warnings box in the history, windows narrower than 1180×780, the Windows animations.
+- Remote file managers other than MediaFire never tried with real accounts (also as additional destinations).
+- Remote file managers copy one file at a time (`MaxParallelTransfers` 1), never tried in parallel.
+- pCloud API details reconstructed from the JS SDK and rclone (docs.pcloud.com pages arrive truncated): `mtime` on
+  upload, case sensitivity and the EU server are assumptions.
+- Nextcloud chunked uploads may be refused by some reverse proxies (assumption, not tried).
+- "Value cannot be null (password)" on a MediaFire verify (2026-11-26) disappeared after recreating the job; probable
+  cause, not proven: a GUI screen test overwrote `settings.json`/`secrets` while the user's GUI was open.
+- Not verified on screen: warnings box in the history, windows narrower than 1180×780, Windows animations.
 - Backups made before the fixes: wrong `RelativePath` for relative source paths (not repairable); modification
-  dates restored shifted by the UTC offset (change detection is not affected).
+  dates restored shifted by the UTC offset (change detection not affected).
 
 ## Next step
-Run a backup and a sync on each remote service used in practice with a real
-account (upload, `.mpbkpu-tmp` rename, database copy, history, verify, restore), also as an additional destination
-of a local backup.
+Commit the uninstaller change, then try with a real account each service used in practice (backup, sync, history,
+verify, restore, also compressed and as an additional destination), starting from the ones changed on 2026-11-27.

@@ -46,3 +46,27 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopico
 
 [Run]
 Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
+
+[CustomMessages]
+english.DeleteUserData=Also delete the settings and the saved credentials of {#AppName}?%n%n%1%n%2%n%nThe backups are not deleted.
+italian.DeleteUserData=Eliminare anche le impostazioni e le credenziali salvate di {#AppName}?%n%n%1%n%2%n%nI backup non vengono eliminati.
+
+[Code]
+// Settings (MpbkpuGUI: settings.json, secrets) and library data (Mpbkpu: OAuth tokens, known_hosts) of the user who
+// uninstalls are deleted only if they choose to (default No, kept on silent uninstalls): a reinstall finds the jobs
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+  GuiData, LibData: String;
+begin
+  if CurUninstallStep <> usPostUninstall then
+    Exit;
+  GuiData := ExpandConstant('{localappdata}\MpbkpuGUI');
+  LibData := ExpandConstant('{localappdata}\Mpbkpu');
+  if not (DirExists(GuiData) or DirExists(LibData)) or UninstallSilent then
+    Exit;
+  if MsgBox(FmtMessage(CustomMessage('DeleteUserData'), [GuiData, LibData]), mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES then
+  begin
+    DelTree(GuiData, True, True, True);
+    DelTree(LibData, True, True, True);
+  end;
+end;

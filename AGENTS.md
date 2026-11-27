@@ -30,8 +30,11 @@ Nella chat parla in italiano
 - Do not duplicate code. Reuse common functions and use OOP patterns.
 - File managers: uploads from APIs that read a stream go through `Utility/UploadStream`; full paths returned by
   `GetDirectoryContent` must keep the form of the requested path (jobs compute relative paths from them).
+  A file written with an unknown size (`OpenFile` with `size` null) is committed only after
+  `FileSystemStream.EndOfData()`; closing it without that call cancels the upload.
 - Editing from Git Bash: `sed -i` turns CRLF into LF and heredocs mangle backslashes; prefer the Edit tool or Python
-  scripts written to a file, then restore CRLF.
+  scripts written to a file, then restore CRLF. Git Bash sometimes fails to start (`add_item ... errno 1`): use
+  PowerShell then.
 
 ## GUI verification
 Computer use cannot control the development exe. What works: start `MpbkpuGUI\bin\Debug\net10.0\mpbkpugui.exe`,

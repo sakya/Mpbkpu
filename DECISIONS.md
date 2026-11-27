@@ -213,6 +213,12 @@
 - **Exit codes**: 0 success (also with warnings), 1 error, 2 cancelled (by the user or declining the confirmation),
   -1 invalid arguments. A verification with errors is a failure (`VerifyJob`: `Success` false, `ErrorMessage`).
 
+## Setup
+- **Uninstall** (`Setup/Mpbkpu.iss`, `[Code]`): after removing the program it asks whether to delete the settings
+  and saved credentials of the user who uninstalls (`%LOCALAPPDATA%\MpbkpuGUI`: settings.json, secrets;
+  `%LOCALAPPDATA%\Mpbkpu`: OAuth tokens, known_hosts). Default No, so a reinstall finds the jobs; nothing is deleted
+  on silent uninstalls; other users of the computer keep their data; the backups are never touched.
+
 ## GUI
 - **Service picker**: a ComboBox; chips were tried (2026-11-27) and rejected by the user.
 - **Switches, no check boxes**: options are `ToggleSwitch` with the label as `OnContent`/`OffContent` (beside the
