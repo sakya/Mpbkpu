@@ -46,12 +46,20 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopico
 
 [Run]
 Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
+; Update started by the GUI (silent, /update=1): start the GUI again, as the user who started the update
+Filename: "{app}\{#AppExe}"; Flags: nowait runasoriginaluser; Check: IsUpdateFromApp
 
 [CustomMessages]
 english.DeleteUserData=Also delete the settings and the saved credentials of {#AppName}?%n%n%1%n%2%n%nThe backups are not deleted.
 italian.DeleteUserData=Eliminare anche le impostazioni e le credenziali salvate di {#AppName}?%n%n%1%n%2%n%nI backup non vengono eliminati.
 
 [Code]
+// True when the GUI started the setup to update itself (MpbkpuGUI/Utility/UpdateChecker.StartInstaller)
+function IsUpdateFromApp: Boolean;
+begin
+  Result := WizardSilent and (ExpandConstant('{param:update|0}') = '1');
+end;
+
 // Settings (MpbkpuGUI: settings.json, secrets) and library data (Mpbkpu: OAuth tokens, known_hosts) of the user who
 // uninstalls are deleted only if they choose to (default No, kept on silent uninstalls): a reinstall finds the jobs
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);

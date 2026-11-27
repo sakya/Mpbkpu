@@ -14,6 +14,14 @@
                 <TextBlock DockPanel.Dock="Top" Text="mpbkpu" FontSize="18" FontWeight="Bold" LetterSpacing="-0.3"
                            Margin="12,4,12,16" />
                 <StackPanel DockPanel.Dock="Bottom" Spacing="4">
+                    <!-- A newer release found on GitHub: details and installation in the about page -->
+                    <Button Classes="nav" Name="UpdateButton" Click="OnAboutClick" IsVisible="False"
+                            Foreground="{DynamicResource AccentBrush}" AutomationProperties.Name="{i18n:Localize UpdateAvailable}">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <mi:MaterialIcon Kind="Update" />
+                            <TextBlock Text="{i18n:Localize UpdateAvailable}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
                     <!-- Switches System, Light and Dark theme -->
                     <Button Classes="nav" Name="ThemeButton" Click="OnThemeClick">
                         <StackPanel Orientation="Horizontal" Spacing="12">

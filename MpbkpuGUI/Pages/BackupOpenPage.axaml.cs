@@ -9,6 +9,7 @@ using Avalonia.SingleWindow.Abstracts;
 using Avalonia.Threading;
 using MpbkpuGUI.Dialogs;
 using MpbkpuGUI.Models;
+using MpbkpuGUI.Utility;
 using MpbkpuLib;
 using MpbkpuLib.FileManagers;
 using MpbkpuLib.Jobs;
@@ -149,6 +150,17 @@ public partial class BackupOpenPage : BasePage
     {
         if ((sender as Button)?.DataContext is BackupOpenPageModel.BackupData bkp)
             await NavigateTo(new BackupBrowsePage(_backupFile!.BackupFile, bkp.Backup!, _backup.GetBackupDestinations(), _backup.Password));
+    }
+
+    /// <summary>
+    /// Restore the whole backup into a folder chosen by the user (like the download of the backup browser)
+    /// </summary>
+    private async void OnRestoreClick(object? sender, RoutedEventArgs e)
+    {
+        if ((sender as Button)?.DataContext is BackupOpenPageModel.BackupData bkp)
+            await ItemRestore.Run(bkp.Backup!.Guid!, _backup.GetBackupDestinations(), _backup.Password, string.Empty,
+                new ItemRestore.Texts("RestoreTo", "Restoring", "RestoreCompleted", "ConfirmRestoreBackup"),
+                this.FindControl<Controls.Spinner>("Spinner")!, m => _model.SpinnerMessage = m);
     }
 
     private async void OnVerifyClick(object? sender, RoutedEventArgs e)

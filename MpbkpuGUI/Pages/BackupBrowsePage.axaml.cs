@@ -11,6 +11,7 @@ using Avalonia.Platform.Storage;
 using Avalonia.SingleWindow.Abstracts;
 using MpbkpuGUI.Dialogs;
 using MpbkpuGUI.Models;
+using MpbkpuGUI.Utility;
 using MpbkpuLib;
 using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
@@ -156,39 +157,8 @@ public partial class BackupBrowsePage : BasePage
         if (relativePath == null)
             return;
 
-        var folders = await App.GetMainWindow()!.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions()
-        {
-            Title = Localizer.Localizer.Instance["DownloadTo"]
-        });
-        var folder = folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
-        if (string.IsNullOrEmpty(folder))
-            return;
-
-        var spinner = this.FindControl<Controls.Spinner>("Spinner")!;
-        _model.SpinnerMessage = Localizer.Localizer.Instance["Downloading"];
-        spinner.IsVisible = true;
-        try {
-            using var job = new RestoreJob(new RestoreJobSettings()
-            {
-                BackupGuid = _backup.Guid,
-                BackupDestinations = _destinations,
-                EncryptPassword = _password,
-                Destination = folder,
-                RelativePath = relativePath
-            });
-            job.RestoreProgress += (_, args) =>
-                _model.SpinnerMessage = $"{Localizer.Localizer.Instance["Downloading"]} {Math.Floor(args.Percentage)}%";
-            var res = await Task.Run(() => job.Run(CancellationToken.None));
-            spinner.IsVisible = false;
-            if (res.Success)
-                await MessageDialog.ShowMessage(App.GetMainWindow(), Localizer.Localizer.Instance["DownloadCompleted"], MessageDialog.Icons.Info);
-            else
-                await MessageDialog.ShowMessage(App.GetMainWindow(),
-                    $"{Localizer.Localizer.Instance["AnErrorOccurred"]}{res.ErrorMessage}", MessageDialog.Icons.Error);
-        } catch (Exception ex) {
-            spinner.IsVisible = false;
-            await MessageDialog.ShowMessage(App.GetMainWindow(),
-                $"{Localizer.Localizer.Instance["AnErrorOccurred"]}{ex.Message}", MessageDialog.Icons.Error);
-        }
+        await ItemRestore.Run(_backup.Guid!, _destinations, _password, relativePath,
+            new ItemRestore.Texts("DownloadTo", "Downloading", "DownloadCompleted"),
+            this.FindControl<Controls.Spinner>("Spinner")!, m => _model.SpinnerMessage = m);
     }
 }

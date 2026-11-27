@@ -28,6 +28,10 @@ public class AppSettings
 
     public string Language { get; set; }
     public ThemeModes Theme { get; set; } = ThemeModes.System;
+    /// <summary>
+    /// Look for a new release on GitHub at startup
+    /// </summary>
+    public bool CheckForUpdates { get; set; } = true;
     public List<Job> Jobs { get; set; }
 
     public static async Task<AppSettings?> Load(string fileName)

@@ -37,6 +37,15 @@ namespace MpbkpuGUI.Views
             await Task.Delay(500);
             await NavigateTo(new JobListPage());
             SetWaitAnimation(false);
+
+            // Quiet check: the job list shows a button when a newer release exists, errors are ignored
+            if (App.Settings!.CheckForUpdates) {
+                try {
+                    await Utility.UpdateChecker.Check();
+                } catch (Exception) {
+                    // Offline, GitHub not reachable or rate limited: the user can check from the about page
+                }
+            }
         }
 
         private void InitializeComponent()

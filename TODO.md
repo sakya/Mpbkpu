@@ -11,8 +11,8 @@
   than 1180 px.
 
 ## Mockup features not implemented
-- [ ] Restore of a whole backup from the GUI (today the CLI; the backup browser downloads single files and
-  directories). The download has no cancel button and no progress page.
+- [x] Restore of a whole backup from the GUI (history, into a chosen folder, deleting nothing).
+- [ ] Download and restore from the GUI have no cancel button and no progress page (spinner with percentage).
 - [ ] Job list filters ("With warnings", "Never run").
 - [ ] Phase list (stepper) on the running page.
 - [ ] Message dialogs with a title and a detail line (today one message string).

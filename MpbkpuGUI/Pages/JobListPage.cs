@@ -6,7 +6,9 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.SingleWindow.Abstracts;
+using Avalonia.Threading;
 using MpbkpuGUI.Abstracts;
+using MpbkpuGUI.Utility;
 using MpbkpuGUI.Dialogs;
 using MpbkpuGUI.Models;
 using MpbkpuLib.DataModel;
@@ -25,13 +27,21 @@ public partial class JobListPage : BasePage
         AvaloniaXamlLoader.Load(this);
 
         PageTitle = Localizer.Localizer.Instance["JobList"];
+        // The check at startup ends after the page is shown (the job list page lives as long as the window)
+        UpdateChecker.UpdateAvailable += (_, _) => Dispatcher.UIThread.Post(SetUpdateButton);
     }
 
     public override void OnNavigatedTo(NavigationDirection direction)
     {
         SetJobList();
         SetThemeText();
+        SetUpdateButton();
         base.OnNavigatedTo(direction);
+    }
+
+    private void SetUpdateButton()
+    {
+        this.FindControl<Button>("UpdateButton")!.IsVisible = UpdateChecker.Available != null;
     }
 
     private void SetThemeText()

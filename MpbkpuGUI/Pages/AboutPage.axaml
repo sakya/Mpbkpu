@@ -24,6 +24,41 @@
                     <TextBlock Classes="muted" HorizontalAlignment="Center" TextWrapping="Wrap" Text="{Binding Copyright}" />
                     <TextBlock Margin="0,14,0,0" TextWrapping="Wrap" TextAlignment="Center" TextTrimming="None"
                                Foreground="{DynamicResource SubtleTextBrush}" Text="{Binding Description}" />
+
+                    <!-- Updates: releases published on GitHub -->
+                    <Border Height="1" Background="{DynamicResource LineBrush}" Margin="0,20,0,10" />
+                    <TextBlock Classes="h2" HorizontalAlignment="Center" Text="{i18n:Localize Updates}" />
+                    <TextBlock HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"
+                               IsVisible="{Binding UpdateStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                               Text="{Binding UpdateStatus}" />
+                    <ProgressBar IsVisible="{Binding IsDownloading}" Value="{Binding DownloadProgress}" Maximum="100" />
+                    <WrapPanel HorizontalAlignment="Center" ItemSpacing="10" LineSpacing="10">
+                        <Button Click="OnCheckUpdatesClick" IsEnabled="{Binding !IsBusy}"
+                                AutomationProperties.Name="{i18n:Localize CheckUpdates}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <mi:MaterialIcon Kind="Refresh" Width="16" Height="16" />
+                                <TextBlock Text="{i18n:Localize CheckUpdates}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Click="OnReleasePageClick" IsVisible="{Binding UpdateFound}"
+                                AutomationProperties.Name="{i18n:Localize ReleasePage}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <mi:MaterialIcon Kind="OpenInNew" Width="16" Height="16" />
+                                <TextBlock Text="{i18n:Localize ReleasePage}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="accent" Click="OnInstallUpdateClick" IsVisible="{Binding CanInstall}"
+                                IsEnabled="{Binding !IsBusy}" AutomationProperties.Name="{i18n:Localize InstallUpdate}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <mi:MaterialIcon Kind="Download" Width="16" Height="16" />
+                                <TextBlock Text="{i18n:Localize InstallUpdate}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </WrapPanel>
+                    <ToggleSwitch Name="CheckAtStartup" HorizontalAlignment="Center" Margin="0,6,0,0"
+                                  OnContent="{i18n:Localize CheckUpdatesAtStartup}" OffContent="{i18n:Localize CheckUpdatesAtStartup}"
+                                  AutomationProperties.Name="{i18n:Localize CheckUpdatesAtStartup}"
+                                  IsCheckedChanged="OnCheckAtStartupChanged" />
                 </StackPanel>
             </Border>
         </ScrollViewer>

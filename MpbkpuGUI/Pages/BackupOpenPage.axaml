@@ -74,6 +74,9 @@
                                                 <Button Classes="icon" Click="OnOpenClick" ToolTip.Tip="{i18n:Localize BrowseBackup}" AutomationProperties.Name="{i18n:Localize BrowseBackup}">
                                                     <mi:MaterialIcon Kind="FolderOpenOutline" />
                                                 </Button>
+                                                <Button Classes="icon" Click="OnRestoreClick" ToolTip.Tip="{i18n:Localize RestoreBackup}" AutomationProperties.Name="{i18n:Localize RestoreBackup}">
+                                                    <mi:MaterialIcon Kind="BackupRestore" />
+                                                </Button>
                                                 <Button Classes="icon" Click="OnVerifyClick" ToolTip.Tip="{i18n:Localize VerifyBackup}" AutomationProperties.Name="{i18n:Localize VerifyBackup}">
                                                     <mi:MaterialIcon Kind="ShieldCheckOutline" />
                                                 </Button>

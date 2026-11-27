@@ -36,14 +36,17 @@ Implemented but **not verified on a real service or on screen**:
 - GUI not seen on screen: switches instead of check boxes, free space dialog, FTP/SFTP path hints, compression error
   in the job settings.
 
-Committed up to `c3851b6`; the uninstaller (`cfc139e`) is compiled, uninstall never run.
+Committed up to `8705797` (version 0.2.0.0; GUI exclusions, checked on screen by the user; images marked binary in
+`.gitattributes`, `67665e9`). The uninstaller (`cfc139e`) is compiled, uninstall never run.
 
 Not committed:
-- `.gitattributes` marks images as binary (the committed `icon.png` was corrupted by the CRLF conversion); both
-  PNGs staged again with the right bytes; README rewritten for users.
-- GUI exclusions (`Job.Exclude`, "Exclusions" card in the job settings for backup and sync, pickers for a local
-  source; "Copy command" writes `-e`): build and `Tests/CommandLine.cs` pass; checked on screen by the user
-  (2026-11-27).
+- Update check (`MpbkpuGUI/Utility/UpdateChecker`, about page, sidebar button, `Setup/Mpbkpu.iss` restarts the GUI
+  after an update): build and installer script compile; check, download and SHA-256 verification tried against the
+  real v0.1.0 release (wrong hash and other hosts refused). Not tried: the pages on screen and a real update (needs
+  an installed older version and a newer release).
+- Restore of a whole backup from the history (button per backup, folder picker, confirmation; nothing deleted in the
+  folder; shared `Utility/ItemRestore` with the browser download): build and
+  `Regressions.RestoreWholeBackupIntoFolderKeepsOtherFiles` pass, not seen on screen.
 
 ## Open issues and attempts so far
 - Remote file managers other than MediaFire never tried with real accounts (also as additional destinations).
@@ -58,5 +61,5 @@ Not committed:
   dates restored shifted by the UTC offset (change detection not affected).
 
 ## Next step
-Commit the pending changes, then try with a real account each service used in practice (backup, sync, history,
+Check the update pages on screen and commit; try a real update with the next release. Then try with a real account each service used in practice (backup, sync, history,
 verify, restore, also compressed and as an additional destination), starting from the ones changed on 2026-11-27.

@@ -17,7 +17,7 @@ compression. It runs on Windows, Linux and macOS and comes with a desktop app an
   several of them.
 - **Folder synchronization.** Keep a copy of a folder identical to the original.
 - **Verify, browse and restore.** Check that a backup is intact, look inside it, and get back single files and folders
-  (from the app) or the whole backup (from the command line).
+  or the whole backup.
 - **Credentials kept safe.** Passwords are stored in the secure storage of your operating system, never in plain text.
 
 ## Where you can back up
@@ -49,11 +49,19 @@ are never deleted.
 From the job list you can also:
 
 - see the history of a job and the result of every run;
+- restore a whole backup into a folder you choose (files already there are kept, those with the same name are
+  replaced);
 - browse a backup and download files or folders from it (right click → *Download*);
 - verify or delete a backup;
 - copy the equivalent command line, to run the job from a script or a scheduled task.
 
 The app is available in English and Italian, with a light and a dark theme.
+
+### Updates
+
+At startup the app checks whether a new version has been released (you can turn this off in **Information**). When
+there is one, **Update available** appears in the sidebar: from there you can open the release page or let the app
+download and install the update. The app closes during the installation and starts again when it is done.
 
 ## The command line
 

@@ -129,6 +129,25 @@ public class Regressions : BaseTest
     }
 
     [Test]
+    public async Task RestoreWholeBackupIntoFolderKeepsOtherFiles()
+    {
+        // The GUI history restores with an empty relative path: every file of the backup (chain included) into the
+        // chosen folder, overwriting, deleting nothing
+        await RunBackup(Backup.BackupTypes.Full);
+        CreateFile(Path.Combine(BackupSource, "file0"), 2048);
+        var guid = await RunBackup(Backup.BackupTypes.Incremental);
+
+        Directory.CreateDirectory(RestoreDestination);
+        CreateFile(Path.Combine(RestoreDestination, "keep"), 1024);
+        CreateFile(Path.Combine(RestoreDestination, "file0"), 10);
+        Assert.That((await Restore(guid, null, relativePath: string.Empty)).Success, Is.True);
+
+        Assert.That(File.Exists(Path.Combine(RestoreDestination, "keep")), Is.True);
+        File.Delete(Path.Combine(RestoreDestination, "keep"));
+        AssertSameContent(BackupSource, RestoreDestination);
+    }
+
+    [Test]
     public async Task RestoreRemovesExtraFilesAndOverwritesChanged()
     {
         var guid = await RunBackup(Backup.BackupTypes.Full);

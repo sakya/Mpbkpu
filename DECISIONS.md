@@ -219,6 +219,21 @@
   `%LOCALAPPDATA%\Mpbkpu`: OAuth tokens, known_hosts). Default No, so a reinstall finds the jobs; nothing is deleted
   on silent uninstalls; other users of the computer keep their data; the backups are never touched.
 
+## Updates (GUI, 2026-11-27)
+- **Source**: the GitHub API `releases/latest` of `sakya/Mpbkpu` (drafts and pre-releases excluded). The tag
+  (`v0.2.0`) is compared with the assembly version (`SolutionInfo.proj` `<Version>`), missing parts as 0. The setup
+  program is the asset `Mpbkpu-*-setup.exe`.
+- **When**: quietly after the window opens (`AppSettings.CheckForUpdates`, default on, switch in the about page; errors
+  ignored), and with "Check for updates" in the about page. A newer release shows "Update available" in the job list
+  sidebar, which opens the about page.
+- **Install** (`Utility/UpdateChecker`): only on Windows installations made by the setup program (`unins000.exe` next
+  to the exe); elsewhere only the release page. The setup is downloaded to `%TEMP%\MpbkpuUpdate` from `github.com`
+  over HTTPS and run only if its SHA-256 matches the `digest` GitHub publishes for the asset (no digest → refused).
+  It runs with `/SILENT /SUPPRESSMSGBOXES /CLOSEAPPLICATIONS /NORESTART /update=1` and the GUI closes; the setup keeps
+  the previous folder and install mode (UAC prompt for an all-users installation) and starts the GUI again (`[Run]`
+  entry with `Check: IsUpdateFromApp`, as the original user). Leaving the about page cancels a download. The CLI does
+  not check for updates.
+
 ## GUI
 - **Service picker**: a ComboBox; chips were tried (2026-11-27) and rejected by the user.
 - **Switches, no check boxes**: options are `ToggleSwitch` with the label as `OnContent`/`OffContent` (beside the
@@ -242,6 +257,12 @@
   `RestoreJob` with `RestoreJobSettings.RelativePath`, which restores that item (a directory with its content) into
   the folder with its name and without its parent directories, overwriting existing files and deleting nothing
   (the destination is not read). The job settings come from the job (destinations, password) as for verify.
+- **Restore from the history** (2026-11-27): a "Restore" button on every backup asks for a local folder and a
+  confirmation, then runs `RestoreJob` with `RelativePath = ""`: every file of that backup (its chain included) is
+  restored into the folder with its relative path, overwriting existing files and deleting nothing. A full restore
+  (`RelativePath` null, like the CLI) would make the folder identical to the backup and delete everything else in it:
+  too dangerous with a folder picker. The download of the backup browser and this restore share
+  `Utility/ItemRestore` (picker, spinner with percentage, result message); still no cancel button.
 - **SingleWindow navigation unchanged** (pages animated in `Container`, back arrow in the TitleBar); the sidebar is
   only on the job list.
 - **Cards with `ItemsControl`** instead of `ItemsList` for the job list and the history: `ItemsList` colors the row
