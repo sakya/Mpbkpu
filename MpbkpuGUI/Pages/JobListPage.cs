@@ -75,6 +75,7 @@ public partial class JobListPage : BasePage
         _ = MergeScheduledResults();
         SetJobList();
         SetThemeText();
+        SetAccentText();
         SetUpdateButton();
         base.OnNavigatedTo(direction);
     }
@@ -89,6 +90,22 @@ public partial class JobListPage : BasePage
         var text = $"{Localizer.Localizer.Instance["Theme"]}: {Localizer.Localizer.Instance[$"Theme_{App.Settings!.Theme}"]}";
         this.FindControl<TextBlock>("ThemeText")!.Text = text;
         AutomationProperties.SetName(this.FindControl<Button>("ThemeButton")!, text);
+    }
+
+    private void SetAccentText()
+    {
+        var text = $"{Localizer.Localizer.Instance["Accent"]}: {Localizer.Localizer.Instance[$"Accent_{App.Settings!.Accent}"]}";
+        this.FindControl<TextBlock>("AccentText")!.Text = text;
+        AutomationProperties.SetName(this.FindControl<Button>("AccentButton")!, text);
+    }
+
+    private async void OnAccentClick(object? sender, RoutedEventArgs e)
+    {
+        var modes = Enum.GetValues<AppSettings.AccentModes>();
+        App.Settings!.Accent = modes[(Array.IndexOf(modes, App.Settings.Accent) + 1) % modes.Length];
+        AccentPalette.Apply(App.Settings.Accent);
+        SetAccentText();
+        await App.Settings.Save(App.SettingFile!);
     }
 
     private async void OnThemeClick(object? sender, RoutedEventArgs e)

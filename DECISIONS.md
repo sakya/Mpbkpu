@@ -270,6 +270,14 @@
   code: add a color to both dictionaries (code binds with `GetResourceObservable`). `AppSettings.Theme`
   (System, the default, Light, Dark) is applied by `App.ApplyTheme` at startup and by the sidebar button that cycles
   it.
+- **Accent color** (`AppSettings.Accent`, default System; sidebar button "Accent: System/Mpbkpu", 2026-11-27):
+  `Utility/AccentPalette` replaces the `Accent*` colors of both theme dictionaries and the Fluent palette accent with
+  colors derived from the system accent (`PlatformSettings.GetColorValues().AccentColor1`, followed through
+  `ColorValuesChanged`): accent text moved towards white/black until 4.5:1 on the background, soft background mixed
+  with the background, hover/pressed shades, button text white unless below 3:1 (then black, e.g. yellow accents).
+  Systems that report no accent (alpha 0, some Linux desktops) keep the Mpbkpu blue, which is restored from the values
+  read from App.axaml. The accent button shades are theme colors now (`AccentHoverColor`, `AccentPressedColor`,
+  `AccentForegroundColor`), no longer fixed in the brushes.
 - **Copy command** (job list): `MpbkpuLib.Utility.CommandLine` builds the CLI command of a backup or sync job from the
   same settings the GUI runs (`BackupJob.CreateSettings`, `SyncJob.CreateSettings`), in PowerShell syntax (single
   quotes, `&` before a quoted executable: `mpbkpu.exe` next to the GUI, else `mpbkpu` from the PATH), with `-y` and

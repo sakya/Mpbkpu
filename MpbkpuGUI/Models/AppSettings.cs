@@ -28,6 +28,17 @@ public class AppSettings
 
     public string Language { get; set; }
     public ThemeModes Theme { get; set; } = ThemeModes.System;
+
+    public enum AccentModes
+    {
+        /// <summary>
+        /// Follow the accent color of the operating system (Mpbkpu blue when it reports none)
+        /// </summary>
+        System,
+        Mpbkpu
+    }
+
+    public AccentModes Accent { get; set; } = AccentModes.System;
     /// <summary>
     /// Look for a new release on GitHub at startup
     /// </summary>

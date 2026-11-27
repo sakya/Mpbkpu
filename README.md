@@ -62,7 +62,8 @@ From the job list you can also:
 - verify or delete a backup;
 - copy the equivalent command line, to run the job from a script or a scheduled task.
 
-The app is available in English and Italian, with a light and a dark theme.
+The app is available in English and Italian, with a light and a dark theme. Its accent color follows the one of your
+system (or stays Mpbkpu blue, from the sidebar).
 
 ### Updates
 

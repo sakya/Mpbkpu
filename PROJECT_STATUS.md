@@ -54,6 +54,8 @@ Not committed:
   sync with log and result, merge, lock, encrypted backup without password, Windows task created with the right XML
   and removed; `mpbkpugui.exe --run-job` exits without a window. Not tried: the pages on screen, a task actually
   started by Windows, Linux (systemd) and macOS (launchd) at all.
+- Accent color following the system (`Utility/AccentPalette`, sidebar button): build passes; derived colors checked
+  for contrast with a scratch program (Windows blue, yellow, red, green, Mpbkpu blue). Not seen on screen.
 
 ## Open issues and attempts so far
 - Remote file managers other than MediaFire never tried with real accounts (also as additional destinations).

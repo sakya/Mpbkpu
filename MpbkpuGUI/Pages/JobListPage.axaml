@@ -29,6 +29,13 @@
                             <TextBlock Name="ThemeText" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
+                    <!-- Switches the system accent color and the Mpbkpu blue -->
+                    <Button Classes="nav" Name="AccentButton" Click="OnAccentClick">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <mi:MaterialIcon Kind="Palette" />
+                            <TextBlock Name="AccentText" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
                     <Button Classes="nav" Click="OnAboutClick" AutomationProperties.Name="{i18n:Localize Information}">
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <mi:MaterialIcon Kind="InformationOutline" />

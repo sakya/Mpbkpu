@@ -5,7 +5,9 @@
              RequestedThemeVariant="Default">
     <Application.Resources>
         <ResourceDictionary>
-        <!-- Palette: one color set per theme variant (App.ApplyTheme); use the brushes with DynamicResource -->
+        <!-- Palette: one color set per theme variant (App.ApplyTheme); use the brushes with DynamicResource.
+             The Accent* colors are the Mpbkpu accent: Utility/AccentPalette replaces them with the system accent -->
+
         <ResourceDictionary.ThemeDictionaries>
                 <ResourceDictionary x:Key="Dark">
                     <Color x:Key="BgColor">#0F1115</Color>
@@ -23,6 +25,9 @@
                     <Color x:Key="AccentColor">#2F6FEB</Color>
                     <Color x:Key="AccentTextColor">#8AB4FF</Color>
                     <Color x:Key="AccentSoftColor">#16223A</Color>
+                    <Color x:Key="AccentHoverColor">#3D7BF0</Color>
+                    <Color x:Key="AccentPressedColor">#2860CF</Color>
+                    <Color x:Key="AccentForegroundColor">#FFFFFF</Color>
                     <Color x:Key="ChipColor">#1E2430</Color>
                     <Color x:Key="HoverColor">#1A1F29</Color>
                     <Color x:Key="ButtonColor">#171A21</Color>
@@ -62,6 +67,9 @@
                     <Color x:Key="AccentColor">#2F6FEB</Color>
                     <Color x:Key="AccentTextColor">#1F5BD6</Color>
                     <Color x:Key="AccentSoftColor">#E3ECFD</Color>
+                    <Color x:Key="AccentHoverColor">#3D7BF0</Color>
+                    <Color x:Key="AccentPressedColor">#2860CF</Color>
+                    <Color x:Key="AccentForegroundColor">#FFFFFF</Color>
                     <Color x:Key="ChipColor">#EEF0F4</Color>
                     <Color x:Key="HoverColor">#E9ECF1</Color>
                     <Color x:Key="ButtonColor">#FFFFFF</Color>
@@ -136,11 +144,11 @@
         <SolidColorBrush x:Key="ButtonForeground" Color="{DynamicResource TextColor}" />
         <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{DynamicResource StrongTextColor}" />
         <SolidColorBrush x:Key="AccentButtonBackground" Color="{DynamicResource AccentColor}" />
-        <SolidColorBrush x:Key="AccentButtonBackgroundPointerOver" Color="#3D7BF0" />
-        <SolidColorBrush x:Key="AccentButtonBackgroundPressed" Color="#2860CF" />
-        <SolidColorBrush x:Key="AccentButtonForeground" Color="#FFFFFF" />
-        <SolidColorBrush x:Key="AccentButtonForegroundPointerOver" Color="#FFFFFF" />
-        <SolidColorBrush x:Key="AccentButtonForegroundPressed" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="AccentButtonBackgroundPointerOver" Color="{DynamicResource AccentHoverColor}" />
+        <SolidColorBrush x:Key="AccentButtonBackgroundPressed" Color="{DynamicResource AccentPressedColor}" />
+        <SolidColorBrush x:Key="AccentButtonForeground" Color="{DynamicResource AccentForegroundColor}" />
+        <SolidColorBrush x:Key="AccentButtonForegroundPointerOver" Color="{DynamicResource AccentForegroundColor}" />
+        <SolidColorBrush x:Key="AccentButtonForegroundPressed" Color="{DynamicResource AccentForegroundColor}" />
         <SolidColorBrush x:Key="TextControlBackground" Color="{DynamicResource BgColor}" />
         <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="{DynamicResource BgColor}" />
         <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="{DynamicResource BgColor}" />
