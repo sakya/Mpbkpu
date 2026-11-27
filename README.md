@@ -45,7 +45,13 @@ are never deleted.
 2. Pick the source folder and one or more destinations. For cloud services you sign in to your account in the browser.
    **Test connection** checks the settings and shows the free space before you save.
 3. Set the options: backup type, encryption, compression, files to exclude, how many backups to keep.
-4. Click **Run**.
+4. Optionally turn on **Run automatically** and choose the days and the time.
+5. Click **Run**, or let it run by itself.
+
+Automatic runs use the scheduler of your system (Task Scheduler on Windows, systemd on Linux, launchd on macOS) and
+happen while you are signed in, even with the app closed; a run missed because the computer was off starts as soon
+as possible. An encrypted backup needs its password saved to run by itself. The job list shows the result of the
+last automatic run (with its log) and the app tells you when one failed.
 
 From the job list you can also:
 

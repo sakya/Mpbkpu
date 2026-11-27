@@ -19,8 +19,34 @@ namespace MpbkpuGUI
             var exeDir = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly()!.Location);
             Directory.SetCurrentDirectory(exeDir!);
 
+            // Started by the scheduler of the operating system: run the job without a window
+            var run = Array.IndexOf(args, Utility.ScheduledRun.Argument);
+            if (run >= 0 && run + 1 < args.Length) {
+                Environment.ExitCode = RunScheduled(args[run + 1]).GetAwaiter().GetResult();
+                return;
+            }
+
             BuildAvaloniaApp()
                 .Start(AppMain, args);
+        }
+
+        private static async Task<int> RunScheduled(string jobId)
+        {
+            // settings.json belongs to the GUI, which may be open: never written here
+            var settings = await LoadSettings();
+            return settings == null ? 2 : await Utility.ScheduledRun.Run(settings, jobId);
+        }
+
+        /// <summary>
+        /// Set the local paths and read the settings (null when there are none)
+        /// </summary>
+        private static async Task<AppSettings?> LoadSettings()
+        {
+            App.LocalPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MpbkpuGUI");
+            if (!Directory.Exists(App.LocalPath))
+                Directory.CreateDirectory(App.LocalPath);
+            App.SettingFile = Path.Combine(App.LocalPath, "settings.json");
+            return File.Exists(App.SettingFile) ? await AppSettings.Load(App.SettingFile) : null;
         }
 
         // Avalonia configuration, don't remove; also used by visual designer.
@@ -50,19 +76,13 @@ namespace MpbkpuGUI
 
         private static async Task<Views.MainWindow> InitializeApp(string[] args)
         {
-            App.LocalPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MpbkpuGUI");
-            if (!Directory.Exists(App.LocalPath))
-                Directory.CreateDirectory(App.LocalPath);
-            App.SettingFile = Path.Combine(App.LocalPath, "settings.json");
-            if (File.Exists(App.SettingFile))
-                App.Settings = await AppSettings.Load(App.SettingFile);
-
+            App.Settings = await LoadSettings();
             if (App.Settings == null) {
                 App.Settings = new AppSettings();
-                await App.Settings.Save(App.SettingFile);
+                await App.Settings.Save(App.SettingFile!);
             } else if (App.Settings.HasLegacySecrets) {
                 // Move the plain-text secrets of older versions to the secret store
-                await App.Settings.Save(App.SettingFile);
+                await App.Settings.Save(App.SettingFile!);
             }
 
             Localizer.Localizer.Instance.LoadLanguage(App.Settings.Language);

@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Threading.Tasks;
 using Avalonia.Automation;
 using System.Linq;
@@ -29,10 +30,49 @@ public partial class JobListPage : BasePage
         PageTitle = Localizer.Localizer.Instance["JobList"];
         // The check at startup ends after the page is shown (the job list page lives as long as the window)
         UpdateChecker.UpdateAvailable += (_, _) => Dispatcher.UIThread.Post(SetUpdateButton);
+
+        // Results of automatic runs written while the window is open; merged only while the list is shown, so a
+        // job being edited in another page is not changed under it (merged when coming back)
+        _resultsWatcher = ScheduledRun.WatchResults(() => Dispatcher.UIThread.Post(() =>
+        {
+            if (IsEffectivelyVisible)
+                _ = MergeScheduledResults();
+        }));
+    }
+
+    private IDisposable? _resultsWatcher;
+
+    public override void Dispose()
+    {
+        _resultsWatcher?.Dispose();
+        base.Dispose();
+    }
+
+    /// <summary>
+    /// Show the results of the automatic runs in the jobs and report the failed ones
+    /// </summary>
+    private async Task MergeScheduledResults()
+    {
+        var merged = ScheduledRun.MergeResults(App.Settings!);
+        if (merged.Count == 0)
+            return;
+        await App.Settings!.Save(App.SettingFile!);
+        SetJobList();
+
+        var localizer = Localizer.Localizer.Instance;
+        var failed = merged
+            .Where(m => m.Result.Outcome is not (Backup.Results.Completed or Backup.Results.CompletedWithWarnings))
+            .Select(m => $"• {m.Job.Name} ({m.Result.EndedAt.ToString("g", new CultureInfo(App.Settings.Language))}): " +
+                         (m.Result.PasswordNotSaved ? localizer["SchedulePasswordMissing"] : m.Result.ErrorMessage ?? localizer["Result_Error"]))
+            .ToList();
+        if (failed.Count > 0)
+            await MessageDialog.ShowMessage(App.GetMainWindow(),
+                $"{localizer["ScheduledRunsFailed"]}\n{string.Join("\n", failed)}", MessageDialog.Icons.Error);
     }
 
     public override void OnNavigatedTo(NavigationDirection direction)
     {
+        _ = MergeScheduledResults();
         SetJobList();
         SetThemeText();
         SetUpdateButton();
@@ -68,6 +108,15 @@ public partial class JobListPage : BasePage
     private async void OnJobDelete(object sender, Job job)
     {
         if (await MessageDialog.ShowConfirmMessage(App.GetMainWindow(), Localizer.Localizer.Instance["ConfirmDeleteJob"], MessageDialog.Icons.Warning)) {
+            try {
+                JobScheduler.Current?.Delete(job.Id);
+            } catch (Exception ex) {
+                // The job stays: its automatic runs would otherwise continue without it
+                await MessageDialog.ShowMessage(App.GetMainWindow(), $"{Localizer.Localizer.Instance["ScheduleFailed"]}{ex.Message}",
+                    MessageDialog.Icons.Error);
+                return;
+            }
+            ScheduledRun.DeleteFiles(job.Id);
             App.Settings!.Jobs.Remove(job);
             await App.Settings.Save(App.SettingFile!);
             SetJobList();

@@ -36,6 +36,13 @@
                     <Border Classes="chip" IsVisible="{Binding IsCompressed, FallbackValue=False}">
                         <TextBlock Text="{i18n:Localize Compressed}" />
                     </Border>
+                    <!-- Automatic runs: days and time, the next run in the tooltip -->
+                    <Border Name="ScheduleChip" Classes="chip" IsVisible="False">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <mi:MaterialIcon Kind="ClockOutline" Width="12" Height="12" Foreground="{DynamicResource SubtleTextBrush}" />
+                            <TextBlock Name="ScheduleText" />
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
 
                 <TextBlock Name="Paths" Classes="mono" />
@@ -53,6 +60,14 @@
                                IsVisible="{Binding LastRun, Converter={x:Static ObjectConverters.IsNotNull}}">
                         <Run Text="{i18n:Localize LastRunLabel}" /><Run Text=": " /><Run Text="{Binding LastRun, Converter={StaticResource DateTimeConverter}}" />
                     </TextBlock>
+                    <!-- The last run was automatic: its log can be opened -->
+                    <Button Name="LogButton" Classes="Small" IsVisible="False" VerticalAlignment="Center" Click="OnOpenLogClick"
+                            ToolTip.Tip="{i18n:Localize OpenLog}" AutomationProperties.Name="{i18n:Localize AutomaticRunLog}">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <mi:MaterialIcon Kind="ClockOutline" Width="12" Height="12" />
+                            <TextBlock Text="{i18n:Localize AutomaticRunLog}" />
+                        </StackPanel>
+                    </Button>
                     <StackPanel Orientation="Horizontal" Spacing="6"
                                 IsVisible="{Binding LastRun, Converter={x:Static ObjectConverters.IsNull}}">
                         <Ellipse Width="8" Height="8" VerticalAlignment="Center" Stroke="{DynamicResource MutedTextBrush}" StrokeThickness="1.5" />

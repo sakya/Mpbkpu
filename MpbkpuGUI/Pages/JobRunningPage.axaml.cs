@@ -12,6 +12,7 @@ using Avalonia.Threading;
 using MpbkpuGUI.Abstracts;
 using MpbkpuGUI.Dialogs;
 using MpbkpuGUI.Models;
+using MpbkpuGUI.Utility;
 using MpbkpuLib.Abstracts;
 using MpbkpuLib.DataModel;
 using MpbkpuLib.FileManagers;
@@ -100,6 +101,19 @@ public partial class JobRunningPage : BasePage
 
     private async void DoWork()
     {
+        // The same job may be running by itself (schedule)
+        using var jobLock = ScheduledRun.TryLock(_job.Id);
+        if (jobLock == null) {
+            Dispatcher.UIThread.Post(async () =>
+            {
+                this.FindControl<Controls.Spinner>("Spinner")!.IsVisible = false;
+                await MessageDialog.ShowMessage(App.GetMainWindow(), Localizer.Localizer.Instance["JobAlreadyRunning"],
+                    MessageDialog.Icons.Warning);
+                await NavigateBack();
+            });
+            return;
+        }
+
         if (_job is BackupJob bkp) {
             var backupJob = new MpbkpuLib.Jobs.BackupJob(bkp.CreateSettings());
             backupJob.Step += BackupJobOnStep;
@@ -230,6 +244,7 @@ public partial class JobRunningPage : BasePage
     {
         _job.LastRun = DateTime.Now;
         _job.LastResult = result;
+        _job.LastRunAutomatic = false;
         // Shown in the job list
         lock (_lastSpaces) {
             foreach (var destination in _job.Destinations) {

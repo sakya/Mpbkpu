@@ -10,6 +10,10 @@
 - [ ] Check by hand: Windows animations (minimize, maximize, restore), warnings box in the history, windows narrower
   than 1180 px.
 
+- [ ] Automatic runs: try on Linux (systemd user timer, keyring access from the timer) and macOS (launchd agent,
+  Keychain); on Windows, a task actually started by Task Scheduler. System notification of failed runs (today the
+  GUI reports them when opened).
+
 ## Mockup features not implemented
 - [x] Restore of a whole backup from the GUI (history, into a chosen folder, deleting nothing).
 - [x] Download and restore from the GUI: progress bar, files, bytes, time left and cancel button.

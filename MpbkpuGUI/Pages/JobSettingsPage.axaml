@@ -118,6 +118,35 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Automatic runs (scheduler of the operating system, Utility/JobScheduler) -->
+                <Border Name="ScheduleCard" Classes="card">
+                    <StackPanel Spacing="12">
+                        <StackPanel Spacing="4">
+                            <TextBlock Classes="h2" Text="{i18n:Localize Schedule}" />
+                            <TextBlock Classes="hint" Margin="0" Text="{i18n:Localize ScheduleHint}" />
+                        </StackPanel>
+                        <ToggleSwitch Name="ScheduleEnabled" OnContent="{i18n:Localize ScheduleEnabled}"
+                                      OffContent="{i18n:Localize ScheduleEnabled}"
+                                      AutomationProperties.Name="{i18n:Localize ScheduleEnabled}" />
+                        <StackPanel Spacing="12" IsVisible="{Binding #ScheduleEnabled.IsChecked}">
+                            <StackPanel Spacing="4">
+                                <Label Content="{i18n:Localize ScheduleTime}" />
+                                <TimePicker Name="ScheduleTime" ClockIdentifier="24HourClock"
+                                            AutomationProperties.Name="{i18n:Localize ScheduleTime}" />
+                            </StackPanel>
+                            <StackPanel Spacing="4">
+                                <Label Content="{i18n:Localize ScheduleDays}" />
+                                <controls:ErrorContainer FieldName="Schedule" Errors="{Binding $parent.DataContext.Errors}">
+                                    <controls:ErrorContainer.Control>
+                                        <WrapPanel Name="ScheduleDays" ItemSpacing="8" LineSpacing="8" />
+                                    </controls:ErrorContainer.Control>
+                                </controls:ErrorContainer>
+                            </StackPanel>
+                            <TextBlock Name="ScheduleNext" Classes="muted" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
                 <!-- Security and compression -->
                 <Border Classes="card" IsVisible="{Binding Job, Converter={StaticResource IsBackupJobConverter}}">
                     <StackPanel Spacing="16">

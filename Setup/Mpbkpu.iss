@@ -49,6 +49,10 @@ Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags
 ; Update started by the GUI (silent, /update=1): start the GUI again, as the user who started the update
 Filename: "{app}\{#AppExe}"; Flags: nowait runasoriginaluser; Check: IsUpdateFromApp
 
+[UninstallRun]
+; Automatic runs of the jobs (MpbkpuGUI/Utility/WindowsTask: tasks "Mpbkpu {job id}"): they would start a missing program
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -NonInteractive -Command ""Get-ScheduledTask -TaskName 'Mpbkpu *' -ErrorAction SilentlyContinue | Unregister-ScheduledTask -Confirm:$false"""; Flags: runhidden; RunOnceId: "DeleteScheduledTasks"
+
 [CustomMessages]
 english.DeleteUserData=Also delete the settings and the saved credentials of {#AppName}?%n%n%1%n%2%n%nThe backups are not deleted.
 italian.DeleteUserData=Eliminare anche le impostazioni e le credenziali salvate di {#AppName}?%n%n%1%n%2%n%nI backup non vengono eliminati.

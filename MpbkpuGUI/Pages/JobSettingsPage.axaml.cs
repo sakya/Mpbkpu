@@ -1,14 +1,17 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Platform.Storage;
 using MpbkpuGUI.Dialogs;
+using MpbkpuGUI.Utility;
 using Material.Icons;
 using Material.Icons.Avalonia;
 using Avalonia.Interactivity;
@@ -89,12 +92,85 @@ public partial class JobSettingsPage : BasePage
             CompressionLevel.SmallestSize
         };
 
+        InitializeSchedule();
+
         if (_job is BackupJob backupJob) {
             cmbType.SelectedItem = backupJob.Type;
             cmbCompression.SelectedItem = backupJob.CompressionLevel;
             foreach (var destination in backupJob.MoreDestinations)
                 AddMoreDestination(destination);
         }
+    }
+
+    /// <summary>
+    /// The schedule editor: hidden when the operating system has no supported scheduler
+    /// </summary>
+    private void InitializeSchedule()
+    {
+        this.FindControl<Control>("ScheduleCard")!.IsVisible = JobScheduler.Current != null;
+        var schedule = _job.Schedule ?? new JobSchedule();
+        var culture = new CultureInfo(App.Settings!.Language);
+        var days = this.FindControl<WrapPanel>("ScheduleDays")!;
+        foreach (var day in JobSchedule.WeekDays) {
+            var button = new ToggleButton()
+            {
+                Content = culture.DateTimeFormat.GetAbbreviatedDayName(day),
+                Tag = day,
+                IsChecked = schedule.Days.Contains(day),
+                MinWidth = 52
+            };
+            AutomationProperties.SetName(button, culture.DateTimeFormat.GetDayName(day));
+            button.IsCheckedChanged += (_, _) => UpdateNextRun();
+            days.Children.Add(button);
+        }
+
+        var enabled = this.FindControl<ToggleSwitch>("ScheduleEnabled")!;
+        enabled.IsChecked = schedule.Enabled;
+        enabled.IsCheckedChanged += (_, _) => UpdateNextRun();
+        var time = this.FindControl<TimePicker>("ScheduleTime")!;
+        time.SelectedTime = schedule.Time;
+        time.SelectedTimeChanged += (_, _) => UpdateNextRun();
+        UpdateNextRun();
+    }
+
+    /// <summary>
+    /// The schedule as edited
+    /// </summary>
+    private JobSchedule EditedSchedule => new()
+    {
+        Enabled = this.FindControl<ToggleSwitch>("ScheduleEnabled")!.IsChecked == true,
+        Time = this.FindControl<TimePicker>("ScheduleTime")!.SelectedTime ?? new JobSchedule().Time,
+        Days = this.FindControl<WrapPanel>("ScheduleDays")!.Children.OfType<ToggleButton>()
+            .Where(b => b.IsChecked == true).Select(b => (DayOfWeek)b.Tag!).ToList()
+    };
+
+    private void UpdateNextRun()
+    {
+        var next = EditedSchedule.NextRun(DateTime.Now);
+        var text = this.FindControl<TextBlock>("ScheduleNext")!;
+        text.Text = next == null ? null :
+            string.Format(Localizer.Localizer.Instance["NextRun"], next.Value.ToString("f", new CultureInfo(App.Settings!.Language)));
+    }
+
+    /// <summary>
+    /// An encrypted backup runs by itself only with a saved password: ask it now (it is saved with the settings)
+    /// </summary>
+    /// <returns>False when the user cancelled or the password cannot be saved</returns>
+    private async Task<bool> EnsureScheduledPassword()
+    {
+        if (_job.Schedule is not { Enabled: true } || _job is not BackupJob { Encrypted: true } backup || backup.HasSavedPassword)
+            return true;
+        if (!App.Settings!.SecretStoreAvailable) {
+            await MessageDialog.ShowMessage(App.GetMainWindow(), Localizer.Localizer.Instance["SchedulePasswordUnavailable"],
+                MessageDialog.Icons.Error);
+            return false;
+        }
+        var res = await new PasswordDialog(false, Localizer.Localizer.Instance["SchedulePassword"]).Show<PasswordDialog.Result?>();
+        if (res == null)
+            return false;
+        backup.Password = res.Password;
+        backup.RememberPassword = true;
+        return true;
     }
 
     /// <summary>
@@ -258,9 +334,24 @@ public partial class JobSettingsPage : BasePage
             .Where(t => t.Length > 0)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
+        if (JobScheduler.Current != null) {
+            var schedule = EditedSchedule;
+            // A job never scheduled keeps no schedule
+            if (schedule.Enabled || _job.Schedule != null)
+                _job.Schedule = schedule;
+        }
 
-        if (!Validate())
+        if (!Validate() || !await EnsureScheduledPassword())
             return;
+
+        // The entry of the scheduler first: the settings are not saved when it fails
+        try {
+            JobScheduler.Current?.Apply(_job);
+        } catch (Exception ex) {
+            await MessageDialog.ShowMessage(App.GetMainWindow(), $"{Localizer.Localizer.Instance["ScheduleFailed"]}{ex.Message}",
+                MessageDialog.Icons.Error);
+            return;
+        }
 
         var job = App.Settings!.Jobs
             .FirstOrDefault(j => j.Id == _jobId);
@@ -302,6 +393,9 @@ public partial class JobSettingsPage : BasePage
                 errors.Add(new ErrorContainer.ErrorData("CompressionLevel", string.Format(Localizer.Localizer.Instance["CompressionNotSupported"],
                     Localizer.Localizer.Instance[$"Fs_{unsupported.Type}"])));
         }
+
+        if (_job.Schedule is { Enabled: true, Days.Count: 0 })
+            errors.Add(new ErrorContainer.ErrorData("Schedule", Localizer.Localizer.Instance["ScheduleNoDays"]));
 
         var ctrl = this.FindControl<Controls.PositionDetail>("Source")!;
         var sValid = ctrl.Validate();

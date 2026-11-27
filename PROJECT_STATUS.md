@@ -48,7 +48,12 @@ Not committed:
   folder; shared `Utility/ItemRestore` with the browser download): build and
   `Regressions.RestoreWholeBackupIntoFolderKeepsOtherFiles` pass, not seen on screen.
 - "Test connection" in the job settings and progress/cancel for download and restore (`Spinner`): build passes; not
-  seen on screen, not tried with remote services.
+  seen on screen, not tried with remote services. The back arrow during a download/restore asks to cancel.
+- Automatic runs (schedule in the job settings, Windows/systemd/launchd, `--run-job` without window, results and
+  failures in the job list): build passes. Tried on Windows with a scratch program: next run, saved days, headless
+  sync with log and result, merge, lock, encrypted backup without password, Windows task created with the right XML
+  and removed; `mpbkpugui.exe --run-job` exits without a window. Not tried: the pages on screen, a task actually
+  started by Windows, Linux (systemd) and macOS (launchd) at all.
 
 ## Open issues and attempts so far
 - Remote file managers other than MediaFire never tried with real accounts (also as additional destinations).

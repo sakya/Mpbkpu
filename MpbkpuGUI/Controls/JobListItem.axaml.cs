@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using Avalonia;
 using Avalonia.Controls;
@@ -6,9 +7,11 @@ using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
+using Avalonia.Platform.Storage;
 using MpbkpuGUI.Abstracts;
 using MpbkpuGUI.Dialogs;
 using MpbkpuGUI.Models;
+using MpbkpuGUI.Utility;
 using Material.Icons;
 using Material.Icons.Avalonia;
 
@@ -60,8 +63,35 @@ public partial class JobListItem : UserControl
                 }
 
                 ShowDestinations();
+                ShowSchedule();
             }
         }
+    }
+
+    /// <summary>
+    /// The schedule chip and the log of the last automatic run
+    /// </summary>
+    private void ShowSchedule()
+    {
+        var culture = new CultureInfo(App.Settings!.Language);
+        var chip = this.FindControl<Border>("ScheduleChip")!;
+        var schedule = _item?.Schedule;
+        chip.IsVisible = schedule is { Enabled: true } && JobScheduler.Current != null;
+        if (chip.IsVisible) {
+            this.FindControl<TextBlock>("ScheduleText")!.Text = schedule!.Describe(culture);
+            var next = schedule.NextRun(DateTime.Now);
+            ToolTip.SetTip(chip, next == null ? null : string.Format(Localizer.Localizer.Instance["NextRun"], next.Value.ToString("f", culture)));
+        }
+
+        this.FindControl<Button>("LogButton")!.IsVisible =
+            _item is { LastRunAutomatic: true } && File.Exists(ScheduledRun.GetLogFile(_item.Id));
+    }
+
+    private async void OnOpenLogClick(object? sender, RoutedEventArgs e)
+    {
+        if (_item == null || TopLevel.GetTopLevel(this)?.Launcher is not { } launcher)
+            return;
+        await launcher.LaunchFileInfoAsync(new FileInfo(ScheduledRun.GetLogFile(_item.Id)));
     }
 
     private void InitializeComponent()

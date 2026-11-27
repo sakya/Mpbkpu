@@ -219,6 +219,32 @@
   `%LOCALAPPDATA%\Mpbkpu`: OAuth tokens, known_hosts). Default No, so a reinstall finds the jobs; nothing is deleted
   on silent uninstalls; other users of the computer keep their data; the backups are never touched.
 
+## Automatic runs (GUI, 2026-11-27)
+- **Scheduler of the operating system**, for the current user (no administrator rights, no stored password):
+  Windows Task Scheduler (`Utility/WindowsTask`, task "Mpbkpu {job id}" from an XML definition: interactive token,
+  `StartWhenAvailable`, no battery limits), systemd user timer on Linux (`Utility/SystemdTimer`,
+  `~/.config/systemd/user/mpbkpu-{id}.timer/.service`, `Persistent=true`; cron was rejected: no D-Bus session, so no
+  keyring with the saved passwords), launchd agent on macOS (`Utility/LaunchAgent`,
+  `~/Library/LaunchAgents/com.mpbkpu.job.{id}.plist`, `launchctl bootstrap gui/{uid}`). Common base
+  `Utility/JobScheduler` (`Current`, `Apply`, `Delete`). Runs happen only while the user is signed in (Linux: also
+  with `loginctl enable-linger`).
+- **Schedule** (`Job.Schedule`, `Models/JobSchedule`): days of the week and a time, for backups and synchronizations.
+  `Days` is deserialized with `ObjectCreationHandling.Replace` (Newtonsoft would add the saved days to the default
+  ones). The scheduler entry is written when the job is saved (before the settings: a failure keeps the page open) and
+  removed when the job is deleted; the uninstaller removes the Windows tasks.
+- **The entry starts the GUI executable without a window** (`mpbkpugui --run-job {id}`, `Utility/ScheduledRun`), not
+  the CLI: the job, its credentials and the saved encryption password come from the GUI settings and the secret store
+  of the user, so no secret ends up in the scheduler. An encrypted backup can be scheduled only with its password saved
+  (asked when the schedule is saved). No confirmation handler: like the CLI with `-y`.
+- **Results**: settings.json belongs to the GUI, which may be open, so a scheduled run writes only
+  `%LOCALAPPDATA%\MpbkpuGUI\scheduled\{id}.json` (written aside and renamed) and the log `logs\{id}.log` (last run
+  only). The job list merges the results newer than `LastRun` (`LastRunAutomatic`, "Automatic" button that opens the
+  log) when it is shown and, through a `FileSystemWatcher`, while it is visible; failed runs are reported in one
+  message. No system notification: the GUI reports them when opened.
+- **One run per job** (`ScheduledRun.TryLock`): a lock file opened with `FileShare.None` and deleted on close, in any
+  process and on every OS (a named mutex is thread-affine, named semaphores are Windows only). A scheduled run of a
+  job already running ends at once; a run by hand of a job running by itself is refused with a message.
+
 ## Updates (GUI, 2026-11-27)
 - **Source**: the GitHub API `releases/latest` of `sakya/Mpbkpu` (drafts and pre-releases excluded). The tag
   (`v0.2.0`) is compared with the assembly version (`SolutionInfo.proj` `<Version>`), missing parts as 0. The setup

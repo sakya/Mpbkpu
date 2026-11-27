@@ -217,6 +217,14 @@ public abstract class Job
     public List<string> Exclude { get; set; } = new();
     public DateTime? LastRun { get; set; }
     public MpbkpuLib.DataModel.Backup.Results? LastResult { get; set; }
+    /// <summary>
+    /// The last run was started by the schedule (its log is <see cref="Utility.ScheduledRun.GetLogFile"/>)
+    /// </summary>
+    public bool LastRunAutomatic { get; set; }
+    /// <summary>
+    /// Automatic runs (null: run by hand only)
+    /// </summary>
+    public Models.JobSchedule? Schedule { get; set; }
 
     /// <summary>
     /// Every destination of the job
