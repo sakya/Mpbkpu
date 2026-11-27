@@ -9,9 +9,11 @@ Nella chat parla in italiano
 
 ## Commands
 - Build: `dotnet build Mpbkpu.sln`
-- Tests (~5-7 min): `dotnet test Tests/Tests.csproj`
+- Tests (~8 min): `dotnet test Tests/Tests.csproj`
 - The `FileManagers` tests are explicit and need `filemanagers-settings.json` with real credentials: do not run them
   (`--filter "FullyQualifiedName~FileManagers"`) without asking.
+- CI: `.github/workflows/tests.yml` runs the tests on windows-latest for every push to `main`. The runner can create
+  file symbolic links, this PC cannot (no Developer Mode): tests guarded by that run only on CI.
 - NUnit 5: `Assert.ThrowsAsync` returns a `Task` and must be awaited, otherwise the test asserts nothing.
 - Installer: `Setup\build.bat`, then `%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe Setup\Mpbkpu.iss`.
 

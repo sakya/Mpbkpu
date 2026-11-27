@@ -6,83 +6,60 @@ _Updated: 2026-11-27_
 Mpbkpu: a multi-platform backup utility with encryption and compression, on local and remote file systems
 (FTP, SFTP, SMB, OneDrive, Dropbox, MEGA, Nextcloud, MediaFire, pCloud). A backup can be split among more destinations.
 Projects: library `MpbkpuLib`, CLI `Mpbkpu`, Avalonia GUI `MpbkpuGUI`, `NextcloudClient`, `Tests` (NUnit), installer
-in `Setup/`. MediaFire uses the author's `MediaFireApi` NuGet package (repository `../MediaFireApi`), the CLI the
-author's `CmdLineArgsParser` (`../CmdLineArgsParser`).
+in `Setup/`, CI in `.github/workflows/tests.yml`. MediaFire uses the author's `MediaFireApi` NuGet package (repository
+`../MediaFireApi`), the CLI the author's `CmdLineArgsParser` (`../CmdLineArgsParser`).
 
 ## Completed and verified
 | Area | What | How it was verified |
 |---|---|---|
 | Platform | .NET 10, Avalonia 12.2, AvaloniaSingleWindow 1.2.0, Material.Icons, EF Core 10 | build, app started |
-| Backup logic | Chains (`FullBackupEveryDays`, `KeepChains`), encryption v2 with HMAC, locked/changed files as warnings, `Exclude` honoured, free space in the confirmation, `ForeignDatabaseException` (destinations holding different backups), verify with errors is a failure | `Tests/Regressions.cs` |
+| Backup logic | Chains (`FullBackupEveryDays`, `KeepChains`), encryption v2 with HMAC, locked/changed files as warnings, `Exclude` honoured, free space in the confirmation, `ForeignDatabaseException`, verify with errors is a failure, verification after the backup (`Verify`, CLI `--verify`) | `Tests/Regressions.cs` |
 | Sync | Unchanged files kept, hidden/excluded/unreadable items never deleted, temp file + rename | `Tests/Sync.cs` |
-| Multiple destinations | Library, CLI, GUI; parallel copy engine; local file systems copy in parallel (no `MaxParallelTransfers` limit) | 13+ regression tests; CLI end to end on 3 folders; GUI on screen (4 of 8 files copied at once) |
-| CLI | Works with redirected output, exit codes (0 ok, 1 error, 2 cancelled, -1 invalid arguments), `--log` for every action, credentials per destination as `N=value`, actions on `BaseAction.RunJob` | `Tests/CommandLine.cs`; by hand in a real console (each exit code, redirected output, `--log`, `--exclude`) |
+| Multiple destinations | Library, CLI, GUI; parallel copy engine; local file systems copy in parallel | regression tests; CLI end to end on 3 folders; GUI on screen |
+| CLI | Redirected output, exit codes (0 ok, 1 error, 2 cancelled, -1 invalid arguments), `--log`, credentials per destination as `N=value` | `Tests/CommandLine.cs`; by hand in a real console |
 | Credentials | OS secure storage (`SecretStore`), passwords masked in logs and database | tests |
 | MediaFire | Backup and verify with the user's account (MediaFireApi 0.2.2) | user |
-| GUI | Light/dark theme, "Copy command", backup browser (double click, right click download), files being copied, history result icons | on screen by the user (2026-11-26/27) |
-| Setup | `Setup/build.bat` + `Setup/Mpbkpu.iss` | installer compiled (not run) |
+| GUI | Light/dark theme, "Copy command", backup browser, files being copied, history result icons, exclusions | on screen by the user (2026-11-26/27) |
+| Setup | `Setup/build.bat` (restore + clean per runtime before publish) + `Setup/Mpbkpu.iss` | build.bat run, published exe starts; installer compiled, not run |
 
-Tests: 117 pass with `dotnet test Tests/Tests.csproj` (`FileManagers` tests on real accounts are explicit, skipped
-without `filemanagers-settings.json`). Clean build: 0 warnings, 0 errors.
+Tests: 117 pass locally with `dotnet test Tests/Tests.csproj` (~8 min; `FileManagers` tests are explicit). Clean
+build: 0 warnings, 0 errors.
 
 ## Current state
-Implemented but **not verified on a real service or on screen**:
-- service options (offline tests only): FTP `?tls=required`/`?fingerprint=`, SFTP key passphrase and `?hostkey=`,
-  MEGA modification date on upload and 2FA code prompt, MediaFire session renewal, SMB dates as UTC;
-- pCloud file manager (OAuth, US/EU server), OAuth browser login shared with Dropbox (`Utility/OAuthBrowserLogin`),
-  account paths unified in `FileManagerFactory.GetAccount`;
-- compression on Dropbox (upload session) and Nextcloud (chunked transfer encoding) through `UploadStream` of unknown
-  length + `FileSystemStream.EndOfData`; SMB no longer claims compression; job settings refuse unsupported compression;
-- GUI not seen on screen: switches instead of check boxes, free space dialog, FTP/SFTP path hints, compression error
-  in the job settings.
+Everything is committed and pushed (`main` = `origin/main` = `f2a03cc`). Implemented in the 2026-11-27 session,
+**build passes but not seen on screen**:
+- Update check (`Utility/UpdateChecker`, "Updates" card in the settings page, "Update available" in the sidebar,
+  `Setup/Mpbkpu.iss` restarts the GUI): check, download and SHA-256 verification tried against the real v0.1.0 release.
+  A real update never tried.
+- Restore of a whole backup from the history (`Utility/ItemRestore`): `Regressions.RestoreWholeBackupIntoFolderKeepsOtherFiles`.
+- "Test connection" in the job settings, progress/cancel for download and restore (`Controls/Spinner`); not tried with
+  remote services.
+- Automatic runs (`Utility/JobScheduler`, `WindowsTask`, `SystemdTimer`, `LaunchAgent`, `ScheduledRun`, `--run-job`):
+  tried on Windows with a scratch program (task XML created and removed, headless run, results merge, lock). Not
+  tried: a task started by Windows, Linux and macOS.
+- Schedule page (`Pages/SchedulePage`), settings page (`Pages/SettingsPage`: theme, accent, updates, export/import),
+  accent color following the system (`Utility/AccentPalette`, contrast checked numerically).
+- Verification card in the job settings (logic tested, see above).
+- Export/import of jobs (`Utility/JobTransfer`): round trip tried with a scratch program (no secrets, new job ids,
+  position ids kept, history cleared, schedule off, foreign `$type`/empty/newer files refused). File pickers not tried.
+- CI: the first run (`23d529c`) failed on `Utilities.LocalDatesAreUtcAndLinksAreNotFollowed`: broken file links were
+  listed (the runner can create file links, this PC cannot). Fixed in `f2a03cc` (`BaseLocalFileSystem` resolves file
+  links to their target, skips broken ones); its CI run was in progress at the end of the session: **not confirmed**.
 
-Committed up to `8705797` (version 0.2.0.0; GUI exclusions, checked on screen by the user; images marked binary in
-`.gitattributes`, `67665e9`). The uninstaller (`cfc139e`) is compiled, uninstall never run.
-
-Not committed:
-- Update check (`MpbkpuGUI/Utility/UpdateChecker`, settings page, sidebar button, `Setup/Mpbkpu.iss` restarts the GUI
-  after an update): build and installer script compile; check, download and SHA-256 verification tried against the
-  real v0.1.0 release (wrong hash and other hosts refused). Not tried: the pages on screen and a real update (needs
-  an installed older version and a newer release).
-- Restore of a whole backup from the history (button per backup, folder picker, confirmation; nothing deleted in the
-  folder; shared `Utility/ItemRestore` with the browser download): build and
-  `Regressions.RestoreWholeBackupIntoFolderKeepsOtherFiles` pass, not seen on screen.
-- "Test connection" in the job settings and progress/cancel for download and restore (`Spinner`): build passes; not
-  seen on screen, not tried with remote services. The back arrow during a download/restore asks to cancel.
-- Automatic runs (schedule in the job settings, Windows/systemd/launchd, `--run-job` without window, results and
-  failures in the job list): build passes. Tried on Windows with a scratch program: next run, saved days, headless
-  sync with log and result, merge, lock, encrypted backup without password, Windows task created with the right XML
-  and removed; `mpbkpugui.exe --run-job` exits without a window. Not tried: the pages on screen, a task actually
-  started by Windows, Linux (systemd) and macOS (launchd) at all.
-- Accent color following the system (`Utility/AccentPalette`): build passes; derived colors checked for contrast
-  with a scratch program (Windows blue, yellow, red, green, Mpbkpu blue). Not seen on screen.
-- Schedule page ("Scheduled" in the sidebar: scheduled jobs, next run, last result, error, log): build passes, the
-  app starts; the page not seen on screen.
-- Settings page (theme, accent color, check for updates at startup; "Settings" in the sidebar replaces the theme and
-  accent buttons, the switch left the about page): build passes, not seen on screen.
-- Verification after the backup (`BackupJobSettings.Verify`, CLI `--verify`, "Verification" card in the job
-  settings): `Regressions.BackupIsVerifiedWhenAsked` and `FailedVerificationFailsTheBackupAndKeepsIt` pass,
-  `Tests/CommandLine.cs` checks `--verify`. Not seen on screen, not tried from the CLI by hand.
-- Export/import of jobs (settings page, `Utility/JobTransfer`): build passes; round trip tried with a scratch program
-  (no secrets in the file, new job ids, position ids kept, history cleared, schedule off, foreign `$type`, empty file
-  and newer version refused). Not seen on screen, file pickers not tried.
-- GitHub workflow `.github/workflows/tests.yml` (tests on every push to `main`, windows-latest). Its first run found
-  broken file links listed by the local file manager: fixed in `BaseLocalFileSystem` (links to files resolved to their
-  target, broken ones skipped) and `Utilities.LocalDatesAreUtcAndLinksAreNotFollowed` extended. That part of the test
-  runs only where file links can be created (the runner; not this PC without Developer Mode): to confirm on GitHub.
+Older items not verified on a real service or on screen: FTP/SFTP/MEGA/MediaFire service options, pCloud, compression
+on Dropbox/Nextcloud, switches/free space dialog/path hints in the GUI.
 
 ## Open issues and attempts so far
-- Remote file managers other than MediaFire never tried with real accounts (also as additional destinations).
-- Remote file managers copy one file at a time (`MaxParallelTransfers` 1), never tried in parallel.
-- pCloud API details reconstructed from the JS SDK and rclone (docs.pcloud.com pages arrive truncated): `mtime` on
-  upload, case sensitivity and the EU server are assumptions.
-- Nextcloud chunked uploads may be refused by some reverse proxies (assumption, not tried).
+- `SolutionInfo.proj` `<Version>` went from 0.3.0.0 back to 0.2.0.0 in `23d529c` (not done by the agent; maybe on
+  purpose to try the update check against v0.3.0): to check before the next release.
+- Remote file managers other than MediaFire never tried with real accounts; remote copies are one file at a time.
+- pCloud API details are assumptions (`mtime`, case sensitivity, EU server); Nextcloud chunked uploads may be refused
+  by some proxies (not tried).
 - "Value cannot be null (password)" on a MediaFire verify (2026-11-26) disappeared after recreating the job; probable
   cause, not proven: a GUI screen test overwrote `settings.json`/`secrets` while the user's GUI was open.
-- Not verified on screen: warnings box in the history, windows narrower than 1180×780, Windows animations.
 - Backups made before the fixes: wrong `RelativePath` for relative source paths (not repairable); modification
   dates restored shifted by the UTC offset (change detection not affected).
 
 ## Next step
-Check the update pages on screen and commit; try a real update with the next release. Then try with a real account each service used in practice (backup, sync, history,
-verify, restore, also compressed and as an additional destination), starting from the ones changed on 2026-11-27.
+Check the CI run of `f2a03cc` on GitHub (Actions tab); if it fails, read the log of the link test. Then check the
+version in `SolutionInfo.proj` and look at the new pages on screen (settings, schedule, verification card, export/import).
