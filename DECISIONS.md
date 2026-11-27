@@ -55,6 +55,11 @@
   SFTP `keyfile=path;passphrase=...`. The GUI shows the options under the path (`PositionDetailModel.PathHint`).
 - **Modification date on upload**: `IFileManager.OpenFile(..., lastModified)` for the file systems that can set it
   only when creating a file (MEGA); sync and restore pass it, the others ignore it.
+- **MEGA 2FA**: the code is asked, not stored (the user's choice, 2026-11-27): a login failing with
+  `TwoFactorAuthenticationError` calls `Mega.TwoFactorCodeProvider` (GUI: `PasswordDialog` with a custom label, at
+  least 6 characters; CLI: a console line). The session is kept in memory per account and reused by the other
+  instances of the process, so the code is asked once per account and run (GUI: once per app session); these
+  sessions are not logged out. Unattended runs of an account with 2FA fail with a clear error.
 - **MediaFire session**: the token lasts 10 minutes; `GetClient` renews it when older than 5 and logs in again when
   the renewal fails.
 - **SMB dates**: FILETIME values, UTC; `Smb.ToUtc` converts local dates and gives the UTC kind to unspecified ones.
@@ -186,6 +191,8 @@
 
 ## GUI
 - **Service picker**: a ComboBox; chips were tried (2026-11-27) and rejected by the user.
+- **Switches, no check boxes**: options are `ToggleSwitch` with the label as `OnContent`/`OffContent` (beside the
+  switch, like a check box) and `AutomationProperties.Name`; UI Automation toggles them with `TogglePattern`.
 - **Themes**: `App.axaml` keeps one color set per theme variant in `ThemeDictionaries` (Dark: the original palette,
   Light); the brushes (`BgBrush`, `TextBrush`, ...) take their color with `DynamicResource`, and every page refers to
   colors and brushes with `DynamicResource`, so the theme changes without restarting. No fixed colors in pages or

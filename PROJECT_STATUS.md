@@ -56,8 +56,11 @@ Not committed (2026-11-27), service limits: FTP path options `tls=required` and 
 certificates), SFTP key passphrase and `hostkey=` for a changed host key, MEGA modification date on upload
 (`OpenFile` takes `lastModified`; restore now also passes the size), MediaFire session renewal, SMB dates normalized
 to UTC, path hints in the GUI. Offline tests only (parsing, masking, dates): none of these tried on a real server.
-Not done: MEGA 2FA (needs a decision), MediaFire modification date (no API), SMB free space/hidden/connections
-(EzSmb).
+MEGA 2FA: the code is asked when the account needs it (GUI dialog, CLI prompt), once per account and run.
+Not done: MediaFire modification date (no API), SMB free space/hidden/connections (EzSmb).
+
+Not committed: check boxes replaced by switches (remember password, encrypted, hash check); built, not seen on
+screen.
 
 ## Open issues and attempts so far
 - Remote file managers other than MediaFire never tried with real accounts, also as additional destinations.

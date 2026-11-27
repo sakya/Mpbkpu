@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using System.Security.Authentication;
 using CG.Web.MegaApiClient;
 using MpbkpuLib.Interfaces;
 using MpbkpuLib.Utility;
@@ -9,9 +11,23 @@ public class Mega : IFileManager
 {
     public const string Scheme = "mega://";
 
+    /// <summary>
+    /// Asks the two-factor authentication code of an account (GUI dialog, CLI prompt); null or empty cancels the
+    /// login. Without a provider an account with 2FA cannot log in.
+    /// </summary>
+    public static Func<string, Task<string?>>? TwoFactorCodeProvider { get; set; }
+
+    /// <summary>
+    /// Sessions of the accounts with 2FA, kept in memory for the life of the process: the code is asked once and not
+    /// by every instance of a job (they are not logged out)
+    /// </summary>
+    private static readonly ConcurrentDictionary<string, MegaApiClient.LogonSessionToken> TwoFactorSessions = new();
+    private static readonly SemaphoreSlim LoginLock = new(1, 1);
+
     private readonly string? _username;
     private readonly string? _password;
     private MegaApiClient? _client;
+    private bool _twoFactorSession;
     /// <summary>
     /// Nodes of the account, read once and kept updated by the operations of this instance
     /// </summary>
@@ -29,7 +45,8 @@ public class Mega : IFileManager
 
     public void Dispose()
     {
-        if (_client?.IsLoggedIn == true) {
+        // A 2FA session is shared by the instances of the process
+        if (_client?.IsLoggedIn == true && !_twoFactorSession) {
             try {
                 _client?.Logout();
             } catch {
@@ -223,11 +240,45 @@ public class Mega : IFileManager
     private async Task<MegaApiClient> GetClient()
     {
         if (_client == null) {
-            _client = new MegaApiClient(new WebClient(30000));
-            await _client.LoginAsync(_username, _password);
+            var client = new MegaApiClient(new WebClient(30000));
+            await Login(client);
+            _client = client;
         }
 
         return _client;
+    }
+
+    /// <summary>
+    /// Log in, asking the 2FA code (<see cref="TwoFactorCodeProvider"/>) when the account needs it, or reusing the
+    /// session of a previous 2FA login
+    /// </summary>
+    private async Task Login(MegaApiClient client)
+    {
+        await LoginLock.WaitAsync();
+        try {
+            if (TwoFactorSessions.TryGetValue(_username!, out var session)) {
+                try {
+                    await client.LoginAsync(session);
+                    _twoFactorSession = true;
+                    return;
+                } catch (ApiException) {
+                    // Expired: log in again
+                    TwoFactorSessions.TryRemove(_username!, out _);
+                }
+            }
+
+            try {
+                await client.LoginAsync(_username, _password);
+            } catch (ApiException ex) when (ex.ApiResultCode == ApiResultCode.TwoFactorAuthenticationError) {
+                var code = TwoFactorCodeProvider == null ? null : await TwoFactorCodeProvider(_username!);
+                if (string.IsNullOrWhiteSpace(code))
+                    throw new AuthenticationException($"The MEGA account {_username} needs a two-factor authentication code");
+                TwoFactorSessions[_username!] = await client.LoginAsync(_username, _password, code.Trim());
+                _twoFactorSession = true;
+            }
+        } finally {
+            LoginLock.Release();
+        }
     }
 
     private static File ToFile(INode node, string path)

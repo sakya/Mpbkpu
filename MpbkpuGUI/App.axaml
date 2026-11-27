@@ -379,8 +379,9 @@
             <Setter Property="MinWidth" Value="160" />
             <Setter Property="HorizontalAlignment" Value="Left" />
         </Style>
-        <Style Selector="CheckBox">
-            <Setter Property="CornerRadius" Value="4" />
+        <!-- Switches instead of check boxes: the label is the On/Off content, beside the switch -->
+        <Style Selector="ToggleSwitch">
+            <Setter Property="MinWidth" Value="0" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
 

@@ -19,6 +19,16 @@ public class PasswordDialogModel : BaseModel
         set => SetField(ref _remember, value);
     }
 
+    private string? _label;
+    /// <summary>
+    /// The text above the password box
+    /// </summary>
+    public string? Label
+    {
+        get => _label;
+        set => SetField(ref _label, value);
+    }
+
     private bool _canRemember;
     public bool CanRemember
     {

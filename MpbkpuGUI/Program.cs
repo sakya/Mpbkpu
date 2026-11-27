@@ -67,6 +67,10 @@ namespace MpbkpuGUI
 
             Localizer.Localizer.Instance.LoadLanguage(App.Settings.Language);
             App.ApplyTheme(App.Settings.Theme);
+            // MEGA accounts with two-factor authentication: the code is asked once per account and run of the app
+            MpbkpuLib.FileManagers.Mega.TwoFactorCodeProvider = user => Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(async () =>
+                (await new Dialogs.PasswordDialog(false, string.Format(Localizer.Localizer.Instance["MegaTwoFactorCode"], user), 6)
+                    .Show<Dialogs.PasswordDialog.Result?>())?.Password);
 
             return new Views.MainWindow();
         }

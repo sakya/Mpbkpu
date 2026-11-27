@@ -87,6 +87,17 @@ public static class Program
             }
         }
 
+        // MEGA accounts with two-factor authentication: the code is asked once per account
+        MpbkpuLib.FileManagers.Mega.TwoFactorCodeProvider = user =>
+        {
+            Utility.Console.ClearLine();
+            Utility.Console.SetCursorVisible(true);
+            Console.Write($"MEGA two-factor authentication code for {user}: ");
+            var code = Console.ReadLine();
+            Utility.Console.SetCursorVisible(false);
+            return Task.FromResult(code);
+        };
+
         _runningAction = pArgs.Action switch
         {
             Arguments.Actions.Backup => new BackupAction(),

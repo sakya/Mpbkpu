@@ -90,9 +90,10 @@
                         <TextBlock Classes="h2" Text="{i18n:Localize SecurityCompression}" />
                         <Grid ColumnDefinitions="*,24,*">
                             <StackPanel>
-                                <CheckBox IsEnabled="{Binding IsNew}"
-                                          IsChecked="{Binding Job.Encrypted, Mode=TwoWay}"
-                                          Content="{i18n:Localize Encrypted}" />
+                                <ToggleSwitch IsEnabled="{Binding IsNew}"
+                                              IsChecked="{Binding Job.Encrypted, Mode=TwoWay}"
+                                              OnContent="{i18n:Localize Encrypted}" OffContent="{i18n:Localize Encrypted}"
+                                              AutomationProperties.Name="{i18n:Localize Encrypted}" />
                                 <TextBlock Classes="hint" Margin="0" Text="{i18n:Localize EncryptedHint}" />
                                 <StackPanel Name="SavedPasswordPanel" Orientation="Horizontal" Spacing="10" Margin="0,8,0,0">
                                     <TextBlock Classes="muted" VerticalAlignment="Center" Text="{i18n:Localize PasswordSaved}" />
@@ -141,8 +142,10 @@
                     <Expander Header="{i18n:Localize Advanced}" HorizontalAlignment="Stretch"
                               Background="Transparent" BorderThickness="0" FontWeight="SemiBold">
                         <Grid ColumnDefinitions="*,24,*" RowDefinitions="Auto,Auto" Margin="8,0,8,8">
-                            <CheckBox IsChecked="{Binding !Job.SkipHashCheck, Mode=TwoWay}" FontWeight="Normal"
-                                      Content="{i18n:Localize HashCheck}" VerticalAlignment="Bottom" Margin="0,0,0,6" />
+                            <ToggleSwitch IsChecked="{Binding !Job.SkipHashCheck, Mode=TwoWay}" FontWeight="Normal"
+                                          OnContent="{i18n:Localize HashCheck}" OffContent="{i18n:Localize HashCheck}"
+                                          AutomationProperties.Name="{i18n:Localize HashCheck}"
+                                          VerticalAlignment="Bottom" Margin="0,0,0,6" />
                             <StackPanel Grid.Column="2">
                                 <Label Content="{i18n:Localize RetryOnError}" FontWeight="Normal" />
                                 <NumericUpDown Value="{Binding Job.RetryOnError, Mode=TwoWay}" Minimum="1" Maximum="255" FormatString="0" FontWeight="Normal" />

@@ -23,8 +23,7 @@
 - [ ] CLI: `--exclude` is accepted by restore but `RestoreJob` has no `Exclude`.
 - [ ] Restore: no free space check before writing (backup and sync have one).
 - [ ] Try with real accounts the service options added on 2026-11-27 (FTP `?tls=required` and `?fingerprint=`,
-  SFTP key passphrase and `?hostkey=`, MEGA modification date on upload, MediaFire session renewal).
-- [ ] MEGA: no 2FA (the login would need a code every time: decide between asking it and storing the TOTP secret).
+  SFTP key passphrase and `?hostkey=`, MEGA modification date on upload and 2FA code, MediaFire session renewal).
 - [ ] MediaFire: no modification date in the API (cannot be fixed); `IsCaseSensitive` probably wrong (unused, not
   verifiable without an account).
 - [ ] SMB (EzSmb limits): a new connection per operation (slow), no free space, hidden attributes not read; would

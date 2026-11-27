@@ -18,16 +18,24 @@ public partial class PasswordDialog : BaseDialog
     public record Result(string Password, bool Remember);
 
     private readonly PasswordDialogModel _model;
+    private readonly int _minLength;
 
-    /// <param name="canRemember">Show the option to remember the password</param>
     // The XAML runtime loader needs a constructor without parameters
     public PasswordDialog() : this(false)
     {
     }
 
-    public PasswordDialog(bool canRemember)
+    /// <param name="canRemember">Show the option to remember the password</param>
+    /// <param name="label">The text above the password box, "Password" when null</param>
+    /// <param name="minLength">The minimum length of the password</param>
+    public PasswordDialog(bool canRemember, string? label = null, int minLength = 8)
     {
-        _model = new PasswordDialogModel() { CanRemember = canRemember };
+        _minLength = minLength;
+        _model = new PasswordDialogModel()
+        {
+            CanRemember = canRemember,
+            Label = label ?? Localizer.Localizer.Instance["Password"]
+        };
         DataContext = _model;
 
         VerticalAlignment = VerticalAlignment.Bottom;
@@ -63,8 +71,8 @@ public partial class PasswordDialog : BaseDialog
         var errors = new List<Controls.ErrorContainer.ErrorData>();
         if (string.IsNullOrEmpty(_model.Password))
             errors.Add(new ErrorContainer.ErrorData("Password", Localizer.Localizer.Instance["RequiredError"]));
-        else if (_model.Password.Length < 8)
-            errors.Add(new ErrorContainer.ErrorData("Password", Localizer.Localizer.Instance["PasswordMinLengthError"]));
+        else if (_model.Password.Length < _minLength)
+            errors.Add(new ErrorContainer.ErrorData("Password", string.Format(Localizer.Localizer.Instance["PasswordMinLengthError"], _minLength)));
         if (errors.Count > 0) {
             _model.Errors = errors;
             return;
