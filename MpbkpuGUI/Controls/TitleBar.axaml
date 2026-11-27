@@ -42,10 +42,8 @@
                   ToolTip.Tip="Indietro">
             <mi:MaterialIcon Kind="ArrowLeft" />
           </Button>
-          <Border Name="Icon" Width="18" Height="18" CornerRadius="5" HorizontalAlignment="Center"
-                  Background="{DynamicResource AccentBrush}" IsHitTestVisible="False">
-            <mi:MaterialIcon Kind="TrayArrowDown" Width="13" Height="13" Foreground="#FFFFFF" />
-          </Border>
+          <Image Name="Icon" Width="20" Height="20" HorizontalAlignment="Center" IsHitTestVisible="False"
+                 Source="avares://mpbkpugui/Assets/icon.png" RenderOptions.BitmapInterpolationMode="HighQuality" />
         </Panel>
         <TextBlock Name="Title" FontSize="13" Margin="10,0,0,0"
                    Foreground="{DynamicResource MutedTextBrush}"
