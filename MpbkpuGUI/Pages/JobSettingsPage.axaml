@@ -84,6 +84,40 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Files and directories to skip (backup and synchronization) -->
+                <Border Classes="card">
+                    <StackPanel Spacing="12">
+                        <StackPanel Spacing="4">
+                            <TextBlock Classes="h2" Text="{i18n:Localize Exclude}" />
+                            <TextBlock Classes="hint" Margin="0" Text="{i18n:Localize ExcludeHint}" />
+                        </StackPanel>
+                        <StackPanel Name="ExcludeList" Spacing="8" />
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <Button Click="OnAddExclusionClick" AutomationProperties.Name="{i18n:Localize AddExclusion}">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <mi:MaterialIcon Kind="Plus" Width="16" Height="16" />
+                                    <TextBlock Text="{i18n:Localize AddExclusion}" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                            <!-- Pickers only for a local source: their paths are made relative to it -->
+                            <StackPanel Name="ExcludeBrowse" Orientation="Horizontal" Spacing="10">
+                                <Button Click="OnExcludeFolderClick" AutomationProperties.Name="{i18n:Localize ExcludeFolder}">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <mi:MaterialIcon Kind="FolderOutline" Width="16" Height="16" />
+                                        <TextBlock Text="{i18n:Localize ExcludeFolder}" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Click="OnExcludeFileClick" AutomationProperties.Name="{i18n:Localize ExcludeFile}">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <mi:MaterialIcon Kind="FileOutline" Width="16" Height="16" />
+                                        <TextBlock Text="{i18n:Localize ExcludeFile}" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
                 <!-- Security and compression -->
                 <Border Classes="card" IsVisible="{Binding Job, Converter={StaticResource IsBackupJobConverter}}">
                     <StackPanel Spacing="16">

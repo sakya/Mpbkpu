@@ -1,9 +1,14 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Layout;
+using Avalonia.Platform.Storage;
+using MpbkpuGUI.Dialogs;
 using Material.Icons;
 using Material.Icons.Avalonia;
 using Avalonia.Interactivity;
@@ -60,6 +65,10 @@ public partial class JobSettingsPage : BasePage
 
         var ctrl = this.FindControl<Controls.PositionDetail>("Source")!;
         ctrl.Value = _job.Source;
+        ctrl.TypeChanged += (_, _) => UpdateExcludeBrowse();
+        UpdateExcludeBrowse();
+        foreach (var exclusion in _job.Exclude)
+            AddExclusion(exclusion);
         ctrl = this.FindControl<Controls.PositionDetail>("Destination")!;
         ctrl.Value = _job.Destination;
 
@@ -100,12 +109,23 @@ public partial class JobSettingsPage : BasePage
     /// </summary>
     private void AddMoreDestination(Job.Position position)
     {
-        var list = this.FindControl<StackPanel>("MoreDestinationsList")!;
-        var removeText = Localizer.Localizer.Instance["RemoveDestination"];
+        AddRemovableRow("MoreDestinationsList", new PositionDetail() { Value = position }, "RemoveDestination", VerticalAlignment.Top);
+    }
+
+    /// <summary>
+    /// Add an editor to a list, with a button on its right that removes it
+    /// </summary>
+    /// <param name="listName">Name of the StackPanel holding the rows</param>
+    /// <param name="editor">The editor of the row</param>
+    /// <param name="removeTextKey">Localized text of the remove button (tooltip and automation name)</param>
+    private void AddRemovableRow(string listName, Control editor, string removeTextKey, VerticalAlignment alignment)
+    {
+        var list = this.FindControl<StackPanel>(listName)!;
+        var removeText = Localizer.Localizer.Instance[removeTextKey];
         var remove = new Button()
         {
             Content = new MaterialIcon() { Kind = MaterialIconKind.DeleteOutline },
-            VerticalAlignment = VerticalAlignment.Top,
+            VerticalAlignment = alignment,
             Margin = new Avalonia.Thickness(12, 0, 0, 0)
         };
         remove.Classes.Add("icon");
@@ -117,7 +137,7 @@ public partial class JobSettingsPage : BasePage
         var item = new Grid()
         {
             ColumnDefinitions = new ColumnDefinitions("*,Auto"),
-            Children = { new PositionDetail() { Value = position }, remove }
+            Children = { editor, remove }
         };
         remove.Click += (_, _) => list.Children.Remove(item);
         list.Children.Add(item);
@@ -126,6 +146,91 @@ public partial class JobSettingsPage : BasePage
     private void OnAddDestinationClick(object? sender, RoutedEventArgs e)
     {
         AddMoreDestination(new Job.Position());
+    }
+
+    /// <summary>
+    /// The text boxes of the exclusions
+    /// </summary>
+    private IEnumerable<TextBox> ExclusionEditors =>
+        this.FindControl<StackPanel>("ExcludeList")!.Children.OfType<Grid>()
+            .Select(g => g.Children.OfType<TextBox>().First());
+
+    private TextBox AddExclusion(string value)
+    {
+        var editor = new TextBox() { Text = value };
+        AutomationProperties.SetName(editor, Localizer.Localizer.Instance["Exclude"]);
+        AddRemovableRow("ExcludeList", editor, "RemoveExclusion", VerticalAlignment.Center);
+        return editor;
+    }
+
+    private void OnAddExclusionClick(object? sender, RoutedEventArgs e)
+    {
+        AddExclusion(string.Empty).Focus();
+    }
+
+    private void UpdateExcludeBrowse()
+    {
+        this.FindControl<Control>("ExcludeBrowse")!.IsVisible = this.FindControl<PositionDetail>("Source")!.IsLocalFileSystem;
+    }
+
+    private async void OnExcludeFolderClick(object? sender, RoutedEventArgs e)
+    {
+        var folders = await App.GetMainWindow()!.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions()
+        {
+            Title = Localizer.Localizer.Instance["ExcludeFolder"],
+            AllowMultiple = true,
+            SuggestedStartLocation = await GetSourceFolder()
+        });
+        await AddPickedExclusions(folders);
+    }
+
+    private async void OnExcludeFileClick(object? sender, RoutedEventArgs e)
+    {
+        var files = await App.GetMainWindow()!.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions()
+        {
+            Title = Localizer.Localizer.Instance["ExcludeFile"],
+            AllowMultiple = true,
+            SuggestedStartLocation = await GetSourceFolder()
+        });
+        await AddPickedExclusions(files);
+    }
+
+    private string? SourcePath => this.FindControl<PositionDetail>("Source")!.Value?.Path;
+
+    private async Task<IStorageFolder?> GetSourceFolder()
+    {
+        return string.IsNullOrEmpty(SourcePath) ? null :
+            await App.GetMainWindow()!.StorageProvider.TryGetFolderFromPathAsync(SourcePath);
+    }
+
+    /// <summary>
+    /// Add the picked items as paths relative to the source; items outside the source are reported
+    /// </summary>
+    private async Task AddPickedExclusions(IEnumerable<IStorageItem> items)
+    {
+        var source = SourcePath;
+        if (string.IsNullOrEmpty(source))
+            return;
+
+        var existing = ExclusionEditors.Select(t => t.Text).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var outside = new List<string>();
+        foreach (var item in items) {
+            var path = item.TryGetLocalPath();
+            if (string.IsNullOrEmpty(path))
+                continue;
+            var relative = Path.GetRelativePath(source, path);
+            if (relative is "." or ".." || relative.StartsWith(".." + Path.DirectorySeparatorChar) || Path.IsPathRooted(relative)) {
+                outside.Add(path);
+                continue;
+            }
+            relative = relative.Replace('\\', '/');
+            if (existing.Add(relative))
+                AddExclusion(relative);
+        }
+
+        if (outside.Count > 0)
+            await MessageDialog.ShowMessage(App.GetMainWindow(),
+                $"{Localizer.Localizer.Instance["ExclusionOutsideSource"]}\n{string.Join("\n", outside)}", MessageDialog.Icons.Warning);
     }
 
     public override void OnNavigatedTo(NavigationDirection direction)
@@ -147,6 +252,12 @@ public partial class JobSettingsPage : BasePage
         _job.Destination = ctrl.Value;
         if (_job is BackupJob backupJob)
             backupJob.MoreDestinations = MoreDestinationEditors.Select(d => d.Value!).ToList();
+        // Distinct values: the CLI parser drops repeated ones (Copy command)
+        _job.Exclude = ExclusionEditors
+            .Select(t => t.Text?.Trim() ?? string.Empty)
+            .Where(t => t.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
         if (!Validate())
             return;

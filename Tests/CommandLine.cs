@@ -48,6 +48,7 @@ public class CommandLine
             KeepChains = 2,
             SkipHashCheck = true,
             EncryptPassword = "secret5",
+            Exclude = ["bin", "*.tmp", "Old Files/it's here"],
         };
 
         var res = Cli.ForBackup(@"C:\Program Files\Mpbkpu\mpbkpu.exe", settings, true);
@@ -83,6 +84,7 @@ public class CommandLine
         Assert.That(args.ParallelFiles, Is.EqualTo(4));
         Assert.That(args.KeepChains, Is.EqualTo(2));
         Assert.That(args.SkipHashCheck, Is.True);
+        Assert.That(args.Exclude, Is.EqualTo(settings.Exclude), res.Command);
         Assert.That(args.InteractivePassword, Is.True);
         Assert.That(args.Password, Is.Null);
         Assert.That(args.AlwaysYes, Is.True);
@@ -152,6 +154,7 @@ public class CommandLine
             DestinationUser = "user",
             DestinationPassword = "secret",
             SkipHashCheck = true,
+            Exclude = ["node_modules"],
         });
 
         Assert.That(res.Command, Does.Not.Contain("secret"));
@@ -163,6 +166,7 @@ public class CommandLine
         Assert.That(destination.User, Is.EqualTo("user"));
         Assert.That(destination.Password, Is.EqualTo(Placeholder));
         Assert.That(args.SkipHashCheck, Is.True);
+        Assert.That(args.Exclude, Is.EqualTo(new[] { "node_modules" }));
         Assert.That(args.AlwaysYes, Is.True);
     }
 

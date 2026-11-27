@@ -91,6 +91,7 @@ public class BackupJob : Job
 
             Destinations = GetBackupDestinations(),
             ParallelFiles = ParallelFiles,
+            Exclude = Exclude,
 
             SkipHashCheck = SkipHashCheck,
             RetryOnError = RetryOnError,

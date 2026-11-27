@@ -27,6 +27,7 @@ public static class CommandLine
         builder.Add("-t", settings.BackupType.ToString());
         builder.AddPositions("source", "-s", [Source(settings.Source, settings.SourceUser, settings.SourcePassword, settings.SourceOauthSettings)]);
         builder.AddPositions("destination", "-d", settings.Destinations);
+        builder.AddEach("-e", settings.Exclude);
         if (settings.CompressionLevel != CompressionLevel.NoCompression)
             builder.Add("-c", settings.CompressionLevel.ToString());
         builder.AddNumber("--retry", settings.RetryOnError, 3);
@@ -46,6 +47,7 @@ public static class CommandLine
         builder.AddPositions("source", "-s", [Source(settings.Source, settings.SourceUser, settings.SourcePassword, settings.SourceOauthSettings)]);
         builder.AddPositions("destination", "-d",
             [Source(settings.Destination, settings.DestinationUser, settings.DestinationPassword, settings.DestinationOauthSettings)]);
+        builder.AddEach("-e", settings.Exclude);
         builder.AddNumber("--retry", settings.RetryOnError, 3);
         builder.AddFlag("--skipHash", settings.SkipHashCheck);
         builder.AddFlag("-y", true);
@@ -72,6 +74,15 @@ public static class CommandLine
         {
             if (!string.IsNullOrEmpty(value))
                 _command.Append(' ').Append(option).Append(' ').Append(Quote(value));
+        }
+
+        /// <summary>
+        /// The option repeated for every value (the parser drops repeated equal values: callers pass distinct ones)
+        /// </summary>
+        public void AddEach(string option, IEnumerable<string>? values)
+        {
+            foreach (var value in values ?? [])
+                Add(option, value);
         }
 
         public void AddNumber(string option, int value, int defaultValue)

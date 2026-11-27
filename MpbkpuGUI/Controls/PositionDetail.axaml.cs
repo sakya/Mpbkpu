@@ -74,11 +74,19 @@ public partial class PositionDetail : UserControl, IValidate
         cmbType.SelectedItem = Job.Position.FileSystemTypes.FileSystem;
     }
 
+    /// <summary>
+    /// Raised when the user picks another file system type
+    /// </summary>
+    public event EventHandler? TypeChanged;
+
+    public bool IsLocalFileSystem => _model.IsLocalFileSystem;
+
     private void OnTypeChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (sender is ComboBox { SelectedItem: { } } cmb) {
             _model.Type = (Job.Position.FileSystemTypes)cmb.SelectedItem;
             _model.Errors = null;
+            TypeChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 

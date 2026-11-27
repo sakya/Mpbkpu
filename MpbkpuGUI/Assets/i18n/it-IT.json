@@ -158,6 +158,13 @@
   "MoreDestinationsHint": "I file di un backup sono divisi tra tutte le destinazioni; ogni destinazione contiene una copia del database. Per il ripristino servono tutte le destinazioni.",
   "AddDestination": "Aggiungi destinazione",
   "RemoveDestination": "Rimuovi destinazione",
+  "Exclude": "Esclusioni",
+  "ExcludeHint": "File e cartelle da saltare. Un nome (bin), un percorso relativo alla sorgente (Documenti/Vecchi) o un modello con * e ? (*.tmp); maiuscole e minuscole sono uguali. Gli elementi esclusi non vengono mai cancellati dalla destinazione di una sincronizzazione.",
+  "AddExclusion": "Aggiungi",
+  "ExcludeFolder": "Cartelle...",
+  "ExcludeFile": "File...",
+  "RemoveExclusion": "Rimuovi esclusione",
+  "ExclusionOutsideSource": "Questi elementi non sono dentro la sorgente e non sono stati aggiunti:",
   "MoreDestinationsCount": "(+{0} destinazioni)",
   "ParallelFiles": "File copiati contemporaneamente",
   "ParallelFilesHint": "Ogni file system può ridurlo."

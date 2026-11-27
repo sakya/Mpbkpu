@@ -252,6 +252,11 @@
 - **Message dialogs**: buttons on the right, secondary before primary. A Yes/No confirmation with the warning icon is
   destructive and its confirm button uses `danger`: every delete/abort confirmation already used that icon, so no
   extra parameter is needed.
+- **Exclusions** (`Job.Exclude`, backup and sync, 2026-11-27): one list of names, relative paths and wildcard
+  patterns, matched by the library like the CLI `--exclude` (no separate lists for files and folders). Free text plus
+  "Folders..."/"Files..." pickers, shown only for a local source, that add the picked items relative to the source
+  (items outside it are reported, not added). Saved trimmed and distinct, since the CLI parser drops repeated values
+  ("Copy command" writes one `-e` per item). No preview of what is excluded (the source may be remote).
 - **File system types** in the job settings are sorted by their name in the current language; a new position is a
   local folder.
 - **Windows animations with the custom title bar**: a Win32 window styles callback adds `WS_CAPTION` (DWM needs it for

@@ -22,6 +22,7 @@ public class SyncJob : Job
             DestinationUser = Destination.User,
             DestinationPassword = Destination.Password,
             DestinationOauthSettings = Destination.GetOAuth2Settings(),
+            Exclude = Exclude,
 
             SkipHashCheck = SkipHashCheck,
             RetryOnError = RetryOnError,

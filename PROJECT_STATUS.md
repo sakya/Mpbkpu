@@ -26,7 +26,7 @@ Tests: 112 pass with `dotnet test Tests/Tests.csproj` (`FileManagers` tests on r
 without `filemanagers-settings.json`). Clean build: 0 warnings, 0 errors.
 
 ## Current state
-Committed up to `54add34` (2026-11-27). Implemented but **not verified on a real service or on screen**:
+Implemented but **not verified on a real service or on screen**:
 - service options (offline tests only): FTP `?tls=required`/`?fingerprint=`, SFTP key passphrase and `?hostkey=`,
   MEGA modification date on upload and 2FA code prompt, MediaFire session renewal, SMB dates as UTC;
 - pCloud file manager (OAuth, US/EU server), OAuth browser login shared with Dropbox (`Utility/OAuthBrowserLogin`),
@@ -36,8 +36,14 @@ Committed up to `54add34` (2026-11-27). Implemented but **not verified on a real
 - GUI not seen on screen: switches instead of check boxes, free space dialog, FTP/SFTP path hints, compression error
   in the job settings.
 
-Not committed: the uninstaller asks whether to delete settings and credentials (`Setup/Mpbkpu.iss`, `[Code]`);
-script compiled, uninstall never run.
+Committed up to `c3851b6`; the uninstaller (`cfc139e`) is compiled, uninstall never run.
+
+Not committed:
+- `.gitattributes` marks images as binary (the committed `icon.png` was corrupted by the CRLF conversion); both
+  PNGs staged again with the right bytes; README rewritten for users.
+- GUI exclusions (`Job.Exclude`, "Exclusions" card in the job settings for backup and sync, pickers for a local
+  source; "Copy command" writes `-e`): build and `Tests/CommandLine.cs` pass; checked on screen by the user
+  (2026-11-27).
 
 ## Open issues and attempts so far
 - Remote file managers other than MediaFire never tried with real accounts (also as additional destinations).
@@ -52,5 +58,5 @@ script compiled, uninstall never run.
   dates restored shifted by the UTC offset (change detection not affected).
 
 ## Next step
-Commit the uninstaller change, then try with a real account each service used in practice (backup, sync, history,
+Commit the pending changes, then try with a real account each service used in practice (backup, sync, history,
 verify, restore, also compressed and as an additional destination), starting from the ones changed on 2026-11-27.

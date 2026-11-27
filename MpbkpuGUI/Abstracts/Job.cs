@@ -211,6 +211,10 @@ public abstract class Job
     public Position? Destination { get; set; }
     public bool SkipHashCheck { get; set; } = false;
     public int RetryOnError { get; set; } = 3;
+    /// <summary>
+    /// Files and directories to skip: names, relative paths or wildcard patterns (CLI --exclude)
+    /// </summary>
+    public List<string> Exclude { get; set; } = new();
     public DateTime? LastRun { get; set; }
     public MpbkpuLib.DataModel.Backup.Results? LastResult { get; set; }
 

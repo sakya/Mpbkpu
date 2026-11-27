@@ -158,6 +158,13 @@
   "MoreDestinationsHint": "The files of a backup are split among all the destinations; each destination holds a copy of the database. Restoring needs every destination.",
   "AddDestination": "Add destination",
   "RemoveDestination": "Remove destination",
+  "Exclude": "Exclusions",
+  "ExcludeHint": "Files and folders to skip. A name (bin), a path relative to the source (Documents/Old) or a pattern with * and ? (*.tmp); case is ignored. Excluded items are never deleted from the destination of a synchronization.",
+  "AddExclusion": "Add",
+  "ExcludeFolder": "Folders...",
+  "ExcludeFile": "Files...",
+  "RemoveExclusion": "Remove exclusion",
+  "ExclusionOutsideSource": "These items are not inside the source and have not been added:",
   "MoreDestinationsCount": "(+{0} destinations)",
   "ParallelFiles": "Files copied at the same time",
   "ParallelFilesHint": "Each file system can lower it."
