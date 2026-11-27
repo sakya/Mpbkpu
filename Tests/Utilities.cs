@@ -193,6 +193,34 @@ public class Utilities
         Assert.That(sftpUrl.Port, Is.EqualTo(2222));
     }
 
+    [TestCase("onedrive://me@live.com/Backups", typeof(MpbkpuLib.FileManagers.OneDrive), "onedrive://Backups")]
+    [TestCase("dropbox://me@mail.com/Backups/Pc", typeof(MpbkpuLib.FileManagers.Dropbox), "dropbox://Backups/Pc")]
+    [TestCase("nextcloud://me/Backups", typeof(MpbkpuLib.FileManagers.Nextcloud), "nextcloud://Backups")]
+    [TestCase("pcloud://me@mail.com/Backups", typeof(MpbkpuLib.FileManagers.PCloud), "pcloud://Backups")]
+    [TestCase("pcloud://me@mail.com/", typeof(MpbkpuLib.FileManagers.PCloud), "pcloud:///")]
+    public void AccountPathsKeepThePositionWithoutTheAccount(string path, Type type, string position)
+    {
+        using var fm = MpbkpuLib.FileManagers.FileManagerFactory.GetFileManager(path, out var newPosition);
+        Assert.That(fm, Is.TypeOf(type));
+        Assert.That(newPosition, Is.EqualTo(position));
+    }
+
+    [Test]
+    public void PCloudDatesAndServers()
+    {
+        Assert.That(MpbkpuLib.FileManagers.PCloud.ParseDate("Sun, 16 Mar 2014 17:26:04 +0000"),
+            Is.EqualTo(new DateTime(2014, 3, 16, 17, 26, 4, DateTimeKind.Utc)));
+        Assert.That(MpbkpuLib.FileManagers.PCloud.ParseDate("Sun, 16 Mar 2014 17:26:04 +0100"),
+            Is.EqualTo(new DateTime(2014, 3, 16, 16, 26, 4, DateTimeKind.Utc)));
+        Assert.That(MpbkpuLib.FileManagers.PCloud.ParseDate(null), Is.Null);
+
+        Assert.That(MpbkpuLib.FileManagers.PCloud.GetApiHost("eapi.pcloud.com", "2"), Is.EqualTo("eapi.pcloud.com"));
+        Assert.That(MpbkpuLib.FileManagers.PCloud.GetApiHost(null, "2"), Is.EqualTo("eapi.pcloud.com"));
+        Assert.That(MpbkpuLib.FileManagers.PCloud.GetApiHost(null, null), Is.EqualTo("api.pcloud.com"));
+        // The token is never sent to an unknown server
+        Assert.That(() => MpbkpuLib.FileManagers.PCloud.GetApiHost("evil.example.com", "1"), Throws.Exception);
+    }
+
     [Test]
     public void SmbDatesAreUtc()
     {

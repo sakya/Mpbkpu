@@ -4,7 +4,7 @@ _Updated: 2026-11-26_
 
 ## Goal
 Mpbkpu: a multi-platform backup utility with encryption and compression, on local and remote file systems
-(FTP, SFTP, SMB, OneDrive, Dropbox, MEGA, Nextcloud, MediaFire). A backup can be split among more destinations.
+(FTP, SFTP, SMB, OneDrive, Dropbox, MEGA, Nextcloud, MediaFire, pCloud). A backup can be split among more destinations.
 Projects: library `MpbkpuLib`, CLI `Mpbkpu`, Avalonia GUI `MpbkpuGUI`, `NextcloudClient`, `Tests` (NUnit), installer
 in `Setup/`. MediaFire uses the author's `MediaFireApi` NuGet package (repository `../MediaFireApi`).
 
@@ -61,6 +61,10 @@ Not done: MediaFire modification date (no API), SMB free space/hidden/connection
 
 Not committed: check boxes replaced by switches (remember password, encrypted, hash check); built, not seen on
 screen.
+
+Not committed: pCloud support (OAuth like Dropbox, US/EU server, library + GUI + factory, CLI through the path and
+the OAuth options), the OAuth browser login shared with Dropbox, the account paths of the factory unified. Offline
+tests only (factory, dates, servers); never tried on a pCloud account.
 
 ## Open issues and attempts so far
 - Remote file managers other than MediaFire never tried with real accounts, also as additional destinations.

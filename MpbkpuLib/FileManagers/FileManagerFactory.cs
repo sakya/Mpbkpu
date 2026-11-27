@@ -137,27 +137,8 @@ namespace MpbkpuLib.FileManagers
 
             // OneDrive
             // onedrive://account@live.com/position
-            if (res == null && path.StartsWith(OneDrive.Scheme, StringComparison.InvariantCultureIgnoreCase)) {
-                var m = Regex.Match(path, $"{OneDrive.Scheme}([^/]+)/(.*)$");
-                if (m.Success) {
-                    string? account = null;
-                    if (m.Groups.Count == 3) {
-                        account = m.Groups[1].Value;
-                    }
-                    if (!string.IsNullOrEmpty(m.Groups[2].Value))
-                        newPosition = $"{OneDrive.Scheme}{m.Groups[2].Value}";
-                    else
-                        newPosition = $"{OneDrive.Scheme}/";
-                    res = new OneDrive(account);
-                } else {
-                    if (!string.IsNullOrEmpty(user)) {
-                        newPosition = path.Substring(OneDrive.Scheme.Length);
-                        res = new OneDrive(user);
-                    } else {
-                        throw new Exception("Invalid address");
-                    }
-                }
-            }
+            if (res == null && path.StartsWith(OneDrive.Scheme, StringComparison.InvariantCultureIgnoreCase))
+                res = new OneDrive(GetAccount(path, OneDrive.Scheme, user, out newPosition));
 
             // MEGA
             // mega://user:password/position
@@ -185,27 +166,8 @@ namespace MpbkpuLib.FileManagers
 
             // Dropbox
             // dropbox://user/position
-            if (res == null && path.StartsWith(Dropbox.Scheme, StringComparison.InvariantCultureIgnoreCase)) {
-                var m = Regex.Match(path, $"{Dropbox.Scheme}([^/]+)/(.*)$");
-                if (m.Success) {
-                    string? account = null;
-                    if (m.Groups.Count == 3) {
-                        account = m.Groups[1].Value;
-                    }
-                    if (!string.IsNullOrEmpty(m.Groups[2].Value))
-                        newPosition = $"{Dropbox.Scheme}{m.Groups[2].Value}";
-                    else
-                        newPosition = $"{Dropbox.Scheme}/";
-                    res = new Dropbox(account);
-                } else {
-                    if (!string.IsNullOrEmpty(user)) {
-                        newPosition = path.Substring(Dropbox.Scheme.Length);
-                        res = new Dropbox(user);
-                    } else {
-                        throw new Exception("Invalid address");
-                    }
-                }
-            }
+            if (res == null && path.StartsWith(Dropbox.Scheme, StringComparison.InvariantCultureIgnoreCase))
+                res = new Dropbox(GetAccount(path, Dropbox.Scheme, user, out newPosition));
 
             // MediaFire
             // mediafire://user:password/position
@@ -233,27 +195,13 @@ namespace MpbkpuLib.FileManagers
 
             // Nextcloud
             // nextcloud://userId/position
-            if (res == null && path.StartsWith(Nextcloud.Scheme, StringComparison.InvariantCultureIgnoreCase)) {
-                var m = Regex.Match(path, $"{Nextcloud.Scheme}([^/]+)/(.*)$");
-                if (m.Success) {
-                    string? account = null;
-                    if (m.Groups.Count == 3) {
-                        account = m.Groups[1].Value;
-                    }
-                    if (!string.IsNullOrEmpty(m.Groups[2].Value))
-                        newPosition = $"{Nextcloud.Scheme}{m.Groups[2].Value}";
-                    else
-                        newPosition = $"{Nextcloud.Scheme}/";
-                    res = new Nextcloud(account, password);
-                } else {
-                    if (!string.IsNullOrEmpty(user)) {
-                        newPosition = path.Substring(Nextcloud.Scheme.Length);
-                        res = new Nextcloud(user, password);
-                    } else {
-                        throw new Exception("Invalid address");
-                    }
-                }
-            }
+            if (res == null && path.StartsWith(Nextcloud.Scheme, StringComparison.InvariantCultureIgnoreCase))
+                res = new Nextcloud(GetAccount(path, Nextcloud.Scheme, user, out newPosition), password);
+
+            // pCloud
+            // pcloud://account@mail.com/position
+            if (res == null && path.StartsWith(PCloud.Scheme, StringComparison.InvariantCultureIgnoreCase))
+                res = new PCloud(GetAccount(path, PCloud.Scheme, user, out newPosition));
 
             // Default to FileSystem
             if (res == null) {
@@ -276,6 +224,24 @@ namespace MpbkpuLib.FileManagers
 
             return res;
         } // GetFileManager
+
+        /// <summary>
+        /// The account of a service whose paths start with it (scheme://account/position, the form written by the GUI),
+        /// else the given user
+        /// </summary>
+        /// <param name="newPosition">The position without the account</param>
+        private static string GetAccount(string path, string scheme, string? user, out string newPosition)
+        {
+            var m = Regex.Match(path, $"{scheme}([^/]+)/(.*)$");
+            if (m.Success) {
+                newPosition = string.IsNullOrEmpty(m.Groups[2].Value) ? $"{scheme}/" : $"{scheme}{m.Groups[2].Value}";
+                return m.Groups[1].Value;
+            }
+            if (string.IsNullOrEmpty(user))
+                throw new Exception("Invalid address");
+            newPosition = path.Substring(scheme.Length);
+            return user;
+        }
 
         /// <summary>
         /// The options of a path ("?name=value&amp;name=value" at its end), removed from the path

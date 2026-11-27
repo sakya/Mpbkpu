@@ -11,6 +11,10 @@ public class OAuthTokenCache
         public string? AccessToken { get; set; }
         public string? RefreshToken { get; set; }
         public DateTime? ExpiresAt { get; set; }
+        /// <summary>
+        /// The API server of the account, for services with more data centers (pCloud: US or Europe)
+        /// </summary>
+        public string? ApiHost { get; set; }
     }
 
     internal class TokenCache
@@ -55,7 +59,8 @@ public class OAuthTokenCache
         if (cache.Tokens.TryGetValue(account, out var data)) {
             try {
                 data.AccessToken = await enc.Decrypt(data.AccessToken!);
-                data.RefreshToken = await enc.Decrypt(data.RefreshToken!);
+                if (data.RefreshToken != null)
+                    data.RefreshToken = await enc.Decrypt(data.RefreshToken);
 
                 return data;
             } catch {
@@ -66,16 +71,15 @@ public class OAuthTokenCache
         return null;
     }
 
-    public async Task SaveToken(string account, string accessToken, string refreshToken, DateTime? expiresAt)
+    /// <param name="refreshToken">Null for tokens that do not expire (pCloud)</param>
+    /// <param name="expiresAt">Null for tokens that do not expire</param>
+    /// <param name="apiHost">The API server of the account (<see cref="TokenData.ApiHost"/>)</param>
+    public async Task SaveToken(string account, string accessToken, string? refreshToken, DateTime? expiresAt, string? apiHost = null)
     {
         if (string.IsNullOrEmpty(account))
             throw new ArgumentNullException(nameof(account));
         if (string.IsNullOrEmpty(accessToken))
             throw new ArgumentNullException(nameof(accessToken));
-        if (string.IsNullOrEmpty(refreshToken))
-            throw new ArgumentNullException(nameof(refreshToken));
-        if (expiresAt == null)
-            throw new ArgumentNullException(nameof(expiresAt));
 
         var dir = Path.GetDirectoryName(_fileName);
         if (!Directory.Exists(dir))
@@ -95,8 +99,9 @@ public class OAuthTokenCache
         var data = new TokenData()
         {
             AccessToken = await enc.Encrypt(accessToken),
-            RefreshToken = await enc.Encrypt(refreshToken),
-            ExpiresAt = expiresAt
+            RefreshToken = refreshToken == null ? null : await enc.Encrypt(refreshToken),
+            ExpiresAt = expiresAt,
+            ApiHost = apiHost
         };
 
         cache.Tokens[account] = data;

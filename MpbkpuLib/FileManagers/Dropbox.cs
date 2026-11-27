@@ -19,23 +19,6 @@ public class Dropbox : IFileManager, IOAuth2
 
     private readonly string _tokenCache = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Mpbkpu", "DropboxTokenCache");
 
-    private const string ResponsePage = @"<html>
-<script type=""text/javascript"">
-    function redirect() {
-        // Append fragment as query string so that server can receive it.
-        document.location.href = ""/token?url_with_fragment="" + encodeURIComponent(document.location.href);
-    }
-</script>
-<body onload=""redirect()""/>
-</html>";
-    private const string TokenResponsePage = @"<html>
-<body style=""height: 100%; width: 100%;"">
-  <div style=""display: flex; display: flex; justify-content: center;align-items: center;height: 100%;"">
-    <h2>You can close this tab</h2>    
-  </div>
-</body>
-</html>";
-
     private DropboxClient? _client;
     private readonly string? _account;
 
@@ -258,16 +241,9 @@ public class Dropbox : IFileManager, IOAuth2
                 var authorizeUri = DropboxOAuth2Helper.GetAuthorizeUri(OAuthResponseType.Code, AppId, RedirectUrl,
                     tokenAccessType: TokenAccessType.Offline, state: state,
                     codeChallenge: codeChallenge);
-                using var http = new HttpListener();
-                http.Prefixes.Add($"{RedirectUrl.Scheme}://{RedirectUrl.Host}:{RedirectUrl.Port}/");
-                http.Start();
-
-                Browser.Open(authorizeUri.ToString());
-                await HandleOAuth2Redirect(http);
-                var redirectUri = await HandleJsRedirect(http);
+                var redirectUri = await OAuthBrowserLogin.GetRedirectUri(authorizeUri, RedirectUrl);
                 var tokenResult = await DropboxOAuth2Helper.ProcessCodeFlowAsync(redirectUri, AppId, AppSecret,
                     RedirectUrl.ToString(), state, codeVerifier: codeVerifier);
-                http.Stop();
 
                 var accessToken = tokenResult.AccessToken;
                 var refreshToken = tokenResult.RefreshToken;
@@ -284,37 +260,6 @@ public class Dropbox : IFileManager, IOAuth2
             }
         }
         return _client;
-    }
-
-    private async Task HandleOAuth2Redirect(HttpListener http)
-    {
-        var context = await http.GetContextAsync();
-        while (context.Request.Url!.AbsolutePath != RedirectUrl!.AbsolutePath) {
-            context = await http.GetContextAsync();
-        }
-
-        context.Response.ContentType = "text/html";
-        using (var file = new MemoryStream(Encoding.UTF8.GetBytes(ResponsePage))) {
-            await file.CopyToAsync(context.Response.OutputStream);
-        }
-
-        context.Response.OutputStream.Close();
-    }
-
-    private async Task<Uri> HandleJsRedirect(HttpListener http)
-    {
-        var jsRedirectUri = new Uri($"{RedirectUrl!.Scheme}://{RedirectUrl.Host}:{RedirectUrl.Port}/token");
-        var context = await http.GetContextAsync();
-        while (context.Request.Url!.AbsolutePath != jsRedirectUri.AbsolutePath) {
-            context = await http.GetContextAsync();
-        }
-        var redirectUri = new Uri(context.Request.QueryString["url_with_fragment"]!);
-        using (var file = new MemoryStream(Encoding.UTF8.GetBytes(TokenResponsePage))) {
-            await file.CopyToAsync(context.Response.OutputStream);
-        }
-        context.Response.OutputStream.Close();
-
-        return redirectUri;
     }
 
     private async Task<OAuthTokenCache.TokenData?> GetToken(string account)

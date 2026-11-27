@@ -17,3 +17,4 @@ Supported remote file systems:
 - Mega
 - Nextcloud
 - OneDrive
+- pCloud

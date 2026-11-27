@@ -55,6 +55,19 @@
   SFTP `keyfile=path;passphrase=...`. The GUI shows the options under the path (`PositionDetailModel.PathHint`).
 - **Modification date on upload**: `IFileManager.OpenFile(..., lastModified)` for the file systems that can set it
   only when creating a file (MEGA); sync and restore pass it, the others ignore it.
+- **pCloud** (`FileManagers/PCloud.cs`, 2026-11-27): own HTTP client (no maintained .NET SDK) on the JSON API, items
+  addressed by path (`pcloud://account/position`). OAuth 2.0 code flow with the app of the user (app id, secret,
+  redirect url, like Dropbox); the token does not expire and is saved with the API server of the account
+  (`api.pcloud.com` US, `eapi.pcloud.com` Europe; any other host from the redirect is rejected, so the token is
+  never sent elsewhere); the account of the path must be the one that logs in. Result codes 2002/2005/2009 are "not
+  found". Uploads: `uploadfile` multipart through `UploadStream` with `nopartial=1` and `mtime` (not verified that it
+  is honoured), an existing file is deleted first; downloads from the `getfilelink` url. Sources: docs.pcloud.com,
+  the official JS SDK and rclone; not tried on a real account.
+- **OAuth browser login** (`Utility/OAuthBrowserLogin`): opens the authorization page and waits for the redirect on a
+  local `HttpListener` (a page turns the fragment into a query string); shared by Dropbox and pCloud.
+  `OAuthTokenCache` keeps tokens without refresh token or expiry and an `ApiHost`.
+- **Account paths** (`FileManagerFactory.GetAccount`): OneDrive, Dropbox, Nextcloud and pCloud read the account from
+  `scheme://account/position` (else from the user) the same way.
 - **MEGA 2FA**: the code is asked, not stored (the user's choice, 2026-11-27): a login failing with
   `TwoFactorAuthenticationError` calls `Mega.TwoFactorCodeProvider` (GUI: `PasswordDialog` with a custom label, at
   least 6 characters; CLI: a console line). The session is kept in memory per account and reused by the other

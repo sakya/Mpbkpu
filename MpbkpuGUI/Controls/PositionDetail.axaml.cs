@@ -125,6 +125,7 @@ public partial class PositionDetail : UserControl, IValidate
                 }
                 break;
             case Job.Position.FileSystemTypes.DropBox:
+            case Job.Position.FileSystemTypes.PCloud:
                 if (string.IsNullOrEmpty(_model.User))
                     errors.Add(new ErrorContainer.ErrorData("User", Localizer.Localizer.Instance["RequiredError"]));
                 if (_model.OauthRedirectUrl == null)

@@ -128,6 +128,7 @@
   "ConfirmAbortDelete": "Interrompere l'eliminazione? I file già eliminati non si possono recuperare.",
   "Fs_FileSystem": "Cartella locale",
   "Fs_DropBox": "Dropbox",
+  "Fs_PCloud": "pCloud",
   "Fs_Ftp": "FTP",
   "Fs_MediaFire": "MediaFire",
   "Fs_Mega": "Mega",

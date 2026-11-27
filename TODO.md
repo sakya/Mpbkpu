@@ -22,6 +22,10 @@
   (`-e a -e a`, `--destinationUser bob --destinationUser bob`); the CLI works around it with `N=value`.
 - [ ] CLI: `--exclude` is accepted by restore but `RestoreJob` has no `Exclude`.
 - [ ] Restore: no free space check before writing (backup and sync have one).
+- [ ] pCloud: try with a real account and a registered app (backup, sync, history, restore, verify); check that
+  `uploadfile` honours `mtime`, the behaviour of names that differ only in case (`IsCaseSensitive`), and the EU server.
+  For the explicit `FileManagers` tests add to `filemanagers-settings.json` an entry with `"Path":
+  "pcloud://account/MpbkpuTest"` and `OAuth2Settings` (`AppId`, `AppSecret`, `RedirectUrl`).
 - [ ] Try with real accounts the service options added on 2026-11-27 (FTP `?tls=required` and `?fingerprint=`,
   SFTP key passphrase and `?hostkey=`, MEGA modification date on upload and 2FA code, MediaFire session renewal).
 - [ ] MediaFire: no modification date in the API (cannot be fixed); `IsCaseSensitive` probably wrong (unused, not

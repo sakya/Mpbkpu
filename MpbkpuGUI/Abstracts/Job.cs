@@ -22,7 +22,9 @@ public abstract class Job
             Nextcloud,
             OneDrive,
             Sftp,
-            Smb
+            Smb,
+            // Saved as numbers in settings.json: new types go at the end
+            PCloud
         }
 
         /// <summary>
@@ -132,7 +134,7 @@ public abstract class Job
             {
                 var scheme = GetScheme(Type, out var pathSeparator);
                 var res = scheme;
-                if (Type is FileSystemTypes.OneDrive or FileSystemTypes.DropBox or FileSystemTypes.Nextcloud)
+                if (Type is FileSystemTypes.OneDrive or FileSystemTypes.DropBox or FileSystemTypes.Nextcloud or FileSystemTypes.PCloud)
                     res = $"{res}{User}";
                 if (Path?.StartsWith($"{pathSeparator}") == false)
                     res = $"{res}{pathSeparator}";
@@ -161,6 +163,9 @@ public abstract class Job
                     break;
                 case FileSystemTypes.DropBox:
                     fm = new MpbkpuLib.FileManagers.Dropbox("account");
+                    break;
+                case FileSystemTypes.PCloud:
+                    fm = new PCloud("account");
                     break;
                 case FileSystemTypes.MediaFire:
                     fm = new MediaFire("account", "account");

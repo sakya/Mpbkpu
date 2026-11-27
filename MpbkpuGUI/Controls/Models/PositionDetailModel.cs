@@ -105,14 +105,15 @@ public sealed class PositionDetailModel : BaseModel
     public bool SupportUser =>
         Type is Job.Position.FileSystemTypes.Ftp or Job.Position.FileSystemTypes.Mega or Job.Position.FileSystemTypes.Nextcloud or
             Job.Position.FileSystemTypes.Sftp or Job.Position.FileSystemTypes.Smb or Job.Position.FileSystemTypes.MediaFire
-            or Job.Position.FileSystemTypes.OneDrive or Job.Position.FileSystemTypes.DropBox;
+            or Job.Position.FileSystemTypes.OneDrive or Job.Position.FileSystemTypes.DropBox or Job.Position.FileSystemTypes.PCloud;
 
     public bool SupportPassword =>
         Type is Job.Position.FileSystemTypes.Ftp or Job.Position.FileSystemTypes.Mega or Job.Position.FileSystemTypes.Nextcloud or
             Job.Position.FileSystemTypes.Sftp or Job.Position.FileSystemTypes.Smb or Job.Position.FileSystemTypes.MediaFire;
 
     public bool SupportOAuth =>
-        Type is Job.Position.FileSystemTypes.Nextcloud or Job.Position.FileSystemTypes.DropBox or Job.Position.FileSystemTypes.OneDrive;
+        Type is Job.Position.FileSystemTypes.Nextcloud or Job.Position.FileSystemTypes.DropBox or Job.Position.FileSystemTypes.OneDrive or
+            Job.Position.FileSystemTypes.PCloud;
 
 
     public bool SupportOAuthServerUrl =>
