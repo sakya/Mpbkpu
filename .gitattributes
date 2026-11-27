@@ -1,2 +1,8 @@
 * 			text eol=crlf
 *.sh		text eol=lf
+
+# Binary files: never convert line endings
+*.png		binary
+*.ico		binary
+*.jpg		binary
+*.gif		binary
