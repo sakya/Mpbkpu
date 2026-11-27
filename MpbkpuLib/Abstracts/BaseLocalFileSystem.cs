@@ -86,20 +86,22 @@ namespace MpbkpuLib.Abstracts
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(path);
 
-            if (!File.Exists(path))
+            // As in GetDirectoryContent: a link has the size and dates of its target
+            var fi = new FileInfo(path);
+            var target = fi.LinkTarget == null ? fi : ResolveFileLink(fi);
+            if (target is not { Exists: true })
                 throw new FileNotFoundException($"File {path} not found", path);
 
-            var fi = new FileInfo(path);
             var fInfo = new DataModel.File()
             {
                 FullPath = fi.FullName,
                 Name = fi.Name,
                 Type = DataModel.File.FileTyes.File,
                 Extension = fi.Extension,
-                Size = fi.Length,
+                Size = target.Length,
 
-                Created = fi.CreationTimeUtc,
-                LastModified = fi.LastWriteTimeUtc,
+                Created = target.CreationTimeUtc,
+                LastModified = target.LastWriteTimeUtc,
             };
             return Task.FromResult(fInfo);
         }
@@ -133,8 +135,10 @@ namespace MpbkpuLib.Abstracts
 
 
             foreach (var fi in await Task.Run( () => di.GetFiles())) {
-                // Symbolic links to files are followed; broken links are skipped
-                if (fi.LinkTarget != null && !File.Exists(fi.FullName))
+                // Symbolic links to files are followed: size and dates are the ones of the target, so its changes are
+                // backed up. Broken links are skipped (File.Exists does not follow links on Windows).
+                var target = fi.LinkTarget == null ? fi : ResolveFileLink(fi);
+                if (target is not { Exists: true })
                     continue;
 
                 var fInfo = new DataModel.File()
@@ -143,10 +147,10 @@ namespace MpbkpuLib.Abstracts
                     Name = fi.Name,
                     Type = DataModel.File.FileTyes.File,
                     Extension = fi.Extension,
-                    Size = fi.LinkTarget != null ? new FileInfo(fi.FullName).Length : fi.Length,
+                    Size = target.Length,
 
-                    Created = fi.CreationTimeUtc,
-                    LastModified = fi.LastWriteTimeUtc,
+                    Created = target.CreationTimeUtc,
+                    LastModified = target.LastWriteTimeUtc,
                     Hidden = IsFileHidden(fi)
                 };
 
@@ -200,6 +204,18 @@ namespace MpbkpuLib.Abstracts
         }
 
         protected abstract bool IsFileHidden(FileSystemInfo fileInfo);
+
+        /// <summary>
+        /// The final target of a symbolic link to a file, null when it cannot be resolved (loops)
+        /// </summary>
+        private static FileInfo? ResolveFileLink(FileInfo link)
+        {
+            try {
+                return link.ResolveLinkTarget(true) as FileInfo;
+            } catch (IOException) {
+                return null;
+            }
+        }
 
         /// <summary>
         /// Delete a directory and its content: links are removed without touching their targets

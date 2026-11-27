@@ -41,7 +41,10 @@
   tokens are single use: `Client.TokensRefreshed` saves every new token in the cache.
 - **Local file systems**: dates are UTC (`LastWriteTimeUtc`); `Files.SameModificationTime` also accepts the local
   times saved by older versions, so existing backups are not copied again. Only real links (`LinkTarget != null`)
-  are skipped: other reparse points (OneDrive/cloud placeholders, dedup) are normal directories. Directories are
+  to directories are skipped: other reparse points (OneDrive/cloud placeholders, dedup) are normal directories.
+  Symbolic links to files are followed with the size and dates of their final target (`ResolveLinkTarget(true)`, so
+  a changed target is backed up again); broken ones are skipped (`File.Exists` does not follow links on Windows: found
+  by the GitHub workflow, whose runner can create file links, 2026-11-27). Directories are
   deleted with a custom recursion that removes links without following them and clears read-only attributes.
 - **FTP/SFTP**: full paths returned by listings keep the form of the requested path. Names starting with '.' are
   hidden. FTP validates TLS certificates (no more `ValidateAnyCertificate`) and checks the server reply after an

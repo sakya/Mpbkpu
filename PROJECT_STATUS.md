@@ -66,6 +66,10 @@ Not committed:
 - Export/import of jobs (settings page, `Utility/JobTransfer`): build passes; round trip tried with a scratch program
   (no secrets in the file, new job ids, position ids kept, history cleared, schedule off, foreign `$type`, empty file
   and newer version refused). Not seen on screen, file pickers not tried.
+- GitHub workflow `.github/workflows/tests.yml` (tests on every push to `main`, windows-latest). Its first run found
+  broken file links listed by the local file manager: fixed in `BaseLocalFileSystem` (links to files resolved to their
+  target, broken ones skipped) and `Utilities.LocalDatesAreUtcAndLinksAreNotFollowed` extended. That part of the test
+  runs only where file links can be created (the runner; not this PC without Developer Mode): to confirm on GitHub.
 
 ## Open issues and attempts so far
 - Remote file managers other than MediaFire never tried with real accounts (also as additional destinations).

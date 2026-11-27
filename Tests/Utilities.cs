@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MpbkpuLib.Abstracts;
@@ -163,16 +164,27 @@ public class Utilities
             Directory.CreateSymbolicLink(dirLink, Path.Combine(root, "dir"));
         }
         Assert.That(Directory.Exists(dirLink), Is.True);
+        var fileLinks = true;
         try {
             File.CreateSymbolicLink(Path.Combine(root, "brokenLink"), Path.Combine(root, "missing"));
+            File.CreateSymbolicLink(Path.Combine(root, "fileLink"), file);
         } catch (Exception ex) when (ex is UnauthorizedAccessException or IOException) {
-            // File symbolic links need a privilege on Windows: the broken link case is not tested
+            // File symbolic links need a privilege on Windows (Developer Mode or administrator): not tested without it
+            fileLinks = false;
         }
 
-        var names = new List<string>();
+        var items = new List<MpbkpuLib.DataModel.File>();
         await foreach (var item in fm.GetDirectoryContent(root))
-            names.Add(item.Name!);
-        Assert.That(names, Is.EquivalentTo(new[] { "dir", "file" }));
+            items.Add(item);
+        Assert.That(items.Select(i => i.Name), Is.EquivalentTo(fileLinks ? ["dir", "file", "fileLink"] : new[] { "dir", "file" }));
+        if (fileLinks) {
+            // A link to a file is followed, a broken one is skipped
+            var link = items.Single(i => i.Name == "fileLink");
+            Assert.That(link.Size, Is.EqualTo(new FileInfo(file).Length));
+            Assert.That(link.LastModified, Is.EqualTo(File.GetLastWriteTimeUtc(file)));
+            Assert.That((await fm.GetFileInfo(link.FullPath)).Size, Is.EqualTo(link.Size));
+            Assert.That(async () => await fm.GetFileInfo(Path.Combine(root, "brokenLink")), Throws.TypeOf<FileNotFoundException>());
+        }
 
         // Deleting removes the link, not the content of its target
         File.WriteAllText(Path.Combine(root, "dir", "inner"), "x");
