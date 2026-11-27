@@ -17,7 +17,8 @@ compression. It runs on Windows, Linux and macOS and comes with a desktop app an
   several of them.
 - **Folder synchronization.** Keep a copy of a folder identical to the original.
 - **Verify, browse and restore.** Check that a backup is intact, look inside it, and get back single files and folders
-  or the whole backup.
+  or the whole backup. A job can verify its backups by itself as soon as they are made, after every backup or only
+  after the full ones.
 - **Credentials kept safe.** Passwords are stored in the secure storage of your operating system, never in plain text.
 
 ## Where you can back up
@@ -44,14 +45,16 @@ are never deleted.
 1. Click **New backup** or **New synchronization**.
 2. Pick the source folder and one or more destinations. For cloud services you sign in to your account in the browser.
    **Test connection** checks the settings and shows the free space before you save.
-3. Set the options: backup type, encryption, compression, files to exclude, how many backups to keep.
+3. Set the options: backup type, encryption, compression, files to exclude, how many backups to keep, whether to
+   verify each new backup.
 4. Optionally turn on **Run automatically** and choose the days and the time.
 5. Click **Run**, or let it run by itself.
 
 Automatic runs use the scheduler of your system (Task Scheduler on Windows, systemd on Linux, launchd on macOS) and
 happen while you are signed in, even with the app closed; a run missed because the computer was off starts as soon
-as possible. An encrypted backup needs its password saved to run by itself. The job list shows the result of the
-last automatic run (with its log) and the app tells you when one failed.
+as possible. An encrypted backup needs its password saved to run by itself. **Scheduled** in the sidebar lists the
+jobs that run by themselves, with their next run and the result of the last one (with its log); the app also tells
+you when an automatic run failed.
 
 From the job list you can also:
 
@@ -62,12 +65,17 @@ From the job list you can also:
 - verify or delete a backup;
 - copy the equivalent command line, to run the job from a script or a scheduled task.
 
-The app is available in English and Italian, with a light and a dark theme. Its accent color follows the one of your
-system (or stays Mpbkpu blue, from the sidebar).
+The app is available in English and Italian. In **Settings** (sidebar) you choose the theme (light, dark or as the
+system), the accent color (as the system or Mpbkpu blue) and whether to check for updates at startup.
+
+**Settings** can also export your jobs to a file and import them, to move them to another computer or set them up
+again after a reinstallation. Passwords are not exported: after an import, enter them in the settings of each job
+(cloud services ask you to sign in again) and turn the schedule back on.
 
 ### Updates
 
-At startup the app checks whether a new version has been released (you can turn this off in **Information**). When
+At startup the app checks whether a new version has been released (you can turn this off, or check by hand, in
+**Settings**). When
 there is one, **Update available** appears in the sidebar: from there you can open the release page or let the app
 download and install the update. The app closes during the installation and starts again when it is done.
 
@@ -102,6 +110,7 @@ Useful options:
 | `-e`, `--exclude` | File or folder to leave out (can be repeated) |
 | `--fullEvery` | Start a new full backup when the last one is older than this many days |
 | `--keepChains` | How many full backups (with their incremental ones) to keep |
+| `--verify` | Verify the new backup: `FullBackups` or `AllBackups` (a failed verification is an error) |
 | `--log` | Write a log file |
 | `-y`, `--yes` | Answer yes to every question, for unattended runs |
 

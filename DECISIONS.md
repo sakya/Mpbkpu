@@ -111,6 +111,16 @@
   saved by `AppSettings.Save` in `SecretStore` (MSAL extensions storage, already a dependency: DPAPI / Keychain /
   libsecret), keys `{jobId}.{Source|Destination}.{field}`. Old plain-text values are read through private
   `Legacy*` setters and removed at startup.
+- **Verification after the backup** (`BackupJobSettings.Verify`: `Never`, `FullBackups`, `AllBackups`; CLI
+  `--verify`, GUI "Verification" card, 2026-11-27): the library `BackupJob` runs a `VerifyJob` on the backup it just
+  wrote, as step `VerifyBackup`, forwarding its log, progress and files, so the GUI, the CLI and the automatic runs
+  get it with no code of their own. `FullBackups` looks at the type actually run (an incremental that starts a new
+  chain is full). Only a written backup (`Completed`/`CompletedWithWarnings`, not "no files to backup") is verified.
+  A failed or cancelled verification fails the job (`Success` false, result `Error`/`Cancelled`, exit code 1/2,
+  failure dialog of the automatic runs) but the backup stays `Completed` in the database: its data was written, the
+  verification is reported apart. Chosen over "every N backups" or "every N days", which need a record of the last
+  verification in the database (a migration) for little gain: with `FullBackupEveryDays` the full backups already
+  come at regular intervals.
 
 ## Multiple destinations
 - **Split, not mirrored**: every file of a backup is stored in one destination only; every destination holds a copy
@@ -241,6 +251,10 @@
   only). The job list merges the results newer than `LastRun` (`LastRunAutomatic`, "Automatic" button that opens the
   log) when it is shown and, through a `FileSystemWatcher`, while it is visible; failed runs are reported in one
   message. No system notification: the GUI reports them when opened.
+- **Schedule page** (`Pages/SchedulePage`, "Scheduled" in the job list sidebar with the number of scheduled jobs,
+  hidden where no scheduler is supported): every scheduled job, ordered by next run, with days and time, next run,
+  result and date of the last run (automatic or by hand), the error of a failed automatic run, its log and the job
+  settings. Results are merged when the page is shown and while it is visible.
 - **One run per job** (`ScheduledRun.TryLock`): a lock file opened with `FileShare.None` and deleted on close, in any
   process and on every OS (a named mutex is thread-affine, named semaphores are Windows only). A scheduled run of a
   job already running ends at once; a run by hand of a job running by itself is refused with a message.
@@ -249,16 +263,32 @@
 - **Source**: the GitHub API `releases/latest` of `sakya/Mpbkpu` (drafts and pre-releases excluded). The tag
   (`v0.2.0`) is compared with the assembly version (`SolutionInfo.proj` `<Version>`), missing parts as 0. The setup
   program is the asset `Mpbkpu-*-setup.exe`.
-- **When**: quietly after the window opens (`AppSettings.CheckForUpdates`, default on, switch in the about page; errors
-  ignored), and with "Check for updates" in the about page. A newer release shows "Update available" in the job list
-  sidebar, which opens the about page.
+- **When**: quietly after the window opens (`AppSettings.CheckForUpdates`, default on, switch in the settings page; errors
+  ignored), and with "Check for updates" in the settings page (the whole update section, release page and
+  installation included, moved there from the about page). A newer release shows "Update available" in the job list
+  sidebar, which opens the settings page.
 - **Install** (`Utility/UpdateChecker`): only on Windows installations made by the setup program (`unins000.exe` next
   to the exe); elsewhere only the release page. The setup is downloaded to `%TEMP%\MpbkpuUpdate` from `github.com`
   over HTTPS and run only if its SHA-256 matches the `digest` GitHub publishes for the asset (no digest → refused).
   It runs with `/SILENT /SUPPRESSMSGBOXES /CLOSEAPPLICATIONS /NORESTART /update=1` and the GUI closes; the setup keeps
   the previous folder and install mode (UAC prompt for an all-users installation) and starts the GUI again (`[Run]`
-  entry with `Check: IsUpdateFromApp`, as the original user). Leaving the about page cancels a download. The CLI does
+  entry with `Check: IsUpdateFromApp`, as the original user). Leaving the settings page cancels a download. The CLI does
   not check for updates.
+
+## Export and import of jobs (GUI, 2026-11-27)
+- **Where**: "Export and import jobs" card in the settings page; all the jobs go to one JSON file
+  (`Utility/JobTransfer`: `Version`, `ExportedAt`, `Jobs`), imported jobs are added to the existing ones (nothing is
+  replaced or merged by name).
+- **No secrets**: the file is the Newtonsoft serialization of the jobs, whose secrets are `[JsonIgnore]` (they live in
+  `SecretStore`). Passwords, the encryption password and OAuth app secrets must be entered again; cloud services ask to
+  sign in again on the new computer.
+- **On import**: new job ids (they name secrets, logs, locks and scheduler entries), position ids kept (the backup
+  databases record the destination of each volume with them), run history cleared, schedules turned off (an encrypted
+  backup cannot run by itself before its password is saved again; the user turns the schedule on and the scheduler
+  entry is created then), `RememberPassword` off.
+- **Untrusted files**: `$type` names are needed for the job and position types, so a `SerializationBinder` accepts only
+  types of the GUI and library assemblies; any other type, a file with no jobs or a newer `Version` is refused as
+  "not a job export".
 
 ## GUI
 - **Service picker**: a ComboBox; chips were tried (2026-11-27) and rejected by the user.
@@ -268,9 +298,11 @@
   Light); the brushes (`BgBrush`, `TextBrush`, ...) take their color with `DynamicResource`, and every page refers to
   colors and brushes with `DynamicResource`, so the theme changes without restarting. No fixed colors in pages or
   code: add a color to both dictionaries (code binds with `GetResourceObservable`). `AppSettings.Theme`
-  (System, the default, Light, Dark) is applied by `App.ApplyTheme` at startup and by the sidebar button that cycles
-  it.
-- **Accent color** (`AppSettings.Accent`, default System; sidebar button "Accent: System/Mpbkpu", 2026-11-27):
+  (System, the default, Light, Dark) is applied by `App.ApplyTheme` at startup and by the settings page.
+- **Settings page** (`Pages/SettingsPage`, "Settings" in the job list sidebar, 2026-11-27): the settings of the app,
+  not of the jobs: theme, accent color, check for updates at startup. Every change is applied and saved at once (no
+  OK/Cancel); choices are ComboBoxes with localized enum values (`Theme_*`, `Accent_*`), options are switches.
+- **Accent color** (`AppSettings.Accent`, default System; settings page, 2026-11-27):
   `Utility/AccentPalette` replaces the `Accent*` colors of both theme dictionaries and the Fluent palette accent with
   colors derived from the system accent (`PlatformSettings.GetColorValues().AccentColor1`, followed through
   `ColorValuesChanged`): accent text moved towards white/black until 4.5:1 on the background, soft background mixed

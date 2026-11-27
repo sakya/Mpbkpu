@@ -380,7 +380,7 @@ public abstract class BaseJob : IDisposable
     /// </summary>
     /// <param name="level">The <see cref="BaseJobSettings.LogLevels"/></param>
     /// <param name="message">The message to log</param>
-    private void Log(BaseJobSettings.LogLevels level, string message)
+    protected void Log(BaseJobSettings.LogLevels level, string message)
     {
         if (level < Settings.LogLevel)
             return;

@@ -129,16 +129,7 @@ public static class ScheduledRun
     {
         var res = new List<(Job, Result)>();
         foreach (var job in settings.Jobs) {
-            Result? result;
-            try {
-                var file = GetResultFile(job.Id);
-                if (!File.Exists(file))
-                    continue;
-                result = JsonConvert.DeserializeObject<Result>(File.ReadAllText(file));
-            } catch (Exception) {
-                // Being written: read at the next merge
-                continue;
-            }
+            var result = ReadResult(job.Id);
             if (result == null || (job.LastRun != null && result.EndedAt <= job.LastRun))
                 continue;
 
@@ -148,6 +139,39 @@ public static class ScheduledRun
             res.Add((job, result));
         }
         return res;
+    }
+
+    /// <summary>
+    /// The result of the last automatic run of a job, null when there is none (or it is being written)
+    /// </summary>
+    public static Result? ReadResult(string jobId)
+    {
+        try {
+            var file = GetResultFile(jobId);
+            return File.Exists(file) ? JsonConvert.DeserializeObject<Result>(File.ReadAllText(file)) : null;
+        } catch (Exception) {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// <see cref="MergeResults"/> on the settings of the GUI, saved when something changed
+    /// </summary>
+    public static async Task<List<(Job Job, Result Result)>> MergeAndSave()
+    {
+        var merged = MergeResults(App.Settings!);
+        if (merged.Count > 0)
+            await App.Settings!.Save(App.SettingFile!);
+        return merged;
+    }
+
+    /// <summary>
+    /// Open the log of the last automatic run of a job with the default application
+    /// </summary>
+    public static async Task OpenLog(Avalonia.Visual visual, string jobId)
+    {
+        if (Avalonia.Controls.TopLevel.GetTopLevel(visual)?.Launcher is { } launcher)
+            await Avalonia.Platform.Storage.LauncherExtensions.LaunchFileInfoAsync(launcher, new FileInfo(GetLogFile(jobId)));
     }
 
     /// <summary>

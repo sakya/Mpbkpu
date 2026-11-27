@@ -22,7 +22,7 @@ author's `CmdLineArgsParser` (`../CmdLineArgsParser`).
 | GUI | Light/dark theme, "Copy command", backup browser (double click, right click download), files being copied, history result icons | on screen by the user (2026-11-26/27) |
 | Setup | `Setup/build.bat` + `Setup/Mpbkpu.iss` | installer compiled (not run) |
 
-Tests: 112 pass with `dotnet test Tests/Tests.csproj` (`FileManagers` tests on real accounts are explicit, skipped
+Tests: 117 pass with `dotnet test Tests/Tests.csproj` (`FileManagers` tests on real accounts are explicit, skipped
 without `filemanagers-settings.json`). Clean build: 0 warnings, 0 errors.
 
 ## Current state
@@ -40,7 +40,7 @@ Committed up to `8705797` (version 0.2.0.0; GUI exclusions, checked on screen by
 `.gitattributes`, `67665e9`). The uninstaller (`cfc139e`) is compiled, uninstall never run.
 
 Not committed:
-- Update check (`MpbkpuGUI/Utility/UpdateChecker`, about page, sidebar button, `Setup/Mpbkpu.iss` restarts the GUI
+- Update check (`MpbkpuGUI/Utility/UpdateChecker`, settings page, sidebar button, `Setup/Mpbkpu.iss` restarts the GUI
   after an update): build and installer script compile; check, download and SHA-256 verification tried against the
   real v0.1.0 release (wrong hash and other hosts refused). Not tried: the pages on screen and a real update (needs
   an installed older version and a newer release).
@@ -54,8 +54,18 @@ Not committed:
   sync with log and result, merge, lock, encrypted backup without password, Windows task created with the right XML
   and removed; `mpbkpugui.exe --run-job` exits without a window. Not tried: the pages on screen, a task actually
   started by Windows, Linux (systemd) and macOS (launchd) at all.
-- Accent color following the system (`Utility/AccentPalette`, sidebar button): build passes; derived colors checked
-  for contrast with a scratch program (Windows blue, yellow, red, green, Mpbkpu blue). Not seen on screen.
+- Accent color following the system (`Utility/AccentPalette`): build passes; derived colors checked for contrast
+  with a scratch program (Windows blue, yellow, red, green, Mpbkpu blue). Not seen on screen.
+- Schedule page ("Scheduled" in the sidebar: scheduled jobs, next run, last result, error, log): build passes, the
+  app starts; the page not seen on screen.
+- Settings page (theme, accent color, check for updates at startup; "Settings" in the sidebar replaces the theme and
+  accent buttons, the switch left the about page): build passes, not seen on screen.
+- Verification after the backup (`BackupJobSettings.Verify`, CLI `--verify`, "Verification" card in the job
+  settings): `Regressions.BackupIsVerifiedWhenAsked` and `FailedVerificationFailsTheBackupAndKeepsIt` pass,
+  `Tests/CommandLine.cs` checks `--verify`. Not seen on screen, not tried from the CLI by hand.
+- Export/import of jobs (settings page, `Utility/JobTransfer`): build passes; round trip tried with a scratch program
+  (no secrets in the file, new job ids, position ids kept, history cleared, schedule off, foreign `$type`, empty file
+  and newer version refused). Not seen on screen, file pickers not tried.
 
 ## Open issues and attempts so far
 - Remote file managers other than MediaFire never tried with real accounts (also as additional destinations).

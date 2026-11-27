@@ -26,7 +26,11 @@ public class BackupJob : BaseJob
         CalculateFilesToBackup,
         BackupFiles,
         CopyDatabase,
-        DeleteOldBackups
+        DeleteOldBackups,
+        /// <summary>
+        /// Verifying the new backup (<see cref="BackupJobSettings.Verify"/>)
+        /// </summary>
+        VerifyBackup
     }
 
     #region classes
@@ -209,15 +213,18 @@ public class BackupJob : BaseJob
         // The real space after the backup (compression and deletions make the estimate approximate)
         await ReadDestinationsSpace();
 
-        return new BackupJobJobResult()
+        var res = new BackupJobJobResult()
         {
             Success = true,
             Started = started,
             Bytes = _progressData?.Bytes,
-            Completed = DateTime.UtcNow,
             Guid = _backup!.Guid,
             Result = _result
         };
+        if (MustVerify())
+            await VerifyBackup(res);
+        res.Completed = DateTime.UtcNow;
+        return res;
     }
 
     public override void Dispose()
@@ -228,6 +235,74 @@ public class BackupJob : BaseJob
     #endregion
 
     #region private operations
+    /// <summary>
+    /// True when the backup was written and <see cref="BackupJobSettings.Verify"/> asks to verify it
+    /// </summary>
+    private bool MustVerify()
+    {
+        if (_skipDatabaseCopy || _backup == null || _result is not (Backup.Results.Completed or Backup.Results.CompletedWithWarnings))
+            return false;
+        return Settings.Verify switch
+        {
+            BackupJobSettings.VerifyModes.AllBackups => true,
+            // The type actually run: an incremental backup can start a new chain with a full one
+            BackupJobSettings.VerifyModes.FullBackups => _backup.Type == Backup.BackupTypes.Full,
+            _ => false
+        };
+    }
+
+    /// <summary>
+    /// Verify the new backup with a <see cref="VerifyJob"/> whose log and progress are the ones of this job.
+    /// A failed or cancelled verification fails the job, the backup is kept.
+    /// </summary>
+    private async Task VerifyBackup(BackupJobJobResult res)
+    {
+        LogInfo("Verifying the backup");
+        Step?.Invoke(this, Steps.VerifyBackup);
+        using var verify = new VerifyJob(new VerifyJobSettings()
+        {
+            BackupDestinations = Settings.Destinations,
+            BackupGuid = _backup!.Guid,
+            EncryptPassword = Settings.EncryptPassword,
+            LogLevel = Settings.LogLevel
+        });
+        // The file being verified is reported as completed when the next one starts
+        string? verifying = null;
+        verify.LogEmitted += (_, level, message) => Log(level, message);
+        verify.Progress += (_, args) => Progress?.Invoke(this, args);
+        verify.FileProgress += (_, filePath, bytes, totalBytes) =>
+        {
+            if (verifying != filePath) {
+                if (verifying != null)
+                    OnFileCompleted(verifying);
+                verifying = filePath;
+            }
+            FileProgress?.Invoke(this, filePath, bytes, totalBytes);
+        };
+
+        BaseJobResult verifyRes;
+        try {
+            verifyRes = await verify.Run(_cancellationToken ?? CancellationToken.None);
+        } catch (Exception ex) {
+            LogError(ex);
+            verifyRes = new VerifyJobResult() { Success = false, ErrorMessage = ex.Message };
+        }
+        if (verifying != null)
+            OnFileCompleted(verifying);
+
+        if (verifyRes.Success) {
+            LogInfo("Backup verified");
+            return;
+        }
+        var cancelled = _cancellationToken?.IsCancellationRequested == true;
+        res.Success = false;
+        res.Result = cancelled ? Backup.Results.Cancelled : Backup.Results.Error;
+        res.ErrorMessage = cancelled ?
+            "Backup completed, verification cancelled by user" :
+            $"Backup completed, verification failed: {verifyRes.ErrorMessage}";
+        Log(cancelled ? BaseJobSettings.LogLevels.Info : BaseJobSettings.LogLevels.Error, res.ErrorMessage);
+    }
+
     /// <summary>
     /// Run the job using the given <see cref="Settings"/>
     /// </summary>

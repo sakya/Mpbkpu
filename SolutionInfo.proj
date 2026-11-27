@@ -16,6 +16,6 @@ Supported file system schemes:
   smb://</Description>
     <Authors>Paolo Iommarini</Authors>
     <Copyright>Copyright © 2022, Paolo Iommarini</Copyright>
-    <Version>0.3.0.0</Version>
+    <Version>0.2.0.0</Version>
   </PropertyGroup>
 </Project>

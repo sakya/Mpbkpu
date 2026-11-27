@@ -53,16 +53,15 @@ public partial class JobListPage : BasePage
     /// </summary>
     private async Task MergeScheduledResults()
     {
-        var merged = ScheduledRun.MergeResults(App.Settings!);
+        var merged = await ScheduledRun.MergeAndSave();
         if (merged.Count == 0)
             return;
-        await App.Settings!.Save(App.SettingFile!);
         SetJobList();
 
         var localizer = Localizer.Localizer.Instance;
         var failed = merged
             .Where(m => m.Result.Outcome is not (Backup.Results.Completed or Backup.Results.CompletedWithWarnings))
-            .Select(m => $"• {m.Job.Name} ({m.Result.EndedAt.ToString("g", new CultureInfo(App.Settings.Language))}): " +
+            .Select(m => $"• {m.Job.Name} ({m.Result.EndedAt.ToString("g", new CultureInfo(App.Settings!.Language))}): " +
                          (m.Result.PasswordNotSaved ? localizer["SchedulePasswordMissing"] : m.Result.ErrorMessage ?? localizer["Result_Error"]))
             .ToList();
         if (failed.Count > 0)
@@ -74,8 +73,6 @@ public partial class JobListPage : BasePage
     {
         _ = MergeScheduledResults();
         SetJobList();
-        SetThemeText();
-        SetAccentText();
         SetUpdateButton();
         base.OnNavigatedTo(direction);
     }
@@ -85,36 +82,9 @@ public partial class JobListPage : BasePage
         this.FindControl<Button>("UpdateButton")!.IsVisible = UpdateChecker.Available != null;
     }
 
-    private void SetThemeText()
+    private async void OnSettingsClick(object? sender, RoutedEventArgs e)
     {
-        var text = $"{Localizer.Localizer.Instance["Theme"]}: {Localizer.Localizer.Instance[$"Theme_{App.Settings!.Theme}"]}";
-        this.FindControl<TextBlock>("ThemeText")!.Text = text;
-        AutomationProperties.SetName(this.FindControl<Button>("ThemeButton")!, text);
-    }
-
-    private void SetAccentText()
-    {
-        var text = $"{Localizer.Localizer.Instance["Accent"]}: {Localizer.Localizer.Instance[$"Accent_{App.Settings!.Accent}"]}";
-        this.FindControl<TextBlock>("AccentText")!.Text = text;
-        AutomationProperties.SetName(this.FindControl<Button>("AccentButton")!, text);
-    }
-
-    private async void OnAccentClick(object? sender, RoutedEventArgs e)
-    {
-        var modes = Enum.GetValues<AppSettings.AccentModes>();
-        App.Settings!.Accent = modes[(Array.IndexOf(modes, App.Settings.Accent) + 1) % modes.Length];
-        AccentPalette.Apply(App.Settings.Accent);
-        SetAccentText();
-        await App.Settings.Save(App.SettingFile!);
-    }
-
-    private async void OnThemeClick(object? sender, RoutedEventArgs e)
-    {
-        var modes = Enum.GetValues<AppSettings.ThemeModes>();
-        App.Settings!.Theme = modes[(Array.IndexOf(modes, App.Settings.Theme) + 1) % modes.Length];
-        App.ApplyTheme(App.Settings.Theme);
-        SetThemeText();
-        await App.Settings.Save(App.SettingFile!);
+        await NavigateTo(new SettingsPage());
     }
 
     private async void OnJobSettings(object sender, Job job)
@@ -192,6 +162,14 @@ public partial class JobListPage : BasePage
         list.ItemsSource = jobs;
         this.FindControl<Control>("EmptyState")!.IsVisible = jobs.Count == 0;
         this.FindControl<TextBlock>("JobCount")!.Text = jobs.Count.ToString();
+        // Hidden where no scheduler is supported
+        this.FindControl<Button>("ScheduledButton")!.IsVisible = JobScheduler.Current != null;
+        this.FindControl<TextBlock>("ScheduledCount")!.Text = jobs.Count(j => j.Schedule is { Enabled: true }).ToString();
+    }
+
+    private async void OnScheduledClick(object? sender, RoutedEventArgs e)
+    {
+        await NavigateTo(new SchedulePage());
     }
 
     private async void OnJobOpen(object sender, Job job)

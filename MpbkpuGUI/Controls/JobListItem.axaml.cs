@@ -89,9 +89,8 @@ public partial class JobListItem : UserControl
 
     private async void OnOpenLogClick(object? sender, RoutedEventArgs e)
     {
-        if (_item == null || TopLevel.GetTopLevel(this)?.Launcher is not { } launcher)
-            return;
-        await launcher.LaunchFileInfoAsync(new FileInfo(ScheduledRun.GetLogFile(_item.Id)));
+        if (_item != null)
+            await ScheduledRun.OpenLog(this, _item.Id);
     }
 
     private void InitializeComponent()

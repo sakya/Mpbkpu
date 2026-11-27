@@ -15,6 +15,10 @@ public class BackupJob : Job
     public bool Encrypted { get; set; }
     public int FullBackupEveryDays { get; set; }
     public int KeepChains { get; set; }
+    /// <summary>
+    /// Which backups are verified as soon as they complete
+    /// </summary>
+    public BackupJobSettings.VerifyModes Verify { get; set; }
 
     /// <summary>
     /// The destinations after the first one (<see cref="Job.Destination"/>): the files are split among all of them
@@ -97,7 +101,8 @@ public class BackupJob : Job
             RetryOnError = RetryOnError,
             CompressionLevel = CompressionLevel,
             FullBackupEveryDays = FullBackupEveryDays,
-            KeepChains = KeepChains
+            KeepChains = KeepChains,
+            Verify = Verify
         };
     }
 

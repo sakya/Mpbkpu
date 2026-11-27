@@ -831,6 +831,67 @@ public class Regressions : BaseTest
         }
     }
 
+    [TestCase(BackupJobSettings.VerifyModes.Never, false, false)]
+    [TestCase(BackupJobSettings.VerifyModes.FullBackups, true, false)]
+    [TestCase(BackupJobSettings.VerifyModes.AllBackups, true, true)]
+    public async Task BackupIsVerifiedWhenAsked(BackupJobSettings.VerifyModes mode, bool fullVerified, bool incrementalVerified)
+    {
+        async Task<bool> Run(Backup.BackupTypes type)
+        {
+            var verified = false;
+            using var job = new BackupJob(new BackupJobSettings()
+            {
+                BackupType = type,
+                Source = BackupSource,
+                Destinations = BackupDestinations(),
+                Verify = mode,
+            });
+            job.Step += (_, step) => verified |= step == BackupJob.Steps.VerifyBackup;
+            var res = await job.Run(CancellationToken.None);
+            Assert.That(res.Success, Is.True, res.ErrorMessage);
+            Assert.That(res.Result, Is.EqualTo(Backup.Results.Completed));
+            return verified;
+        }
+
+        Assert.That(await Run(Backup.BackupTypes.Full), Is.EqualTo(fullVerified), "Full backup");
+        File.WriteAllText(Path.Combine(BackupSource, "changed.txt"), "changed");
+        Assert.That(await Run(Backup.BackupTypes.Incremental), Is.EqualTo(incrementalVerified), "Incremental backup");
+    }
+
+    [Test]
+    public async Task FailedVerificationFailsTheBackupAndKeepsIt()
+    {
+        using var job = new BackupJob(new BackupJobSettings()
+        {
+            BackupType = Backup.BackupTypes.Full,
+            Source = BackupSource,
+            Destinations = BackupDestinations(),
+            Verify = BackupJobSettings.VerifyModes.AllBackups,
+        });
+        // The backup data is damaged after it is written, before it is verified
+        job.Step += (_, step) =>
+        {
+            if (step != BackupJob.Steps.VerifyBackup)
+                return;
+            foreach (var dir in Directory.GetDirectories(BackupDestination)) {
+                foreach (var file in Directory.GetFiles(dir, "*", SearchOption.AllDirectories)) {
+                    var bytes = File.ReadAllBytes(file);
+                    bytes[^1] ^= 0xFF;
+                    File.WriteAllBytes(file, bytes);
+                }
+            }
+        };
+        var res = await job.Run(CancellationToken.None);
+
+        Assert.That(res.Success, Is.False);
+        Assert.That(res.Result, Is.EqualTo(Backup.Results.Error));
+        Assert.That(res.ErrorMessage, Does.StartWith("Backup completed, verification failed"));
+        // The backup itself completed and stays in the database
+        var backups = await GetBackups();
+        Assert.That(backups.Single().Guid, Is.EqualTo(((BackupJobJobResult)res).Guid));
+        Assert.That(backups.Single().Result, Is.EqualTo(Backup.Results.Completed));
+    }
+
     [Test]
     public async Task MissingDestinationIsReported()
     {

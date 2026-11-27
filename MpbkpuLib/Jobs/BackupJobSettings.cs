@@ -7,6 +7,19 @@ using MpbkpuLib.FileManagers;
 namespace MpbkpuLib.Jobs;
 public class BackupJobSettings : BaseJobSettings
 {
+    /// <summary>
+    /// Which backups are verified as soon as they complete
+    /// </summary>
+    public enum VerifyModes
+    {
+        Never,
+        /// <summary>
+        /// Full backups only (all the files of the source)
+        /// </summary>
+        FullBackups,
+        AllBackups
+    }
+
     public BackupJobSettings()
     {
         MaxFilesPerDirectory = 1000;
@@ -96,6 +109,11 @@ public class BackupJobSettings : BaseJobSettings
     /// Older chains are deleted after a full backup completes.
     /// </summary>
     public int KeepChains { get; set; }
+
+    /// <summary>
+    /// Verify the new backup after it completes: the job fails when the verification finds errors
+    /// </summary>
+    public VerifyModes Verify { get; set; }
 
     #region legacy settings
     // Settings saved before multiple destinations (in the backup databases) had a single destination:

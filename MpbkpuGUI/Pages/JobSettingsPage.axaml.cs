@@ -92,11 +92,15 @@ public partial class JobSettingsPage : BasePage
             CompressionLevel.SmallestSize
         };
 
+        var cmbVerify = this.FindControl<ComboBox>("CmbVerify")!;
+        cmbVerify.ItemsSource = Enum.GetValues<MpbkpuLib.Jobs.BackupJobSettings.VerifyModes>();
+
         InitializeSchedule();
 
         if (_job is BackupJob backupJob) {
             cmbType.SelectedItem = backupJob.Type;
             cmbCompression.SelectedItem = backupJob.CompressionLevel;
+            cmbVerify.SelectedItem = backupJob.Verify;
             foreach (var destination in backupJob.MoreDestinations)
                 AddMoreDestination(destination);
         }

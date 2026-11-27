@@ -46,6 +46,7 @@ public class CommandLine
             FullBackupEveryDays = 30,
             ParallelFiles = 4,
             KeepChains = 2,
+            Verify = BackupJobSettings.VerifyModes.FullBackups,
             SkipHashCheck = true,
             EncryptPassword = "secret5",
             Exclude = ["bin", "*.tmp", "Old Files/it's here"],
@@ -83,6 +84,7 @@ public class CommandLine
         Assert.That(args.FullBackupEveryDays, Is.EqualTo(30));
         Assert.That(args.ParallelFiles, Is.EqualTo(4));
         Assert.That(args.KeepChains, Is.EqualTo(2));
+        Assert.That(args.Verify, Is.EqualTo(BackupJobSettings.VerifyModes.FullBackups));
         Assert.That(args.SkipHashCheck, Is.True);
         Assert.That(args.Exclude, Is.EqualTo(settings.Exclude), res.Command);
         Assert.That(args.InteractivePassword, Is.True);

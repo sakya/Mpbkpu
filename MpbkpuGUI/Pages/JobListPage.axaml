@@ -14,26 +14,19 @@
                 <TextBlock DockPanel.Dock="Top" Text="mpbkpu" FontSize="18" FontWeight="Bold" LetterSpacing="-0.3"
                            Margin="12,4,12,16" />
                 <StackPanel DockPanel.Dock="Bottom" Spacing="4">
-                    <!-- A newer release found on GitHub: details and installation in the about page -->
-                    <Button Classes="nav" Name="UpdateButton" Click="OnAboutClick" IsVisible="False"
+                    <!-- A newer release found on GitHub: details and installation in the settings page -->
+                    <Button Classes="nav" Name="UpdateButton" Click="OnSettingsClick" IsVisible="False"
                             Foreground="{DynamicResource AccentBrush}" AutomationProperties.Name="{i18n:Localize UpdateAvailable}">
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <mi:MaterialIcon Kind="Update" />
                             <TextBlock Text="{i18n:Localize UpdateAvailable}" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
-                    <!-- Switches System, Light and Dark theme -->
-                    <Button Classes="nav" Name="ThemeButton" Click="OnThemeClick">
+                    <!-- Settings of the app: theme, accent color, updates -->
+                    <Button Classes="nav" Click="OnSettingsClick" AutomationProperties.Name="{i18n:Localize Settings}">
                         <StackPanel Orientation="Horizontal" Spacing="12">
-                            <mi:MaterialIcon Kind="ThemeLightDark" />
-                            <TextBlock Name="ThemeText" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </Button>
-                    <!-- Switches the system accent color and the Mpbkpu blue -->
-                    <Button Classes="nav" Name="AccentButton" Click="OnAccentClick">
-                        <StackPanel Orientation="Horizontal" Spacing="12">
-                            <mi:MaterialIcon Kind="Palette" />
-                            <TextBlock Name="AccentText" VerticalAlignment="Center" />
+                            <mi:MaterialIcon Kind="CogOutline" />
+                            <TextBlock Text="{i18n:Localize Settings}" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
                     <Button Classes="nav" Click="OnAboutClick" AutomationProperties.Name="{i18n:Localize Information}">
@@ -57,17 +50,14 @@
                             <TextBlock Grid.Column="2" Name="JobCount" FontSize="12" Foreground="{DynamicResource MutedTextBrush}" VerticalAlignment="Center" />
                         </Grid>
                     </Button>
-                    <Button Classes="nav" Click="OnNewBackupClick" AutomationProperties.Name="{i18n:Localize _NewBackup}">
-                        <StackPanel Orientation="Horizontal" Spacing="12">
-                            <mi:MaterialIcon Kind="BackupOutline" />
-                            <TextBlock Text="{i18n:Localize _NewBackup}" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </Button>
-                    <Button Classes="nav" Click="OnNewSyncClick" AutomationProperties.Name="{i18n:Localize NewSync}">
-                        <StackPanel Orientation="Horizontal" Spacing="12">
-                            <mi:MaterialIcon Kind="Sync" />
-                            <TextBlock Text="{i18n:Localize NewSync}" VerticalAlignment="Center" />
-                        </StackPanel>
+                    <!-- Scheduled jobs and the result of their last run (SchedulePage) -->
+                    <Button Classes="nav" Name="ScheduledButton" Click="OnScheduledClick"
+                            AutomationProperties.Name="{i18n:Localize Scheduled}">
+                        <Grid ColumnDefinitions="Auto,*,Auto" Width="184">
+                            <mi:MaterialIcon Kind="CalendarClock" />
+                            <TextBlock Grid.Column="1" Text="{i18n:Localize Scheduled}" Margin="12,0,0,0" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="2" Name="ScheduledCount" FontSize="12" Foreground="{DynamicResource MutedTextBrush}" VerticalAlignment="Center" />
+                        </Grid>
                     </Button>
                 </StackPanel>
             </DockPanel>
@@ -82,10 +72,10 @@
                         <TextBlock Classes="subtitle" Text="{i18n:Localize JobsSubtitle}" />
                     </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Bottom">
-                        <Button Click="OnNewSyncClick" AutomationProperties.Name="{i18n:Localize Sync}">
+                        <Button Click="OnNewSyncClick" AutomationProperties.Name="{i18n:Localize NewSync}">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <mi:MaterialIcon Kind="Sync" Width="16" Height="16" />
-                                <TextBlock Text="{i18n:Localize Sync}" VerticalAlignment="Center" />
+                                <TextBlock Text="{i18n:Localize NewSync}" VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>
                         <Button Classes="accent" Click="OnNewBackupClick" AutomationProperties.Name="{i18n:Localize _NewBackup}">

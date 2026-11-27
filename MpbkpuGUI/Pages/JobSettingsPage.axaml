@@ -131,7 +131,7 @@
                         <StackPanel Spacing="12" IsVisible="{Binding #ScheduleEnabled.IsChecked}">
                             <StackPanel Spacing="4">
                                 <Label Content="{i18n:Localize ScheduleTime}" />
-                                <TimePicker Name="ScheduleTime" ClockIdentifier="24HourClock"
+                                <TimePicker Name="ScheduleTime" ClockIdentifier="24HourClock" VerticalContentAlignment="Center"
                                             AutomationProperties.Name="{i18n:Localize ScheduleTime}" />
                             </StackPanel>
                             <StackPanel Spacing="4">
@@ -200,6 +200,31 @@
                                 <Label Content="{i18n:Localize KeepChains}" />
                                 <NumericUpDown Value="{Binding Job.KeepChains, Mode=TwoWay}" Minimum="0" Maximum="1000" FormatString="0" />
                                 <TextBlock Classes="hint" Text="{i18n:Localize KeepChainsHint}" />
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Verification -->
+                <Border Classes="card" IsVisible="{Binding Job, Converter={StaticResource IsBackupJobConverter}}">
+                    <StackPanel Spacing="16">
+                        <StackPanel Spacing="4">
+                            <TextBlock Classes="h2" Text="{i18n:Localize Verification}" />
+                            <TextBlock Classes="hint" Margin="0" Text="{i18n:Localize VerificationDescription}" />
+                        </StackPanel>
+                        <Grid ColumnDefinitions="*,24,*">
+                            <StackPanel>
+                                <Label Content="{i18n:Localize VerifyAfterBackup}" />
+                                <ComboBox Name="CmbVerify" HorizontalAlignment="Stretch"
+                                          SelectedItem="{Binding Job.Verify, Mode=TwoWay}"
+                                          AutomationProperties.Name="{i18n:Localize VerifyAfterBackup}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Converter={StaticResource EnumToLocalizedStringConverter}, ConverterParameter=Verify_}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                                <TextBlock Classes="hint" Text="{i18n:Localize VerifyAfterBackupHint}" />
                             </StackPanel>
                         </Grid>
                     </StackPanel>

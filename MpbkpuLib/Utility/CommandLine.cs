@@ -34,6 +34,8 @@ public static class CommandLine
         builder.AddNumber("--fullEvery", settings.FullBackupEveryDays, 0);
         builder.AddNumber("--parallelFiles", settings.ParallelFiles, 1);
         builder.AddNumber("--keepChains", settings.KeepChains, 0);
+        if (settings.Verify != BackupJobSettings.VerifyModes.Never)
+            builder.Add("--verify", settings.Verify.ToString());
         builder.AddFlag("--skipHash", settings.SkipHashCheck);
         builder.AddFlag("-i", encrypted);
         builder.AddFlag("-y", true);

@@ -28,6 +28,7 @@ public class BackupAction : BaseAction
             RetryOnError = pArgs.RetryOnError ?? 3,
             FullBackupEveryDays = pArgs.FullBackupEveryDays ?? 0,
             KeepChains = pArgs.KeepChains ?? 0,
+            Verify = pArgs.Verify,
             ParallelFiles = pArgs.ParallelFiles ?? 1,
             EncryptPassword = pArgs.Password,
             CompressionLevel = pArgs.CompressionLevel,
@@ -40,6 +41,7 @@ public class BackupAction : BaseAction
         WriteEnabled(!string.IsNullOrEmpty(pArgs.Password));
         Console.Write("Hash check : ");
         WriteEnabled(!pArgs.SkipHashCheck);
+        Console.WriteLine($"Verify     : { pArgs.Verify }");
         Console.WriteLine();
 
         using var job = new BackupJob(settings);
@@ -64,6 +66,7 @@ public class BackupAction : BaseAction
             BackupJob.Steps.BackupFiles => "Backing up files",
             BackupJob.Steps.CopyDatabase => "Copying database file",
             BackupJob.Steps.DeleteOldBackups => "Deleting old backups",
+            BackupJob.Steps.VerifyBackup => "Verifying backup",
             _ => step.ToString()
         });
     }

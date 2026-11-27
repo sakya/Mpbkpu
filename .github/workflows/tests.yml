@@ -1,0 +1,21 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  test:
+    # Windows: some tests use junctions, locked files and Windows paths
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      # The FileManagers tests need real accounts (filemanagers-settings.json): they are explicit and do not run here
+      - name: Test
+        run: dotnet test Tests/Tests.csproj --configuration Release

@@ -334,6 +334,12 @@ public class Arguments : IOptions
         DefaultValue = "0")]
     public int? KeepChains { get; set; }
 
+    [Option("verify",
+        Description = "Verify the new backup when it completes: Never, FullBackups or AllBackups (a failed verification is an error)",
+        OnlyForVerbs = "Backup",
+        DefaultValue = "Never")]
+    public BackupJobSettings.VerifyModes Verify { get; set; }
+
     [Option("yes", 'y',
         Description = "Auto reply YES to any question")]
     public bool AlwaysYes { get; set; }
