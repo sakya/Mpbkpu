@@ -1,6 +1,4 @@
 ﻿using MpbkpuLib.Abstracts;
-using MpbkpuLib.DataModel;
-using MpbkpuLib.FileManagers;
 using MpbkpuLib.Jobs;
 
 namespace Mpbkpu.Actions;
@@ -12,71 +10,42 @@ public class DeleteAction : BaseAction
     public override async Task<bool> Run(Arguments pArgs)
     {
         _pArgs = pArgs;
-        var settings = new DeleteJobSettings()
+        var settings = WithCommonSettings(new DeleteJobSettings()
         {
-            LogLevel = pArgs.LogLevel,
             BackupDestinations = pArgs.GetBackupDestinations(),
             BackupGuid = pArgs.BackupGuid,
             EncryptPassword = pArgs.Password
-        };
-        var job = new DeleteJob(settings);
+        }, pArgs);
+
+        using var job = new DeleteJob(settings);
         job.Step += OnStep;
-        job.OpenBackup += OnCopyBackup;
         job.CopyBackup += OnCopyBackup;
         job.ConfirmDelete += OnConfirm;
-        job.LogEmitted += OnLog;
         job.Delete += OnDelete;
-        job.Progress += OnProgress;
-
-        BaseJobResult? jobRes = null;
-        using (CancellationTokenSource = new CancellationTokenSource()) {
-            try {
-                Console.CursorVisible = false;
-                var task = Task.Run(() => job.Run(CancellationTokenSource.Token));
-                jobRes = await task;
-                Console.WriteLine();
-            } catch (Exception ex) {
-                Console.ForegroundColor = Utility.Console.ErrorColor;
-                Console.WriteLine();
-                Console.WriteLine($"ERROR: {ex.Message}");
-                Console.ForegroundColor = Utility.Console.DefaultColor;
-            } finally {
-                Console.CursorVisible = true;
-            }
-        }
-
-        Started = jobRes?.Started;
-        Completed = jobRes?.Completed;
-
-        return true;
+        job.Progress += OnDeleteBytesProgress;
+        var res = await RunJob(job);
+        Bytes = null;
+        return Succeeded(res);
     }
 
     #region private operations
     private void OnStep(object sender, DeleteJob.Steps step)
     {
-        Utility.Console.ClearLine();
-        Console.ForegroundColor = Utility.Console.InfoColor;
-        switch (step) {
-            case DeleteJob.Steps.OpenDatabase:
-                Console.WriteLine("Opening backup");
-                break;
-            case DeleteJob.Steps.DeleteBackups:
-                CanCancel = true;
-                Console.WriteLine("Deleting backups");
-                break;
-            case DeleteJob.Steps.CopyDatabase:
-                Console.WriteLine("Copying database file");
-                break;
-        }
-
-        Console.ForegroundColor = Utility.Console.DefaultColor;
+        if (step == DeleteJob.Steps.DeleteBackups)
+            CanCancel = true;
+        WriteStep(step switch
+        {
+            DeleteJob.Steps.OpenDatabase => "Opening backup",
+            DeleteJob.Steps.DeleteBackups => "Deleting backups",
+            DeleteJob.Steps.CopyDatabase => "Copying database file",
+            _ => step.ToString()
+        });
     }
 
     private Task<bool> OnConfirm(object sender, DeleteJob.ConfirmArgs e)
     {
         if (_pArgs!.AlwaysYes)
             return Task.FromResult(true);
-        Console.CursorVisible = true;
         Console.WriteLine("The following backups will be deleted:");
         Console.WriteLine();
         Console.ForegroundColor = Utility.Console.HighlightColor;
@@ -84,26 +53,11 @@ public class DeleteAction : BaseAction
         Console.ForegroundColor = Utility.Console.DefaultColor;
         foreach (var bkp in e.Backups) {
             Console.Write($"{bkp.Guid,-32} {bkp.Type,-12}");
-            switch (bkp.Result) {
-                case Backup.Results.Completed:
-                    Console.ForegroundColor = Utility.Console.SuccessColor;
-                    break;
-                case Backup.Results.CompletedWithWarnings:
-                case Backup.Results.Cancelled:
-                    Console.ForegroundColor = Utility.Console.WarningColor;
-                    break;
-                case Backup.Results.Error:
-                    Console.ForegroundColor = Utility.Console.ErrorColor;
-                    break;
-            }
-            Console.Write($" {bkp.Result,-20}");
-            Console.ForegroundColor = Utility.Console.DefaultColor;
+            WriteResult(bkp.Result);
             Console.WriteLine($" {MpbkpuLib.Utility.String.BytesToString(bkp.Bytes)}");
         }
         Console.WriteLine();
-        var res = Utility.Console.Confirm("Delete the backups?", false, true);
-        Console.CursorVisible = false;
-        return Task.FromResult(res);
+        return Task.FromResult(Confirm("Delete the backups?", false));
     }
 
     private void OnDelete(object sender, string guid)
@@ -112,13 +66,9 @@ public class DeleteAction : BaseAction
         Console.WriteLine($"Deleting backup {guid}");
     }
 
-    private void OnProgress(object sender, BaseJob.ProgressHandlerArgs args)
+    private static void OnDeleteBytesProgress(object sender, BaseJob.ProgressHandlerArgs args)
     {
-        var perc = GetPercentage(args.Bytes, args.TotalBytes);
-        var progress = $"[{perc,5:0.0}% {MpbkpuLib.Utility.String.EtaToString(args.Eta)}]";
-
-        Console.CursorLeft = 0;
-        Console.Write(progress.PadRight(Console.WindowWidth - 1));
+        Utility.Console.WriteProgress($"[{GetPercentage(args.Bytes, args.TotalBytes),5:0.0}% {MpbkpuLib.Utility.String.EtaToString(args.Eta)}]");
     }
     #endregion
 }

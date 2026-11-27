@@ -183,7 +183,7 @@ public class Nextcloud : IFileManager, IOAuth2
         }
     }
 
-    public async Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null)
+    public async Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null, DateTime? lastModified = null)
     {
         if (string.IsNullOrEmpty(filePath))
             throw new ArgumentNullException(filePath);

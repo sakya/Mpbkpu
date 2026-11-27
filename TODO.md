@@ -15,30 +15,20 @@
   directories). The download has no cancel button and no progress page.
 - [ ] Job list filters ("With warnings", "Never run").
 - [ ] Phase list (stepper) on the running page.
-- [ ] Service picker with chips in the settings (today a ComboBox).
 - [ ] Message dialogs with a title and a detail line (today one message string).
 
 ## Fixes and improvements
-- [ ] CLI: credential and OAuth options for every destination (today only the first one; the others take the
-  credentials in the path and cannot use OAuth), so "Copy command" can reproduce every job.
-- [ ] Multiple destinations: detect a destination holding the database of another backup set (it is read if newer;
-  there is no backup set identifier).
-- [ ] Warn before a backup/sync when the destination has less space than the bytes to copy (`GetSpace`).
-- [ ] `BackupJob` ignores `Exclude` (CLI `--exclude`): reuse `ReadPathContent(..., exclude)` as the sync job does.
-- [ ] CLI: `RestoreAction` and `SyncAction` ignore the job result, so failures are not reported; the exit code is
-  always 0.
-- [ ] CLI: crashes with "The handle is invalid" when the output is redirected (scripts, scheduled tasks, pipes):
-  `Console.CursorVisible`, `CursorLeft` and `WindowWidth` are used without checking `Console.IsOutputRedirected`.
-- [ ] CLI: `List`, `ListContent` and `Verify` ignore `--log` (their actions do not pass `LogFile`).
-- [ ] `FileManagers` tests: make them explicit/skippable without credentials (today they block the suite).
-- [ ] FTP: self-signed certificates are rejected; plain FTP sends the password in clear when the server has no TLS.
-  Consider options to trust a certificate fingerprint and to require TLS.
-- [ ] SFTP: no way to reset `%LOCALAPPDATA%\Mpbkpu\known_hosts` after a host key change; no passphrase for keys.
-- [ ] MEGA: no 2FA; uploads have no modification date (sync with `SkipHashCheck` compares only the size).
-- [ ] MediaFire: no modification date in the API; session token never renewed (`UserRenewSessionToken`);
-  `IsCaseSensitive` probably wrong.
-- [ ] SMB: a new connection per operation (EzSmb design, slow); dates not verified as UTC; no free space; hidden
-  attributes not read.
+- [ ] CmdLineArgsParser (own package, github.com/sakya/CmdLineArgsParser) drops repeated values of a list option
+  (`-e a -e a`, `--destinationUser bob --destinationUser bob`); the CLI works around it with `N=value`.
+- [ ] CLI: `--exclude` is accepted by restore but `RestoreJob` has no `Exclude`.
+- [ ] Restore: no free space check before writing (backup and sync have one).
+- [ ] Try with real accounts the service options added on 2026-11-27 (FTP `?tls=required` and `?fingerprint=`,
+  SFTP key passphrase and `?hostkey=`, MEGA modification date on upload, MediaFire session renewal).
+- [ ] MEGA: no 2FA (the login would need a code every time: decide between asking it and storing the TOTP secret).
+- [ ] MediaFire: no modification date in the API (cannot be fixed); `IsCaseSensitive` probably wrong (unused, not
+  verifiable without an account).
+- [ ] SMB (EzSmb limits): a new connection per operation (slow), no free space, hidden attributes not read; would
+  need another SMB library.
 - [ ] Local file systems cannot log: skipped links are not reported in the job log.
 - [ ] `IsCaseSensitive` is never used; `LocalFileSystemLinux` is also used on macOS (case-insensitive by default).
 - [ ] CLI: the encryption password cannot be remembered (GUI only).

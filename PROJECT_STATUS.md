@@ -25,8 +25,8 @@ in `Setup/`. MediaFire uses the author's `MediaFireApi` NuGet package (repositor
 | GUI | Redesign, delete page, history browser, dialogs, title bar, Windows animations (`WS_CAPTION`, not seen on screen) | screenshots; user |
 | Setup | `Setup/build.bat` + `Setup/Mpbkpu.iss` | installer compiled, published GUI started (installer not run) |
 
-Tests: 94 non-remote tests pass (`dotnet test Tests/Tests.csproj --filter "FullyQualifiedName!~FileManagers"`), run
-after every change below. Clean build: 0 warnings, 0 errors.
+Tests: 101 tests pass with `dotnet test Tests/Tests.csproj` (the `FileManagers` tests on real accounts are explicit
+and skipped without `filemanagers-settings.json`). Clean build: 0 warnings, 0 errors.
 
 ## Current state
 Committed (`60e8f3e fix #61`): multiple destinations, the two build warning fixes, parallel copies on local file
@@ -42,14 +42,30 @@ Committed (`e3e8012`, `3339fb1`), all confirmed working on screen by the user (2
 - the backup browser: double click opens a directory, right click selects the row and downloads a file or directory
   (`RestoreJobSettings.RelativePath`, test `RestoreSingleItemKeepsOtherFiles`).
 
+Not committed (2026-11-27), the "Fixes and improvements" without accounts: CLI (no crash with redirected output,
+exit codes, `--log` for every action, credentials for every destination as `N=value`, actions rewritten on
+`BaseAction.RunJob`), `BackupJob` honours `Exclude`, free space warning before backup and sync (CLI question, GUI
+dialog), `ForeignDatabaseException` for destinations holding different backups, verify with errors is a failure,
+explicit `FileManagers` tests, history result icons visible again (`App.GetStyleColor` reads the theme dictionaries).
+Tested by unit tests; the CLI also by hand in a real console: backup with redirected output and `--exclude` (exit
+0), list with `--log`, list content without the excluded file, verify of a damaged backup (exit 1, error message),
+confirmation declined from redirected input (exit 2), invalid credential values with redirected output (exit -1).
+The GUI space dialog has not been seen on screen.
+
+Not committed (2026-11-27), service limits: FTP path options `tls=required` and `fingerprint=` (self-signed
+certificates), SFTP key passphrase and `hostkey=` for a changed host key, MEGA modification date on upload
+(`OpenFile` takes `lastModified`; restore now also passes the size), MediaFire session renewal, SMB dates normalized
+to UTC, path hints in the GUI. Offline tests only (parsing, masking, dates): none of these tried on a real server.
+Not done: MEGA 2FA (needs a decision), MediaFire modification date (no API), SMB free space/hidden/connections
+(EzSmb).
+
 ## Open issues and attempts so far
 - Remote file managers other than MediaFire never tried with real accounts, also as additional destinations.
 - Parallel copies only on local file systems (tests); remote file managers limited to 1, never tried in parallel.
 - "Value cannot be null (password)" on verify of a MediaFire backup (2026-11-26): after the user recreated the job
   (they had deleted `settings.json`) it works. Probable cause, not proven: the GUI screen test overwrote
   `settings.json`/`secrets` while the user's GUI was using them. The code passes the job password to verify.
-- CLI: crash when the output is redirected, `--log` ignored by list/list content/verify, exit code always 0 (TODO.md).
-- `Tests/FileManagers` need real credentials and hang on the OneDrive login: always excluded.
+- `Tests/FileManagers` need real credentials and may wait on an OAuth login: explicit, run them only by name.
 - Not verified on screen: warnings box in the history, windows narrower than 1180×780, the Windows animations.
 - Backups made before the fixes: wrong `RelativePath` for relative source paths (not repairable); modification
   dates restored shifted by the UTC offset (change detection is not affected).

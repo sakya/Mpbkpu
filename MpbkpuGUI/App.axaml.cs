@@ -85,11 +85,11 @@ namespace MpbkpuGUI
 
         public static Color? GetStyleColor(string name)
         {
-            if (Current is App app && app.MainWindow != null) {
-                var resource = app.MainWindow.FindResource(name);
-                if (resource is Color col)
-                    return col;
-            }
+            // The palette is in the theme dictionaries: look it up for the theme in use
+            if (Current is App app && app.MainWindow != null &&
+                app.MainWindow.TryFindResource(name, app.MainWindow.ActualThemeVariant, out var resource) &&
+                resource is Color col)
+                return col;
             return null;
         }
     }

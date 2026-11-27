@@ -91,6 +91,11 @@ public class VerifyJob: BaseJob
         res.Completed = DateTime.UtcNow;
         res.Bytes = _progressData!.Bytes;
         res.Errors = _errors;
+        // A backup that does not pass the verification is a failure (CLI exit code, GUI message)
+        if (res.Success && _errors?.Count > 0) {
+            res.Success = false;
+            res.ErrorMessage = $"{_errors.Count} verification errors: {string.Join("; ", _errors.Take(3).Select(e => e.Message))}";
+        }
         return res;
     }
     #endregion

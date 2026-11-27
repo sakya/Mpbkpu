@@ -34,9 +34,10 @@ namespace MpbkpuLib.FileManagers
             newPosition = path;
             IFileManager? res = null;
             // FTP
-            // ftp://user:password@host/position
+            // ftp://user:password@host/position?tls=required&fingerprint=SHA256
             // (FTP and SFTP also accept scheme:///host/position, the form written by the GUI)
             if (path.StartsWith(Ftp.Scheme, StringComparison.InvariantCultureIgnoreCase)) {
+                var options = SplitOptions(path, out path);
                 var m = Regex.Match(path, $"{Ftp.Scheme}/?(([^:/]+):([^@]+)@)?([^/:]+)(:[0-9]+)?(.*)?$");
                 if (m.Success) {
                     if (m.Groups.Count == 7) {
@@ -47,6 +48,9 @@ namespace MpbkpuLib.FileManagers
                             ftpFm.Credentials = new System.Net.NetworkCredential(user, password);
 
                         ftpFm.Host = m.Groups[4].Value;
+                        ftpFm.RequireTls = options.TryGetValue("tls", out var tls) &&
+                                           tls.Equals("required", StringComparison.OrdinalIgnoreCase);
+                        ftpFm.TrustedFingerprint = options.GetValueOrDefault("fingerprint");
                         if (!string.IsNullOrEmpty(m.Groups[5].Value))
                             ftpFm.Port = int.Parse(m.Groups[5].Value.Remove(0, 1));
                         if (!string.IsNullOrEmpty(m.Groups[6].Value))
@@ -63,8 +67,10 @@ namespace MpbkpuLib.FileManagers
 
             // SFTP
             // sftp://user:password@host/position
-            // sftp://user:keyfile=pathToFile@host/position
+            // sftp://user:keyfile=pathToFile@host/position (also keyfile=pathToFile;passphrase=passphrase)
+            // option "?hostkey=SHA256" accepts a new host key in place of the saved one
             if (res == null && path.StartsWith(Sftp.Scheme, StringComparison.InvariantCultureIgnoreCase)) {
+                var options = SplitOptions(path, out path);
                 var m = Regex.Match(path, $"{Sftp.Scheme}/?(([^:/]+):([^@]+)@)?([^/:]+)(:[0-9]+)?(.*)?$");
                 if (m.Success) {
                     if (m.Groups.Count == 7) {
@@ -75,8 +81,12 @@ namespace MpbkpuLib.FileManagers
                             sftpFm.Credentials = new System.Net.NetworkCredential(user, password);
 
                         sftpFm.Host = m.Groups[4].Value;
+                        sftpFm.AcceptedHostKey = options.GetValueOrDefault("hostkey");
                         if (sftpFm.Credentials?.Password?.StartsWith("keyfile=") == true) {
-                            sftpFm.PrivateKeyFile = sftpFm.Credentials.Password.Substring(8);
+                            var key = sftpFm.Credentials.Password.Substring(8);
+                            var idx = key.IndexOf(";passphrase=", StringComparison.Ordinal);
+                            sftpFm.PrivateKeyFile = idx < 0 ? key : key[..idx];
+                            sftpFm.PrivateKeyPassphrase = idx < 0 ? null : key[(idx + ";passphrase=".Length)..];
                             sftpFm.Credentials.Password = string.Empty;
                         }
                         if (!string.IsNullOrEmpty(m.Groups[5].Value))
@@ -266,5 +276,22 @@ namespace MpbkpuLib.FileManagers
 
             return res;
         } // GetFileManager
+
+        /// <summary>
+        /// The options of a path ("?name=value&amp;name=value" at its end), removed from the path
+        /// </summary>
+        public static Dictionary<string, string> SplitOptions(string path, out string pathWithoutOptions)
+        {
+            var res = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var idx = path.IndexOf('?');
+            pathWithoutOptions = idx < 0 ? path : path[..idx];
+            if (idx < 0)
+                return res;
+            foreach (var option in path[(idx + 1)..].Split('&', StringSplitOptions.RemoveEmptyEntries)) {
+                var eq = option.IndexOf('=');
+                res[Uri.UnescapeDataString(eq < 0 ? option : option[..eq])] = eq < 0 ? string.Empty : Uri.UnescapeDataString(option[(eq + 1)..]);
+            }
+            return res;
+        }
     } // FileManagerFactory
 }

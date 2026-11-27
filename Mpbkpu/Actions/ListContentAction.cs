@@ -1,6 +1,4 @@
-using MpbkpuLib.Abstracts;
 using MpbkpuLib.DataModel;
-using MpbkpuLib.FileManagers;
 using MpbkpuLib.Jobs;
 using File = MpbkpuLib.DataModel.File;
 
@@ -10,64 +8,45 @@ public class ListContentAction : BaseAction
 {
     public override async Task<bool> Run(Arguments pArgs)
     {
-        var settings = new ListContentJobSettings()
+        var settings = WithCommonSettings(new ListContentJobSettings()
         {
-            LogLevel = pArgs.LogLevel,
             BackupDestinations = pArgs.GetBackupDestinations(),
             BackupGuid = pArgs.BackupGuid,
             EncryptPassword = pArgs.Password,
             Filter = pArgs.Filter,
-        };
+        }, pArgs);
 
-        var job = new ListContentJob(settings);
+        using var job = new ListContentJob(settings);
         job.Step += OnStep;
-        job.OpenBackup += OnCopyBackup;
-        job.LogEmitted += OnLog;
         job.Content += OnContent;
-
-        using (CancellationTokenSource = new CancellationTokenSource()) {
-            try {
-                Console.CursorVisible = false;
-                var res = await Task.Run(() => job.Run(CancellationTokenSource.Token));
-                if (!CancellationTokenSource.Token.IsCancellationRequested) {
-                    Console.WriteLine();
-                    Console.WriteLine($"Directories: {((ListContentJobResult)res).DirectoriesCount}");
-                    Console.WriteLine($"Files      : {((ListContentJobResult)res).FilesCount}");
-                }
-
-                Console.WriteLine();
-            } catch (Exception ex) {
-                Console.ForegroundColor = Utility.Console.ErrorColor;
-                Console.WriteLine();
-                Console.WriteLine($"ERROR: {ex.Message}");
-                Console.ForegroundColor = Utility.Console.DefaultColor;
-            } finally {
-                Console.CursorVisible = true;
-            }
+        var res = await RunJob(job);
+        if (res is ListContentJobResult content && !UserCancelled()) {
+            Console.WriteLine();
+            Console.WriteLine($"Directories: {content.DirectoriesCount}");
+            Console.WriteLine($"Files      : {content.FilesCount}");
         }
-
-        return true;
+        // Listing has no duration or size to report
+        Started = Completed = null;
+        Bytes = null;
+        return Succeeded(res);
     }
 
     #region private operations
     private void OnStep(object sender, ListContentJob.Steps step)
     {
-        Utility.Console.ClearLine();
-        Console.ForegroundColor = Utility.Console.InfoColor;
         switch (step) {
             case ListContentJob.Steps.OpenDatabase:
-                Console.WriteLine("Opening backup");
+                WriteStep("Opening backup");
                 break;
             case ListContentJob.Steps.ListContent:
                 CanCancel = true;
-                Console.WriteLine("Listing content");
+                WriteStep("Listing content");
                 Console.WriteLine();
                 Console.ForegroundColor = Utility.Console.HighlightColor;
                 Console.WriteLine($"{"Type",-4} {"Size",-12} Name");
+                Console.ForegroundColor = Utility.Console.DefaultColor;
                 break;
         }
-
-        Console.ForegroundColor = Utility.Console.DefaultColor;
     }
 
     private void OnContent(object sender, BackupItem item)

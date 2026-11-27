@@ -47,6 +47,17 @@
   hidden. FTP validates TLS certificates (no more `ValidateAnyCertificate`) and checks the server reply after an
   upload. SFTP trusts the first host key of a server and saves it in `%LOCALAPPDATA%\Mpbkpu\known_hosts`
   (`Sftp.KnownHostsFile`); a different key later is rejected.
+- **Path options** (`?name=value&...` at the end of a path, `FileManagerFactory.SplitOptions`): settings of a
+  position that are not secrets, so GUI, CLI and database take them with the path. FTP: `tls=required` (explicit TLS,
+  no plain FTP that would send the password in clear), `fingerprint=` (SHA-256 of a certificate to accept although
+  it does not validate, e.g. self-signed; the connection error shows the fingerprint to add). SFTP: `hostkey=`
+  (accept a changed host key, which replaces the saved one; the error shows it). Secrets stay in the password:
+  SFTP `keyfile=path;passphrase=...`. The GUI shows the options under the path (`PositionDetailModel.PathHint`).
+- **Modification date on upload**: `IFileManager.OpenFile(..., lastModified)` for the file systems that can set it
+  only when creating a file (MEGA); sync and restore pass it, the others ignore it.
+- **MediaFire session**: the token lasts 10 minutes; `GetClient` renews it when older than 5 and logs in again when
+  the renewal fails.
+- **SMB dates**: FILETIME values, UTC; `Smb.ToUtc` converts local dates and gives the UTC kind to unspecified ones.
 - **OneDrive**: `TokenProvider` asks MSAL for a token on every request (MSAL caches and refreshes it). Items are
   found with `Root.ItemWithPath` (the SDK escapes the path; `Items["root:/path:"]` would be escaped by the URL
   template) or `Items["root"]`, then addressed by id. Deleted items go to the OneDrive recycle bin.
@@ -130,11 +141,22 @@
 - **`DestinationSet.Validate`** is shared by all the jobs (at least one destination, paths and ids set, no duplicate
   ids, no overlapping destinations); the backup job adds the source checks.
 - **CLI**: `-d/--destination` (backup) and `-b/--backup` (list, list content, restore, verify, delete) can be
-  repeated; the user, password and OAuth options apply to the first path, the others take the credentials in the path
-  (`scheme://user:password@host`). Restore and sync take one destination (`Arguments.Validate`, reported like the
-  parser errors). `--parallelFiles` (default 1) sets `ParallelFiles`. The CLI does not persist destination ids: the
+  repeated. Their user, password and OAuth options can be repeated too as `N=value` for the N-th path; a value without
+  `N=` belongs to the first path (as before). Indexes are needed because the parser drops repeated values of an
+  option (the same user on two destinations). Credentials in the path (`scheme://user:password@host`) still work.
+  Too many values, an index without path and invalid OAuth urls are reported by `Arguments.Validate` like the parser
+  errors. Restore and sync take one destination (`Arguments.Validate`). `--parallelFiles` (default 1) sets `ParallelFiles`. The CLI does not persist destination ids: the
   jobs match the recorded destinations by path. Built by `Arguments.GetDestinations` / `GetBackupDestinations`.
 - **Restore does not retry a `MissingDestinationException`**: the destination does not appear by retrying.
+- **Database of another backup**: every copy of the database records the destinations of its backup. When a
+  destination has a database that the newest copy does not record, the destinations hold different backups and
+  `DestinationSet.OpenDatabase` throws `ForeignDatabaseException` (both paths in the message) instead of reading the
+  newest one. Databases without destination records (before multiple destinations) are not checked; a destination
+  removed from a job and added back later is reported too (use an empty folder).
+- **Free space**: backup and sync set `SpaceConfirmArgs.AvailableBytes` (sum of the destinations, null when one
+  cannot report it) and `NeededBytes` (bytes to copy, less the deleted ones for sync; compression is not estimated)
+  before the confirmation, with a log warning when it is not enough. The CLI adds it to the question (default "no"),
+  the GUI, which confirms the job before starting it, asks again only then.
 - **GUI**: a backup job keeps its first destination in `Job.Destination` (old settings files load unchanged) and the
   others in `BackupJob.MoreDestinations`; `Job.Destinations` lists them all, `Job.GetBackupDestinations()` converts
   them for the library. Every `Position` has a persisted `Id` (positions saved before get one when loaded, kept from
@@ -153,7 +175,17 @@
   running page lists them under the progress tiles (sync: one at a time). The CLI progress line still shows the last
   file reported, so with parallel copies it alternates between files.
 
+## CLI
+- **Actions**: `BaseAction.RunJob` runs every job (log, errors, cursor), `WithCommonSettings` sets log level and log
+  file for every action (`--log` works everywhere), the progress lines are shared.
+- **Redirected output** (scripts, scheduled tasks, pipes): `Utility.Console` writes no progress lines and never
+  touches the cursor or `WindowWidth`; with redirected input confirmations and the password are read as lines. The
+  parser's usage text needs the console width, so it is printed only to a console.
+- **Exit codes**: 0 success (also with warnings), 1 error, 2 cancelled (by the user or declining the confirmation),
+  -1 invalid arguments. A verification with errors is a failure (`VerifyJob`: `Success` false, `ErrorMessage`).
+
 ## GUI
+- **Service picker**: a ComboBox; chips were tried (2026-11-27) and rejected by the user.
 - **Themes**: `App.axaml` keeps one color set per theme variant in `ThemeDictionaries` (Dark: the original palette,
   Light); the brushes (`BgBrush`, `TextBrush`, ...) take their color with `DynamicResource`, and every page refers to
   colors and brushes with `DynamicResource`, so the theme changes without restarting. No fixed colors in pages or
@@ -164,10 +196,8 @@
   same settings the GUI runs (`BackupJob.CreateSettings`, `SyncJob.CreateSettings`), in PowerShell syntax (single
   quotes, `&` before a quoted executable: `mpbkpu.exe` next to the GUI, else `mpbkpu` from the PATH), with `-y` and
   only the options that differ from the CLI defaults. No secret is written: an encrypted backup gets `-i`, passwords
-  and OAuth secrets become `<password>`. The CLI takes credentials only for the first destination, so the others get
-  them in the path (`scheme://user:<password>@host/...` for FTP/SFTP/SMB, `scheme://user:<password>/...` for
-  MEGA/MediaFire); destinations with OAuth settings or a password that cannot go in the path (Nextcloud) are listed
-  in the dialog as not reachable. `Tests/CommandLine.cs` parses the commands with the CLI `Arguments` (the test
+  and OAuth secrets become `<password>`. With more destinations every credential value is `N=value`, so every job
+  can be reproduced. `Tests/CommandLine.cs` parses the commands with the CLI `Arguments` (the test
   project references `Mpbkpu`), so a renamed option fails a test.
 - **Backup browser**: double click on a directory of the file list selects it in the tree (its ancestors are
   expanded first); right click on a file, a directory or a tree node selects it (`ItemsList` on the right button

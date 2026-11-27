@@ -98,6 +98,39 @@ public abstract class BaseJob : IDisposable
     public BaseJobSettings Settings { get; private set; }
     #endregion
 
+    /// <summary>
+    /// Base of the confirmation arguments of the jobs that write files: the free space of the destinations
+    /// </summary>
+    public class SpaceConfirmArgs : EventArgs
+    {
+        /// <summary>
+        /// Free bytes of the destinations, null when a destination cannot report its space
+        /// </summary>
+        public long? AvailableBytes { get; set; }
+        /// <summary>
+        /// Bytes the job will write, less the ones it will delete (compression is not estimated)
+        /// </summary>
+        public long NeededBytes { get; set; }
+        public bool NotEnoughSpace => AvailableBytes < NeededBytes;
+    }
+
+    /// <summary>
+    /// Set the free space in the confirmation arguments, with a warning when it is not enough
+    /// </summary>
+    protected void CheckSpace(SpaceConfirmArgs args, long? availableBytes, long neededBytes)
+    {
+        args.AvailableBytes = availableBytes;
+        args.NeededBytes = neededBytes;
+        if (args.NotEnoughSpace)
+            LogWarning($"The destinations have {Utility.String.BytesToString(availableBytes!.Value)} free, " +
+                       $"{Utility.String.BytesToString(neededBytes)} to write");
+    }
+
+    /// <summary>
+    /// Estimated free bytes of the destination (<see cref="BackupFm"/>), null when unknown
+    /// </summary>
+    protected long? DestinationAvailableBytes => _space.Current?.Available;
+
     private readonly SpaceEstimate _space = new();
 
     /// <summary>

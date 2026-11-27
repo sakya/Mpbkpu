@@ -14,6 +14,7 @@ public sealed class PositionDetailModel : BaseModel
         {
             if (SetField(ref _type, value)) {
                 OnPropertyChanged(nameof(IsLocalFileSystem));
+                OnPropertyChanged(nameof(PathHint));
                 OnPropertyChanged(nameof(SupportUser));
                 OnPropertyChanged(nameof(SupportPassword));
                 OnPropertyChanged(nameof(SupportOAuth));
@@ -87,6 +88,16 @@ public sealed class PositionDetailModel : BaseModel
     }
 
     public bool IsLocalFileSystem => Type == Job.Position.FileSystemTypes.FileSystem;
+
+    /// <summary>
+    /// The options a path of this type accepts (FileManagerFactory), null when there are none
+    /// </summary>
+    public string? PathHint => Type switch
+    {
+        Job.Position.FileSystemTypes.Ftp => Localizer.Localizer.Instance["PathHintFtp"],
+        Job.Position.FileSystemTypes.Sftp => Localizer.Localizer.Instance["PathHintSftp"],
+        _ => null
+    };
 
     public bool SupportCompression =>
         Type is Job.Position.FileSystemTypes.FileSystem or Job.Position.FileSystemTypes.Ftp or Job.Position.FileSystemTypes.Sftp or Job.Position.FileSystemTypes.Smb;

@@ -167,7 +167,7 @@ namespace MpbkpuLib.FileManagers
             return node?.Type == NodeType.File;
         }
 
-        public async Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null)
+        public async Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null, DateTime? lastModified = null)
         {
             if (string.IsNullOrEmpty(filePath))
                 throw new ArgumentNullException(filePath);
@@ -273,8 +273,21 @@ namespace MpbkpuLib.FileManagers
                 Name = node.Name,
                 Type = node.Type == NodeType.Folder ? File.FileTyes.Directory : File.FileTyes.File,
                 Size = node.Type == NodeType.File ? node.Size ?? 0 : 0,
-                Created = node.Created,
-                LastModified = node.Updated,
+                Created = ToUtc(node.Created),
+                LastModified = ToUtc(node.Updated),
+            };
+        }
+
+        /// <summary>
+        /// SMB dates are FILETIME values (UTC): a date without kind is UTC, a local one is converted
+        /// </summary>
+        public static DateTime? ToUtc(DateTime? date)
+        {
+            return date?.Kind switch
+            {
+                null => null,
+                DateTimeKind.Local => date.Value.ToUniversalTime(),
+                _ => DateTime.SpecifyKind(date.Value, DateTimeKind.Utc)
             };
         }
 

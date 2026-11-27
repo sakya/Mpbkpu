@@ -1,22 +1,17 @@
-﻿using MpbkpuLib.Abstracts;
-using MpbkpuLib.FileManagers;
-using MpbkpuLib.Jobs;
+﻿using MpbkpuLib.Jobs;
 
 namespace Mpbkpu.Actions;
 
 public class RestoreAction : BaseAction
 {
     private Arguments? _pArgs;
-    private double _totalPerc;
-    private TimeSpan? _eta;
 
     public override async Task<bool> Run(Arguments pArgs)
     {
         _pArgs = pArgs;
         var destination = pArgs.GetSingleDestination();
-        var settings = new RestoreJobSettings()
+        var settings = WithCommonSettings(new RestoreJobSettings()
         {
-            LogLevel = pArgs.LogLevel,
             BackupDestinations = pArgs.GetBackupDestinations(),
             BackupGuid = pArgs.BackupGuid,
             EncryptPassword = pArgs.Password,
@@ -28,109 +23,39 @@ public class RestoreAction : BaseAction
 
             SkipHashCheck = pArgs.SkipHashCheck,
             RetryOnError = pArgs.RetryOnError ?? 3,
-            LogToConsole = false,
-            LogFile = pArgs.LogFile
-        };
+        }, pArgs);
 
-        var job = new RestoreJob(settings);
+        using var job = new RestoreJob(settings);
         job.Step += OnStep;
-        job.OpenBackup += OnCopyBackup;
         job.ConfirmRestore += OnConfirm;
-        job.LogEmitted += OnLog;
         job.FileProgress += OnFileProgress;
         job.DeleteProgress += OnDeleteProgress;
-        job.RestoreProgress += OnRestoreProgress;
-
-        BaseJobResult? jobRes = null;
-        using (CancellationTokenSource = new CancellationTokenSource()) {
-            try {
-                Console.CursorVisible = false;
-                var task = Task.Run(() => job.Run(CancellationTokenSource.Token));
-                jobRes = await task;
-                Console.WriteLine();
-            } catch (Exception ex) {
-                Console.ForegroundColor = Utility.Console.ErrorColor;
-                Console.WriteLine();
-                Console.WriteLine($"ERROR: {ex.Message}");
-                Console.ForegroundColor = Utility.Console.DefaultColor;
-            } finally {
-                Console.CursorVisible = true;
-            }
-        }
-
-        Started = jobRes?.Started;
-        Completed = jobRes?.Completed;
-        Bytes = jobRes?.Bytes;
-
-        return true;
+        job.RestoreProgress += OnProgress;
+        return Succeeded(await RunJob(job));
     }
 
     #region private operations
     private void OnStep(object sender, RestoreJob.Steps step)
     {
-        Utility.Console.ClearLine();
-        Console.ForegroundColor = Utility.Console.InfoColor;
-        switch (step) {
-            case RestoreJob.Steps.OpenDatabase:
-                Console.WriteLine("Opening backup");
-                break;
-            case RestoreJob.Steps.ReadDestination:
-                CanCancel = true;
-                Console.WriteLine("Reading destination files");
-                break;
-            case RestoreJob.Steps.CalculateFilesToRestore:
-                Console.WriteLine("Calculating files to restore");
-                break;
-            case RestoreJob.Steps.DeleteFiles:
-                Console.WriteLine("Deleting files");
-                break;
-            case RestoreJob.Steps.RestoreFiles:
-                Console.WriteLine("Restoring files");
-                break;
-        }
-
-        Console.ForegroundColor = Utility.Console.DefaultColor;
+        if (step == RestoreJob.Steps.ReadDestination)
+            CanCancel = true;
+        WriteStep(step switch
+        {
+            RestoreJob.Steps.OpenDatabase => "Opening backup",
+            RestoreJob.Steps.ReadDestination => "Reading destination files",
+            RestoreJob.Steps.CalculateFilesToRestore => "Calculating files to restore",
+            RestoreJob.Steps.DeleteFiles => "Deleting files",
+            RestoreJob.Steps.RestoreFiles => "Restoring files",
+            _ => step.ToString()
+        });
     }
 
     private Task<bool> OnConfirm(object sender, RestoreJob.ConfirmArgs e)
     {
-        if (_pArgs!.AlwaysYes)
-            return Task.FromResult(true);
-        Console.CursorVisible = true;
         var msg = e.FilesToDelete > 0 ?
             $"Delete {e.FilesToDelete} ({MpbkpuLib.Utility.String.BytesToString(e.BytesToDelete)}), restore {e.FilesToRestore} files ({MpbkpuLib.Utility.String.BytesToString(e.BytesToRestore)})?" :
             $"Restore {e.FilesToRestore} files ({MpbkpuLib.Utility.String.BytesToString(e.BytesToRestore)})?";
-        var res = Utility.Console.Confirm(msg, true, true);
-        Console.CursorVisible = false;
-        return Task.FromResult(res);
-    }
-
-    private void OnDeleteProgress(object sender, BaseJob.ProgressHandlerArgs args)
-    {
-        Console.CursorLeft = 0;
-        Console.Write($"[{(args.File / (double)args.TotalFiles * 100.0),5:0.0}%]");
-    }
-
-    private void OnFileProgress(object sender, string filePath, long bytes, long totalBytes)
-    {
-        var perc = GetPercentage(bytes, totalBytes);
-        if (bytes == 0 && totalBytes == 0)
-            perc = 100;
-        var progress = $"[{_totalPerc,5:0.0}% {MpbkpuLib.Utility.String.EtaToString(_eta)}][{perc,5:0.0}%]";
-        if (filePath.Length > Console.WindowWidth - progress.Length - 1)
-            filePath = $"...{ filePath.Substring(filePath.Length - (Console.WindowWidth - progress.Length) + 4) }";
-        progress = $"{progress}{filePath}";
-
-        Console.CursorLeft = 0;
-        Console.Write(progress.PadRight(Console.WindowWidth - 1));
-    }
-
-    private void OnRestoreProgress(object sender, BaseJob.ProgressHandlerArgs args)
-    {
-        _totalPerc = GetPercentage(args.Bytes, args.TotalBytes);
-        _eta = args.Eta;
-        Console.CursorLeft = 0;
-        Console.Write($"[{_totalPerc,5:0.0}% {MpbkpuLib.Utility.String.EtaToString(_eta)}]");
+        return Task.FromResult(_pArgs!.AlwaysYes || Confirm(msg, true));
     }
     #endregion
 }

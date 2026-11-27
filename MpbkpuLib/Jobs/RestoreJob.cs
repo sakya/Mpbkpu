@@ -447,7 +447,7 @@ public class RestoreJob : BaseJob
                 try {
                     var backupItem = GetBackupItemLocation(fileToRestore.BackupItem);
                     using (var backupStream = await backupItem.Fm.OpenFile(backupItem.Path)) {
-                        using (var destStream = await _destinationFm.OpenFile(tempFilePath, true)) {
+                        using (var destStream = await _destinationFm.OpenFile(tempFilePath, true, fileToRestore.Size, fileToRestore.BackupItem!.OriginalLastModified)) {
                             var progressAction = new Action<long>((copied) =>
                             {
                                 if (lastFileProgress == null || copied == fileToRestore.Size ||

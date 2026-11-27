@@ -287,7 +287,20 @@ public partial class JobRunningPage : BasePage
 
     private Task<bool> BackupJobOnConfirmBackup(object sender, SyncDirectoryJob.ConfirmArgs e)
     {
-        return Task.FromResult(true);
+        return ConfirmSpace(e);
+    }
+
+    /// <summary>
+    /// The job was confirmed before starting: ask again only when the destinations have not enough free space
+    /// </summary>
+    private static async Task<bool> ConfirmSpace(BaseJob.SpaceConfirmArgs e)
+    {
+        if (!e.NotEnoughSpace)
+            return true;
+        var message = string.Format(Localizer.Localizer.Instance["ConfirmNotEnoughSpace"],
+            MpbkpuLib.Utility.String.BytesToString(e.AvailableBytes!.Value), MpbkpuLib.Utility.String.BytesToString(e.NeededBytes));
+        return await Dispatcher.UIThread.InvokeAsync(() =>
+            MessageDialog.ShowConfirmMessage(App.GetMainWindow(), message, MessageDialog.Icons.Warning));
     }
 
     private void BackupJobOnStep(object sender, SyncDirectoryJob.Steps step)
@@ -302,7 +315,7 @@ public partial class JobRunningPage : BasePage
 
     private Task<bool> BackupJobOnConfirmBackup(object sender, MpbkpuLib.Jobs.BackupJob.ConfirmArgs e)
     {
-        return Task.FromResult(true);
+        return ConfirmSpace(e);
     }
 
     private void BackupJobOnProgress(object sender, BaseJob.ProgressHandlerArgs args)

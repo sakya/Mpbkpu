@@ -6,6 +6,12 @@ namespace Mpbkpu;
 
 public static class Program
 {
+    // Exit codes
+    private const int Success = 0;
+    private const int Failed = 1;
+    private const int Cancelled = 2;
+    private const int InvalidArguments = -1;
+
     private static IAction? _runningAction;
 
     private static void PrintInfo()
@@ -19,7 +25,11 @@ public static class Program
         var parser = new Parser();
         if (showInfo)
             parser.ShowInfo();
-        parser.ShowUsage<Arguments>();
+        // The parser formats the usage on the console width, unknown when the output is redirected
+        if (Utility.Console.IsInteractive)
+            parser.ShowUsage<Arguments>();
+        else
+            Console.WriteLine("Run mpbkpu without redirecting the output for the list of the options.");
 
         Console.WriteLine();
         Console.WriteLine("Examples:");
@@ -27,6 +37,9 @@ public static class Program
         Console.WriteLine("mpbkpu list -b /mnt/backup/ -p PWD");
         Console.WriteLine("mpbkpu verify -b /mnt/backup/ -g GUID -p PWD");
         Console.WriteLine("mpbkpu restore -b /mnt/backup/ -d /home/user/ -g GUID -p PWD");
+        Console.WriteLine();
+        Console.WriteLine($"Exit codes: {Success} success (also with warnings), {Failed} error, {Cancelled} cancelled, " +
+                          $"{InvalidArguments} invalid arguments");
     }
 
     public static int Main(string[] args)
@@ -35,7 +48,7 @@ public static class Program
         Console.ForegroundColor = Utility.Console.DefaultColor;
         if (args.Length == 0) {
             PrintHelp();
-            return -1;
+            return InvalidArguments;
         }
 
         var pArgs = new Parser().Parse<Arguments>(args, out var errors);
@@ -51,14 +64,14 @@ public static class Program
             Console.ForegroundColor = Utility.Console.DefaultColor;
             Console.WriteLine();
             PrintHelp(false);
-            return -1;
+            return InvalidArguments;
         }
 
         Console.CancelKeyPress += (_, e) =>
         {
             e.Cancel = _runningAction?.Cancel() ?? false;
             if (!e.Cancel) {
-                Console.CursorVisible = true;
+                Utility.Console.SetCursorVisible(true);
                 Console.ResetColor();
             }
         };
@@ -70,7 +83,7 @@ public static class Program
             pArgs.Password = Utility.Console.AskPassword(true);
             if (string.IsNullOrEmpty(pArgs.Password)) {
                 Console.WriteLine("Empty password is not allowed, aborting");
-                return -1;
+                return InvalidArguments;
             }
         }
 
@@ -86,29 +99,31 @@ public static class Program
             _ => null
         };
 
-        if (_runningAction != null) {
-            try {
-                _runningAction.Run(pArgs).Wait();
-                if (_runningAction.UserCancelled()) {
-                    Console.ForegroundColor = Utility.Console.WarningColor;
-                    Console.WriteLine("Cancelled by user");
-                    Console.ForegroundColor = Utility.Console.DefaultColor;
-                }
-
-                if (_runningAction.Completed.HasValue && _runningAction.Started.HasValue) {
-                    Console.Write($"Completed in { MpbkpuLib.Utility.String.TimeSpanToString(_runningAction.Completed.Value - _runningAction.Started.Value) }");
-                    if (!_runningAction.UserCancelled() && _runningAction.Bytes.HasValue)
-                        Console.Write($" ({MpbkpuLib.Utility.String.BytesToString(_runningAction.Bytes.Value)})");
-                    Console.WriteLine();
-                }
-            } finally {
-                Console.CursorVisible = true;
-                Console.ResetColor();
-            }
-        } else {
+        if (_runningAction == null)
             throw new Exception("Action not initialized");
+
+        bool succeeded;
+        try {
+            succeeded = _runningAction.Run(pArgs).GetAwaiter().GetResult();
+            if (_runningAction.UserCancelled()) {
+                Console.ForegroundColor = Utility.Console.WarningColor;
+                Console.WriteLine("Cancelled by user");
+                Console.ForegroundColor = Utility.Console.DefaultColor;
+            }
+
+            if (_runningAction.Completed.HasValue && _runningAction.Started.HasValue) {
+                Console.Write($"Completed in { MpbkpuLib.Utility.String.TimeSpanToString(_runningAction.Completed.Value - _runningAction.Started.Value) }");
+                if (!_runningAction.UserCancelled() && _runningAction.Bytes.HasValue)
+                    Console.Write($" ({MpbkpuLib.Utility.String.BytesToString(_runningAction.Bytes.Value)})");
+                Console.WriteLine();
+            }
+        } finally {
+            Utility.Console.SetCursorVisible(true);
+            Console.ResetColor();
         }
 
-        return 0;
+        if (succeeded)
+            return Success;
+        return _runningAction.UserCancelled() ? Cancelled : Failed;
     }
 }

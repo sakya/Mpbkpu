@@ -101,7 +101,7 @@ public class BackupJob : BaseJob
     #endregion
 
     #region delegates
-    public class ConfirmArgs : EventArgs
+    public class ConfirmArgs : SpaceConfirmArgs
     {
         /// <summary>
         /// Number of files that will be backed up
@@ -284,7 +284,7 @@ public class BackupJob : BaseJob
         Step?.Invoke(this, Steps.ReadSource);
         LogInfo($"Reading source {Settings.Source}");
         await backupFile.EmptyFiles();
-        if (!await ReadPathContent(backupFile, _sourceFm, _sourcePath, Settings.IncludeHiddenFiles, File.FileActions.Backup, _cancellationToken)) {
+        if (!await ReadPathContent(backupFile, _sourceFm, _sourcePath, Settings.IncludeHiddenFiles, File.FileActions.Backup, _cancellationToken, Settings.Exclude)) {
             LogError("Failed to read source");
             if (!await SetBackupResult(backupFile, Backup.Results.Error))
                 LogWarning("Cannot set backup result");
@@ -370,6 +370,9 @@ public class BackupJob : BaseJob
                 .Select(f => f.Size)
                 .SumAsync(),
         };
+        // The free space is known only when every destination reports it
+        var spaces = _states.Select(s => s.Entry.Space.Current?.Available).ToList();
+        CheckSpace(cArgs, spaces.Any(s => s == null) ? null : spaces.Sum(), cArgs.BytesToBackup);
         if (cArgs.FilesToBackup == 0) {
             LogInfo("No files to backup");
             _skipDatabaseCopy = true;

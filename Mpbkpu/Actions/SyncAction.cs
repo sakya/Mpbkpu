@@ -1,5 +1,3 @@
-using MpbkpuLib.Abstracts;
-using MpbkpuLib.FileManagers;
 using MpbkpuLib.Jobs;
 
 namespace Mpbkpu.Actions;
@@ -7,28 +5,17 @@ namespace Mpbkpu.Actions;
 public class SyncAction : BaseAction
 {
     private Arguments? _pArgs;
-    private double _totalPerc;
-    private TimeSpan? _eta;
 
     public override async Task<bool> Run(Arguments pArgs)
     {
         _pArgs = pArgs;
         var destination = pArgs.GetSingleDestination();
-        var settings = new SyncDirectoryJobSettings()
+        var settings = WithCommonSettings(new SyncDirectoryJobSettings()
         {
-            LogLevel = pArgs.LogLevel,
-
             Source = pArgs.SourcePath,
             SourceUser = pArgs.SourceUser,
             SourcePassword = pArgs.SourcePassword,
-            SourceOauthSettings = new OAuth2Settings()
-            {
-                ServerUrl = pArgs.SourceOauthServerUrl,
-                RedirectUrl = pArgs.SourceOauthRedirectUrl,
-                AppName = pArgs.SourceOauthAppName,
-                AppId = pArgs.SourceOauthAppId,
-                AppSecret = pArgs.SourceOauthAppSecret,
-            },
+            SourceOauthSettings = pArgs.GetSourceOauthSettings(),
 
             Destination = destination.Path,
             DestinationUser = destination.User,
@@ -40,110 +27,43 @@ public class SyncAction : BaseAction
 
             Exclude = pArgs.Exclude,
             RetryOnError = pArgs.RetryOnError ?? 3,
-            LogToConsole = false,
-            LogFile = pArgs.LogFile
-        };
+        }, pArgs);
 
         Console.Write("Hash check : ");
         WriteEnabled(!pArgs.SkipHashCheck);
         Console.WriteLine();
 
-        var job = new SyncDirectoryJob(settings);
+        using var job = new SyncDirectoryJob(settings);
         job.Step += OnStep;
-        job.OpenBackup += OnCopyBackup;
         job.CopyBackup += OnCopyBackup;
         job.ConfirmBackup += OnConfirm;
-        job.LogEmitted += OnLog;
         job.DeleteProgress += OnDeleteProgress;
         job.FileProgress += OnFileProgress;
         job.Progress += OnProgress;
-
-        BaseJobResult? jobRes = null;
-        using (CancellationTokenSource = new CancellationTokenSource()) {
-            try {
-                Console.CursorVisible = false;
-                var task = Task.Run(() => job.Run(CancellationTokenSource.Token));
-                jobRes = await task;
-                Utility.Console.ClearLine();
-                Console.WriteLine();
-            } catch (Exception ex) {
-                Console.ForegroundColor = Utility.Console.ErrorColor;
-                Console.WriteLine();
-                Console.WriteLine($"ERROR: {ex.Message}");
-                Console.ForegroundColor = Utility.Console.DefaultColor;
-            } finally {
-                Console.CursorVisible = true;
-            }
-        }
-
-        Started = jobRes?.Started;
-        Completed = jobRes?.Completed;
-        Bytes = jobRes?.Bytes;
-
-        return true;
+        return Succeeded(await RunJob(job));
     }
 
     #region private operations
     private void OnStep(object sender, SyncDirectoryJob.Steps step)
     {
-        Utility.Console.ClearLine();
-        Console.ForegroundColor = Utility.Console.InfoColor;
-        switch (step) {
-            case SyncDirectoryJob.Steps.ReadSource:
-                CanCancel = true;
-                Console.WriteLine("Reading source files");
-                break;
-            case SyncDirectoryJob.Steps.ReadDestination:
-                Console.WriteLine("Reading destination files");
-                break;
-            case SyncDirectoryJob.Steps.CalculateFilesToBackup:
-                Console.WriteLine("Calculating files to backup");
-                break;
-            case SyncDirectoryJob.Steps.BackupFiles:
-                Console.WriteLine("Backing up files");
-                break;
-        }
-
-        Console.ForegroundColor = Utility.Console.DefaultColor;
+        if (step == SyncDirectoryJob.Steps.ReadSource)
+            CanCancel = true;
+        WriteStep(step switch
+        {
+            SyncDirectoryJob.Steps.ReadSource => "Reading source files",
+            SyncDirectoryJob.Steps.ReadDestination => "Reading destination files",
+            SyncDirectoryJob.Steps.CalculateFilesToBackup => "Calculating files to backup",
+            SyncDirectoryJob.Steps.BackupFiles => "Backing up files",
+            _ => step.ToString()
+        });
     }
 
     private Task<bool> OnConfirm(object sender, SyncDirectoryJob.ConfirmArgs e)
     {
-        if (_pArgs!.AlwaysYes)
-            return Task.FromResult(true);
-        Console.CursorVisible = true;
         var msg = e.FilesToDelete > 0 ?
             $"Delete {e.FilesToDelete} ({MpbkpuLib.Utility.String.BytesToString(e.BytesToDelete)}), backup {e.FilesToBackup} files ({MpbkpuLib.Utility.String.BytesToString(e.BytesToBackup)})?" :
             $"Backup {e.FilesToBackup} files ({MpbkpuLib.Utility.String.BytesToString(e.BytesToBackup)})?";
-        var res = Utility.Console.Confirm(msg, true, true);
-        Console.CursorVisible = false;
-        return Task.FromResult(res);
-    }
-
-    private void OnDeleteProgress(object sender, BaseJob.ProgressHandlerArgs args)
-    {
-        Console.CursorLeft = 0;
-        Console.Write($"[{(args.File / (double)args.TotalFiles * 100.0),5:0.0}%]");
-    }
-
-    private void OnFileProgress(object sender, string filePath, long bytes, long totalBytes)
-    {
-        var perc = GetPercentage(bytes, totalBytes);
-        var progress = $"[{_totalPerc,5:0.0}% {MpbkpuLib.Utility.String.EtaToString(_eta)}][{perc,5:0.0}%]";
-        if (filePath.Length > Console.WindowWidth - progress.Length - 1)
-            filePath = $"...{ filePath.Substring(filePath.Length - (Console.WindowWidth - progress.Length) + 4) }";
-        progress = $"{progress}{filePath}";
-
-        Console.CursorLeft = 0;
-        Console.Write(progress.PadRight(Console.WindowWidth - 1));
-    }
-
-    private void OnProgress(object sender, BaseJob.ProgressHandlerArgs args)
-    {
-        _totalPerc = GetPercentage(args.Bytes, args.TotalBytes);
-        _eta = args.Eta;
-        Console.CursorLeft = 0;
-        Console.Write($"[{_totalPerc,5:0.0}% {MpbkpuLib.Utility.String.EtaToString(_eta)}]");
+        return Task.FromResult(_pArgs!.AlwaysYes || Confirm($"{msg}{SpaceWarning(e)}", !e.NotEnoughSpace));
     }
     #endregion
 }

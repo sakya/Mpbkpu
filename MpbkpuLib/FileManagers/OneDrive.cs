@@ -200,7 +200,7 @@ namespace MpbkpuLib.FileManagers
             return (await GetItem(path))?.File != null;
         }
 
-        public async Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null)
+        public async Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null, DateTime? lastModified = null)
         {
             if (string.IsNullOrEmpty(filePath))
                 throw new ArgumentNullException(filePath);

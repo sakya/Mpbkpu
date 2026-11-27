@@ -17,9 +17,7 @@ public static class CommandLine
 
     /// <param name="Command">The command line</param>
     /// <param name="HasPlaceholders">True when some secret has been replaced by <see cref="PasswordPlaceholder"/></param>
-    /// <param name="UnsupportedPaths">Destinations whose credentials the CLI cannot take (OAuth settings or a password
-    /// that cannot be written in the path of a destination after the first one)</param>
-    public record Result(string Command, bool HasPlaceholders, IReadOnlyList<string> UnsupportedPaths);
+    public record Result(string Command, bool HasPlaceholders);
 
     /// <param name="executable">The CLI executable</param>
     /// <param name="encrypted">True when the backup is encrypted (the password may be unknown to the caller)</param>
@@ -27,15 +25,8 @@ public static class CommandLine
     {
         var builder = new Builder(executable, "backup");
         builder.Add("-t", settings.BackupType.ToString());
-        builder.AddPosition("source", "-s", settings.Source, settings.SourceUser, settings.SourcePassword, settings.SourceOauthSettings);
-        for (var i = 0; i < settings.Destinations.Count; i++) {
-            var destination = settings.Destinations[i];
-            if (i == 0)
-                builder.AddPosition("destination", "-d", destination.Path, destination.User, destination.Password, destination.OauthSettings);
-            else
-                builder.Add("-d", builder.PathWithCredentials(destination));
-        }
-
+        builder.AddPositions("source", "-s", [Source(settings.Source, settings.SourceUser, settings.SourcePassword, settings.SourceOauthSettings)]);
+        builder.AddPositions("destination", "-d", settings.Destinations);
         if (settings.CompressionLevel != CompressionLevel.NoCompression)
             builder.Add("-c", settings.CompressionLevel.ToString());
         builder.AddNumber("--retry", settings.RetryOnError, 3);
@@ -52,18 +43,21 @@ public static class CommandLine
     public static Result ForSync(string executable, SyncDirectoryJobSettings settings)
     {
         var builder = new Builder(executable, "syncDirectory");
-        builder.AddPosition("source", "-s", settings.Source, settings.SourceUser, settings.SourcePassword, settings.SourceOauthSettings);
-        builder.AddPosition("destination", "-d", settings.Destination, settings.DestinationUser, settings.DestinationPassword, settings.DestinationOauthSettings);
+        builder.AddPositions("source", "-s", [Source(settings.Source, settings.SourceUser, settings.SourcePassword, settings.SourceOauthSettings)]);
+        builder.AddPositions("destination", "-d",
+            [Source(settings.Destination, settings.DestinationUser, settings.DestinationPassword, settings.DestinationOauthSettings)]);
         builder.AddNumber("--retry", settings.RetryOnError, 3);
         builder.AddFlag("--skipHash", settings.SkipHashCheck);
         builder.AddFlag("-y", true);
         return builder.ToResult();
     }
 
+    private static BackupDestination Source(string? path, string? user, string? password, OAuth2Settings? oauth) =>
+        new() { Path = path, User = user, Password = password, OauthSettings = oauth };
+
     private class Builder
     {
         private readonly StringBuilder _command = new();
-        private readonly List<string> _unsupportedPaths = new();
         private bool _hasPlaceholders;
 
         public Builder(string executable, string verb)
@@ -92,73 +86,39 @@ public static class CommandLine
                 _command.Append(' ').Append(option);
         }
 
-        private void AddSecret(string option, string? value)
-        {
-            if (string.IsNullOrEmpty(value))
-                return;
-            Add(option, PasswordPlaceholder);
-            _hasPlaceholders = true;
-        }
-
         /// <summary>
-        /// A position with its own credential options (the source, the first destination)
+        /// Paths with their credentials: with more paths every credential value is "N=value" for the N-th path
+        /// (Mpbkpu Arguments: the parser drops repeated values of an option)
         /// </summary>
         /// <param name="prefix">Prefix of the credential options: "source" or "destination"</param>
-        public void AddPosition(string prefix, string pathOption, string? path, string? user, string? password, OAuth2Settings? oauth)
+        public void AddPositions(string prefix, string pathOption, IReadOnlyList<BackupDestination> positions)
         {
-            Add(pathOption, path);
-            Add($"--{prefix}User", user);
-            AddSecret($"--{prefix}Password", password);
-            if (oauth is not { IsEmpty: false })
-                return;
-            Add($"--{prefix}OauthServer", oauth.ServerUrl?.ToString());
-            Add($"--{prefix}OauthRedirect", oauth.RedirectUrl?.ToString());
-            Add($"--{prefix}OauthApp", oauth.AppName);
-            Add($"--{prefix}OauthAppId", oauth.AppId);
-            AddSecret($"--{prefix}OauthSecret", oauth.AppSecret);
+            foreach (var position in positions)
+                Add(pathOption, position.Path);
+
+            OAuth2Settings? OAuth(BackupDestination p) => p.OauthSettings is { IsEmpty: false } ? p.OauthSettings : null;
+            var indexed = positions.Count > 1;
+            AddValues($"--{prefix}User", positions.Select(p => p.User).ToList(), false, indexed);
+            AddValues($"--{prefix}Password", positions.Select(p => p.Password).ToList(), true, indexed);
+            AddValues($"--{prefix}OauthServer", positions.Select(p => OAuth(p)?.ServerUrl?.ToString()).ToList(), false, indexed);
+            AddValues($"--{prefix}OauthRedirect", positions.Select(p => OAuth(p)?.RedirectUrl?.ToString()).ToList(), false, indexed);
+            AddValues($"--{prefix}OauthApp", positions.Select(p => OAuth(p)?.AppName).ToList(), false, indexed);
+            AddValues($"--{prefix}OauthAppId", positions.Select(p => OAuth(p)?.AppId).ToList(), false, indexed);
+            AddValues($"--{prefix}OauthSecret", positions.Select(p => OAuth(p)?.AppSecret).ToList(), true, indexed);
         }
 
-        /// <summary>
-        /// The path of a destination after the first one: the CLI takes its credentials only in the path
-        /// (see <see cref="FileManagerFactory.GetFileManager"/>)
-        /// </summary>
-        public string? PathWithCredentials(BackupDestination destination)
+        private void AddValues(string option, IReadOnlyList<string?> values, bool secret, bool indexed)
         {
-            var path = destination.Path;
-            if (string.IsNullOrEmpty(path))
-                return path;
-            if (destination.OauthSettings is { IsEmpty: false }) {
-                _unsupportedPaths.Add(path);
-                return path;
+            for (var i = 0; i < values.Count; i++) {
+                if (string.IsNullOrEmpty(values[i]))
+                    continue;
+                var value = secret ? PasswordPlaceholder : values[i];
+                Add(option, indexed ? $"{i + 1}={value}" : value);
+                _hasPlaceholders |= secret;
             }
-            if (string.IsNullOrEmpty(destination.User))
-                return path;
-
-            // scheme://user:password@host/position (FTP, SFTP, SMB) or scheme://user:password/position (MEGA, MediaFire)
-            var hostSchemes = new[] { Ftp.Scheme, Sftp.Scheme, Smb.Scheme };
-            var accountSchemes = new[] { Mega.Scheme, MediaFire.Scheme };
-            var scheme = hostSchemes.Concat(accountSchemes)
-                .FirstOrDefault(s => path.StartsWith(s, StringComparison.InvariantCultureIgnoreCase));
-            if (scheme == null) {
-                // The user is already in the path (OneDrive, Dropbox, Nextcloud): a password cannot be added there
-                if (!string.IsNullOrEmpty(destination.Password))
-                    _unsupportedPaths.Add(path);
-                return path;
-            }
-            if (string.IsNullOrEmpty(destination.Password)) {
-                _unsupportedPaths.Add(path);
-                return path;
-            }
-
-            _hasPlaceholders = true;
-            var rest = path[scheme.Length..].TrimStart('/');
-            var credentials = $"{destination.User}:{PasswordPlaceholder}";
-            return hostSchemes.Contains(scheme) ?
-                $"{scheme}{credentials}@{rest}" :
-                $"{scheme}{credentials}/{rest}";
         }
 
-        public Result ToResult() => new(_command.ToString(), _hasPlaceholders, _unsupportedPaths);
+        public Result ToResult() => new(_command.ToString(), _hasPlaceholders);
     }
 
     /// <summary>

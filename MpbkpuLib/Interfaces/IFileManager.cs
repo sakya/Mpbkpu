@@ -110,8 +110,10 @@ namespace MpbkpuLib.Interfaces
         /// <param name="filePath">The path of the file</param>
         /// <param name="write">If true the file is opened for write</param>
         /// <param name="size">The file size (used only if <see cref="write"/> is true)</param>
+        /// <param name="lastModified">The modification date (UTC) to give to a written file, for the file systems that
+        /// can set it only when the file is created (MEGA); the others ignore it</param>
         /// <returns>A <see cref="FileSystemStream"/></returns>
-        Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null);
+        Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null, DateTime? lastModified = null);
 
         /// <summary>
         /// Rename a file

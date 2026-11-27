@@ -274,7 +274,7 @@ public class MediaFire : IFileManager
         }
     }
 
-    public async Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null)
+    public async Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null, DateTime? lastModified = null)
     {
         if (string.IsNullOrEmpty(filePath))
             throw new ArgumentNullException(filePath);
@@ -339,13 +339,28 @@ public class MediaFire : IFileManager
     #region private operations
     private async Task<Client> GetClient()
     {
+        // A session token lasts 10 minutes: renew it when older than 5 (MediaFire renews only those), log in again
+        // when it cannot be renewed (expired during a long operation)
+        if (_client != null && DateTime.UtcNow - _sessionTime > SessionRenewAfter) {
+            try {
+                await _client.UserRenewSessionToken();
+                _sessionTime = DateTime.UtcNow;
+            } catch (Exception) {
+                _client = null;
+            }
+        }
+
         if (_client == null) {
             _client = new Client(new ClientSettings());
             await _client.Login(_username, _password);
+            _sessionTime = DateTime.UtcNow;
         }
 
         return _client;
     }
+
+    private static readonly TimeSpan SessionRenewAfter = TimeSpan.FromMinutes(5);
+    private DateTime _sessionTime;
 
     /// <summary>
     /// File information, null if the file does not exist

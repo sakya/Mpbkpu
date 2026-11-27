@@ -9,8 +9,15 @@ using NUnit.Framework;
 
 namespace Tests.FileManagers;
 
+/// <summary>
+/// Tests on real accounts: run only when selected (dotnet test --filter "FullyQualifiedName~FileManagers"), skipped
+/// without ../filemanagers-settings.json. OAuth file managers may open a login page.
+/// </summary>
+[Explicit("Needs real accounts in filemanagers-settings.json")]
 public class Tests : BaseTest
 {
+    private const string SettingsFile = "../../../../filemanagers-settings.json";
+
     private Settings? _settings;
     private string? _tempFile1;
     private long _tempFile1Size;
@@ -34,7 +41,9 @@ public class Tests : BaseTest
     public void Setup()
     {
         // Load settings
-        using (var fs = new FileStream("../../../../filemanagers-settings.json", FileMode.Open, FileAccess.Read)) {
+        if (!File.Exists(SettingsFile))
+            Assert.Ignore($"{Path.GetFullPath(SettingsFile)} not found: no accounts to test");
+        using (var fs = new FileStream(SettingsFile, FileMode.Open, FileAccess.Read)) {
             using (var sr = new StreamReader(fs)) {
                 _settings = JsonConvert.DeserializeObject<Settings>(sr.ReadToEnd());
                 if (_settings == null)
@@ -60,6 +69,8 @@ public class Tests : BaseTest
     [OneTimeTearDown]
     public void Cleanup()
     {
+        if (_settings == null)
+            return;
         DoTest(async (fm, path) =>
         {
             if (await fm.DirectoryExists(path))

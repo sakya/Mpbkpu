@@ -1,5 +1,4 @@
 using MpbkpuLib.DataModel;
-using MpbkpuLib.FileManagers;
 using MpbkpuLib.Jobs;
 
 namespace Mpbkpu.Actions;
@@ -11,78 +10,44 @@ public class ListAction : BaseAction
 {
     public override async Task<bool> Run(Arguments pArgs)
     {
-        var settings = new ListJobSettings()
+        var settings = WithCommonSettings(new ListJobSettings()
         {
-            LogLevel = pArgs.LogLevel,
             BackupDestinations = pArgs.GetBackupDestinations(),
             EncryptPassword = pArgs.Password
-        };
+        }, pArgs);
 
-        var job = new ListJob(settings);
+        using var job = new ListJob(settings);
         job.Step += OnStep;
-        job.OpenBackup += OnCopyBackup;
-        job.LogEmitted += OnLog;
         job.ListBackup += OnListBackup;
-
-        using (CancellationTokenSource = new CancellationTokenSource()) {
-            try {
-                Console.CursorVisible = false;
-                var task = Task.Run(() => job.Run(CancellationTokenSource.Token));
-                await task;
-                Console.WriteLine();
-            } catch (Exception ex) {
-                Console.ForegroundColor = Utility.Console.ErrorColor;
-                Console.WriteLine();
-                Console.WriteLine($"ERROR: {ex.Message}");
-                Console.ForegroundColor = Utility.Console.DefaultColor;
-            } finally {
-                Console.CursorVisible = true;
-            }
-        }
-
-        return true;
+        var res = await RunJob(job);
+        // Listing has no duration or size to report
+        Started = Completed = null;
+        Bytes = null;
+        return Succeeded(res);
     }
 
     #region private operations
     private void OnStep(object sender, ListJob.Steps step)
     {
-        Utility.Console.ClearLine();
-        Console.ForegroundColor = Utility.Console.InfoColor;
         switch (step) {
             case ListJob.Steps.OpenDatabase:
-                Console.WriteLine("Opening backup");
+                WriteStep("Opening backup");
                 break;
             case ListJob.Steps.ListBackups:
                 CanCancel = true;
-                Console.WriteLine("Listing backups");
+                WriteStep("Listing backups");
                 Console.WriteLine();
                 Console.ForegroundColor = Utility.Console.HighlightColor;
                 Console.WriteLine($"{"Guid",-32} {"Type",-12} {"Result",-20} {"Started",-19} {"Completed",-19} Size");
+                Console.ForegroundColor = Utility.Console.DefaultColor;
                 break;
         }
-
-        Console.ForegroundColor = Utility.Console.DefaultColor;
     }
 
     private void OnListBackup(object sender, Backup backup, int files, long bytes)
     {
         Console.Write($"{backup.Guid,-32} {backup.Type,-12}");
-
-        switch (backup.Result) {
-            case Backup.Results.Completed:
-                Console.ForegroundColor = Utility.Console.SuccessColor;
-                break;
-            case Backup.Results.CompletedWithWarnings:
-            case Backup.Results.Cancelled:
-                Console.ForegroundColor = Utility.Console.WarningColor;
-                break;
-            case Backup.Results.Error:
-                Console.ForegroundColor = Utility.Console.ErrorColor;
-                break;
-        }
-
-        Console.Write($" {backup.Result,-20}");
-        Console.ForegroundColor = Utility.Console.DefaultColor;
+        WriteResult(backup.Result);
         Console.Write(
             $" {$"{backup.StartedAt!.Value.ToLocalTime().ToShortDateString()} {backup.StartedAt!.Value.ToLocalTime().ToShortTimeString()}",-19}");
         if (backup.CompletedAt.HasValue)

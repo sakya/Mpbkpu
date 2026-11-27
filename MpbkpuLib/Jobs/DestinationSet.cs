@@ -99,8 +99,11 @@ public sealed class DestinationSet : IDisposable
     {
         DatabaseSource = null;
         DateTime? newest = null;
+        var withDatabase = new List<Entry>();
         foreach (var entry in Entries) {
             var modified = await GetDatabaseDate(entry);
+            if (modified != null)
+                withDatabase.Add(entry);
             if (modified != null && (newest == null || modified > newest)) {
                 newest = modified;
                 DatabaseSource = entry;
@@ -111,6 +114,12 @@ public sealed class DestinationSet : IDisposable
         var res = await BackupFile.OpenBackupFile(source.Fm, source.Path, password, create, progressAction, token, Entries.Count > 1);
         try {
             await Match(res.BackupFile);
+            // Every copy records the destinations of its backup (Register): a destination with a database the newest
+            // copy does not record holds another backup. Databases without records (before multiple destinations)
+            // cannot be checked.
+            var foreign = withDatabase.FirstOrDefault(e => e.RecordId == null);
+            if (foreign != null && _recordPaths.Count > 0)
+                throw new ForeignDatabaseException(MaskedPath(DatabaseSource!), MaskedPath(foreign));
         } catch {
             res.Dispose();
             throw;

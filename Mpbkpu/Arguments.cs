@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Text.RegularExpressions;
 using CmdLineArgsParser;
 using CmdLineArgsParser.Attributes;
 using MpbkpuLib.Abstracts;
@@ -50,11 +51,11 @@ public class Arguments : IOptions
     [Option("sourceOauthServer",
         Description = "The OAuth server url for accessing the source file system",
         OnlyForVerbs = "Backup;SyncDirectory")]
-    public Uri? SourceOauthServerUrl { get; set; }
+    public string? SourceOauthServerUrl { get; set; }
     [Option("sourceOauthRedirect",
         Description = "The OAuth redirect url for accessing the source file system",
         OnlyForVerbs = "Backup;SyncDirectory")]
-    public Uri? SourceOauthRedirectUrl { get; set; }
+    public string? SourceOauthRedirectUrl { get; set; }
     [Option("sourceOauthApp",
         Description = "The OAuth app name for accessing the source file system",
         OnlyForVerbs = "Backup;SyncDirectory")]
@@ -73,53 +74,46 @@ public class Arguments : IOptions
     [Option("destination", ShortName = 'd',
         Required = true,
         Description = "The destination path. A backup can be split among more destinations: repeat the option " +
-                      "(the user, password and OAuth options apply to the first one, the others take the credentials in the path)",
+                      "(" + IndexedValueHelp + " for the credential options)",
         OnlyForVerbs = "Backup;Restore;SyncDirectory")]
     public List<string>? DestinationPaths { get; set; }
 
     [Option("destinationUser",
-        Description = "The user for accessing the destination file system",
+        Description = "The user for accessing the destination file system (" + IndexedValueHelp + ")",
         OnlyForVerbs = "Backup;Restore;SyncDirectory")]
-    public string? DestinationUser { get; set; }
+    public List<string>? DestinationUser { get; set; }
     [Option("destinationPassword",
-        Description = "The password for accessing the destination file system",
+        Description = "The password for accessing the destination file system (" + IndexedValueHelp + ")",
         OnlyForVerbs = "Backup;Restore;SyncDirectory")]
-
-    public string? DestinationPassword { get; set; }
+    public List<string>? DestinationPassword { get; set; }
     [Option("destinationOauthServer",
-        Description = "The OAuth server url for accessing the destination file system",
+        Description = "The OAuth server url for accessing the destination file system (" + IndexedValueHelp + ")",
         OnlyForVerbs = "Backup;Restore;SyncDirectory")]
-    public Uri? DestinationOauthServerUrl { get; set; }
+    public List<string>? DestinationOauthServerUrl { get; set; }
     [Option("destinationOauthRedirect",
-        Description = "The OAuth redirect url for accessing the destination file system",
+        Description = "The OAuth redirect url for accessing the destination file system (" + IndexedValueHelp + ")",
         OnlyForVerbs = "Backup;Restore;SyncDirectory")]
-    public Uri? DestinationOauthRedirectUrl { get; set; }
+    public List<string>? DestinationOauthRedirectUrl { get; set; }
     [Option("destinationOauthApp",
-        Description = "The OAuth app name for accessing the destination file system",
+        Description = "The OAuth app name for accessing the destination file system (" + IndexedValueHelp + ")",
         OnlyForVerbs = "Backup;Restore;SyncDirectory")]
-    public string? DestinationOauthAppName { get; set; }
+    public List<string>? DestinationOauthAppName { get; set; }
     [Option("destinationOauthAppId",
-        Description = "The OAuth app id for accessing the destination file system",
+        Description = "The OAuth app id for accessing the destination file system (" + IndexedValueHelp + ")",
         OnlyForVerbs = "Backup;Restore;SyncDirectory")]
-    public string? DestinationOauthAppId { get; set; }
+    public List<string>? DestinationOauthAppId { get; set; }
     [Option("destinationOauthSecret",
-        Description = "The OAuth app secret for accessing the destination file system",
+        Description = "The OAuth app secret for accessing the destination file system (" + IndexedValueHelp + ")",
         OnlyForVerbs = "Backup;Restore;SyncDirectory")]
-    public string? DestinationOauthAppSecret { get; set; }
+    public List<string>? DestinationOauthAppSecret { get; set; }
 
     /// <summary>
     /// The destinations of a backup
     /// </summary>
     public List<BackupDestination> GetDestinations()
     {
-        return GetDestinations(DestinationPaths, DestinationUser, DestinationPassword, new OAuth2Settings()
-        {
-            ServerUrl = DestinationOauthServerUrl,
-            RedirectUrl = DestinationOauthRedirectUrl,
-            AppName = DestinationOauthAppName,
-            AppId = DestinationOauthAppId,
-            AppSecret = DestinationOauthAppSecret,
-        });
+        return GetDestinations(DestinationPaths, DestinationUser, DestinationPassword, DestinationOauthServerUrl,
+            DestinationOauthRedirectUrl, DestinationOauthAppName, DestinationOauthAppId, DestinationOauthAppSecret);
     }
 
     /// <summary>
@@ -138,6 +132,14 @@ public class Arguments : IOptions
     {
         if (Action is Actions.Restore or Actions.SyncDirectory && DestinationPaths?.Count > 1)
             return $"{Action} takes one destination";
+        try {
+            // Too many credential values and invalid urls
+            GetDestinations();
+            GetBackupDestinations();
+            GetSourceOauthSettings();
+        } catch (ArgumentException ex) {
+            return ex.Message;
+        }
         return null;
     }
     #endregion
@@ -146,65 +148,124 @@ public class Arguments : IOptions
     [Option("backup", ShortName = 'b',
         Required = true,
         Description = "The path containing the backup. Repeat the option for a backup split among more destinations " +
-                      "(the user, password and OAuth options apply to the first one, the others take the credentials in the path)",
+                      "(" + IndexedValueHelp + " for the credential options)",
         OnlyForVerbs = "Restore;Delete;List;ListContent;Verify")]
     public List<string>? BackupPaths { get; set; }
 
     [Option("backupUser",
-        Description = "The user for accessing the backup file system",
+        Description = "The user for accessing the backup file system (" + IndexedValueHelp + ")",
         OnlyForVerbs = "Restore;Delete;List;ListContent;Verify")]
-    public string? BackupUser { get; set; }
+    public List<string>? BackupUser { get; set; }
     [Option("backupPassword",
-        Description = "The password for accessing the backup file system",
+        Description = "The password for accessing the backup file system (" + IndexedValueHelp + ")",
         OnlyForVerbs = "Restore;Delete;List;ListContent;Verify")]
-    public string? BackupPassword { get; set; }
-
+    public List<string>? BackupPassword { get; set; }
     [Option("backupOauthServer",
-        Description = "The OAuth server url for accessing the backup file system",
+        Description = "The OAuth server url for accessing the backup file system (" + IndexedValueHelp + ")",
         OnlyForVerbs = "Restore;Delete;List;ListContent;Verify")]
-    public Uri? BackupOauthServerUrl { get; set; }
+    public List<string>? BackupOauthServerUrl { get; set; }
     [Option("backupOauthRedirect",
-        Description = "The OAuth redirect url for accessing the backup file system",
+        Description = "The OAuth redirect url for accessing the backup file system (" + IndexedValueHelp + ")",
         OnlyForVerbs = "Restore;Delete;List;ListContent;Verify")]
-    public Uri? BackupOauthRedirectUrl { get; set; }
+    public List<string>? BackupOauthRedirectUrl { get; set; }
     [Option("backupOauthApp",
-        Description = "The OAuth app name for accessing the backup file system",
+        Description = "The OAuth app name for accessing the backup file system (" + IndexedValueHelp + ")",
         OnlyForVerbs = "Restore;Delete;List;ListContent;Verify")]
-    public string? BackupOauthAppName { get; set; }
+    public List<string>? BackupOauthAppName { get; set; }
     [Option("backupOauthAppId",
-        Description = "The OAuth app id for accessing the backup file system",
+        Description = "The OAuth app id for accessing the backup file system (" + IndexedValueHelp + ")",
         OnlyForVerbs = "Restore;Delete;List;ListContent;Verify")]
-    public string? BackupOauthAppId { get; set; }
+    public List<string>? BackupOauthAppId { get; set; }
     [Option("backupOauthSecret",
-        Description = "The OAuth app secret for accessing the backup file system",
+        Description = "The OAuth app secret for accessing the backup file system (" + IndexedValueHelp + ")",
         OnlyForVerbs = "Restore;Delete;List;ListContent;Verify")]
-    public string? BackupOauthAppSecret { get; set; }
+    public List<string>? BackupOauthAppSecret { get; set; }
 
     /// <summary>
     /// The destinations holding the backups
     /// </summary>
     public List<BackupDestination> GetBackupDestinations()
     {
-        return GetDestinations(BackupPaths, BackupUser, BackupPassword, new OAuth2Settings()
-        {
-            ServerUrl = BackupOauthServerUrl,
-            RedirectUrl = BackupOauthRedirectUrl,
-            AppName = BackupOauthAppName,
-            AppId = BackupOauthAppId,
-            AppSecret = BackupOauthAppSecret,
-        });
+        return GetDestinations(BackupPaths, BackupUser, BackupPassword, BackupOauthServerUrl, BackupOauthRedirectUrl,
+            BackupOauthAppName, BackupOauthAppId, BackupOauthAppSecret);
     }
     #endregion
 
     /// <summary>
-    /// Destinations from repeated path options: the user, password and OAuth options apply to the first path.
+    /// Credential options of more paths: "N=value" belongs to the N-th path (1 based), a value without index to the
+    /// first one. Indexes keep the values distinct (the parser drops repeated values of an option).
+    /// </summary>
+    private const string IndexedValueHelp = "repeat it as N=value for the N-th path, a value without N= is for the first one";
+
+    public OAuth2Settings GetSourceOauthSettings()
+    {
+        return new OAuth2Settings()
+        {
+            ServerUrl = ToUri(SourceOauthServerUrl, "sourceOauthServer"),
+            RedirectUrl = ToUri(SourceOauthRedirectUrl, "sourceOauthRedirect"),
+            AppName = SourceOauthAppName,
+            AppId = SourceOauthAppId,
+            AppSecret = SourceOauthAppSecret,
+        };
+    }
+
+    /// <summary>
+    /// Destinations from repeated path options, with their credentials (see <see cref="IndexedValueHelp"/>).
     /// The ids are not persisted by the CLI: the jobs match the destinations recorded in the database by path.
     /// </summary>
-    private static List<BackupDestination> GetDestinations(List<string>? paths, string? user, string? password, OAuth2Settings oauthSettings)
+    private static List<BackupDestination> GetDestinations(List<string>? paths, List<string>? users, List<string>? passwords,
+        List<string>? oauthServers, List<string>? oauthRedirects, List<string>? oauthApps, List<string>? oauthAppIds,
+        List<string>? oauthSecrets)
     {
-        return (paths ?? new List<string>()).Select((path, i) => i == 0 ?
-            new BackupDestination() { Path = path, User = user, Password = password, OauthSettings = oauthSettings } :
-            new BackupDestination() { Path = path }).ToList();
+        paths ??= new List<string>();
+        var count = Math.Max(paths.Count, 1);
+        var user = ByPath(users, count);
+        var password = ByPath(passwords, count);
+        var oauthServer = ByPath(oauthServers, count);
+        var oauthRedirect = ByPath(oauthRedirects, count);
+        var oauthApp = ByPath(oauthApps, count);
+        var oauthAppId = ByPath(oauthAppIds, count);
+        var oauthSecret = ByPath(oauthSecrets, count);
+
+        return paths.Select((path, i) => new BackupDestination()
+        {
+            Path = path,
+            User = user[i],
+            Password = password[i],
+            OauthSettings = new OAuth2Settings()
+            {
+                ServerUrl = ToUri(oauthServer[i], "OAuth server"),
+                RedirectUrl = ToUri(oauthRedirect[i], "OAuth redirect"),
+                AppName = oauthApp[i],
+                AppId = oauthAppId[i],
+                AppSecret = oauthSecret[i],
+            }
+        }).ToList();
+    }
+
+    /// <summary>
+    /// The values of a credential option by path (see <see cref="IndexedValueHelp"/>)
+    /// </summary>
+    private static string?[] ByPath(List<string>? values, int pathsCount)
+    {
+        var res = new string?[pathsCount];
+        foreach (var value in values ?? new List<string>()) {
+            var m = Regex.Match(value, "^([0-9]+)=(.*)$", RegexOptions.Singleline);
+            var index = m.Success ? int.Parse(m.Groups[1].Value) - 1 : 0;
+            if (index < 0 || index >= pathsCount)
+                throw new ArgumentException($"Credential value for path {index + 1}, but there are {pathsCount} paths");
+            if (res[index] != null)
+                throw new ArgumentException($"More credential values for path {index + 1}: use N=value for the N-th path");
+            res[index] = m.Success ? m.Groups[2].Value : value;
+        }
+        return res;
+    }
+
+    private static Uri? ToUri(string? value, string name)
+    {
+        if (string.IsNullOrEmpty(value))
+            return null;
+        return Uri.TryCreate(value, UriKind.Absolute, out var uri) ? uri : throw new ArgumentException($"Invalid {name} url: {value}");
     }
 
     [Option("exclude", 'e',

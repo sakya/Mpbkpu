@@ -162,7 +162,7 @@ namespace MpbkpuLib.Abstracts
             return Task.FromResult(File.Exists(path));
         }
 
-        public Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null)
+        public Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null, DateTime? lastModified = null)
         {
             if (string.IsNullOrEmpty(filePath))
                 throw new ArgumentNullException(filePath);

@@ -16,6 +16,16 @@ namespace MpbkpuLib.FileManagers
         public int Port { get; set; } = DefaultPort;
         public NetworkCredential? Credentials { get; set; }
         public string? PrivateKeyFile { get; set; }
+        public string? PrivateKeyPassphrase { get; set; }
+        /// <summary>
+        /// SHA-256 fingerprint of a new host key to accept in place of the saved one (path option "hostkey=...")
+        /// </summary>
+        public string? AcceptedHostKey { get; set; }
+
+        /// <summary>
+        /// Fingerprint of the host key rejected by the last connection, reported in the connection error
+        /// </summary>
+        private string? _rejectedHostKey;
 
         /// <summary>
         /// Fingerprints of the known servers ("host:port fingerprint" per line): the first key of a server is trusted,
@@ -162,7 +172,7 @@ namespace MpbkpuLib.FileManagers
             return (await GetItem(path))?.IsRegularFile == true;
         }
 
-        public async Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null)
+        public async Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null, DateTime? lastModified = null)
         {
             if (string.IsNullOrEmpty(filePath))
                 throw new ArgumentNullException(filePath);
@@ -211,7 +221,7 @@ namespace MpbkpuLib.FileManagers
                     throw new Exception($"Credentials cannot be null");
 
                 if (!string.IsNullOrEmpty(PrivateKeyFile)) {
-                    PrivateKeyFile[] pks = { new (PrivateKeyFile) };
+                    PrivateKeyFile[] pks = { new (PrivateKeyFile, PrivateKeyPassphrase) };
                     _client = new SftpClient(Host, Port, Credentials.UserName, pks);
                 } else {
                     _client = new SftpClient(Host, Port, Credentials.UserName, Credentials.Password);
@@ -219,28 +229,44 @@ namespace MpbkpuLib.FileManagers
                 _client.HostKeyReceived += OnHostKeyReceived;
             }
 
-            if (!_client.IsConnected)
-                _client.Connect();
+            if (!_client.IsConnected) {
+                _rejectedHostKey = null;
+                try {
+                    _client.Connect();
+                } catch (Exception ex) when (_rejectedHostKey != null) {
+                    throw new SshConnectionException($"The host key of {Host}:{Port} changed (new key {_rejectedHostKey}, the " +
+                                                     $"saved one is in {KnownHostsFile}). If the server changed its key, add " +
+                                                     $"\"?hostkey={_rejectedHostKey}\" to the path", ex);
+                }
+            }
             return _client;
         }
 
         /// <summary>
-        /// Trust on first use: the first key of a server is saved, a different key later is rejected
+        /// Trust on first use: the first key of a server is saved, a different key later is rejected unless it is the
+        /// <see cref="AcceptedHostKey"/>, which replaces the saved one
         /// </summary>
         private void OnHostKeyReceived(object? sender, HostKeyEventArgs e)
         {
             var host = $"{Host}:{Port}";
             lock (KnownHostsLock) {
-                var known = System.IO.File.Exists(KnownHostsFile) ? System.IO.File.ReadAllLines(KnownHostsFile) : Array.Empty<string>();
-                var saved = known.Select(l => l.Split(' ', 2))
-                    .FirstOrDefault(p => p.Length == 2 && string.Equals(p[0], host, StringComparison.OrdinalIgnoreCase));
-                if (saved != null) {
-                    e.CanTrust = saved[1] == e.FingerPrintSHA256;
+                var known = System.IO.File.Exists(KnownHostsFile) ? System.IO.File.ReadAllLines(KnownHostsFile).ToList() : new List<string>();
+                bool IsHost(string line) => line.Split(' ', 2) is { Length: 2 } p && string.Equals(p[0], host, StringComparison.OrdinalIgnoreCase);
+                var saved = known.FirstOrDefault(IsHost)?.Split(' ', 2)[1];
+                if (saved == e.FingerPrintSHA256) {
+                    e.CanTrust = true;
+                    return;
+                }
+                if (saved != null && AcceptedHostKey?.Trim() != e.FingerPrintSHA256) {
+                    e.CanTrust = false;
+                    _rejectedHostKey = e.FingerPrintSHA256;
                     return;
                 }
 
+                known.RemoveAll(IsHost);
+                known.Add($"{host} {e.FingerPrintSHA256}");
                 Directory.CreateDirectory(Path.GetDirectoryName(KnownHostsFile)!);
-                System.IO.File.AppendAllLines(KnownHostsFile, new[] { $"{host} {e.FingerPrintSHA256}" });
+                System.IO.File.WriteAllLines(KnownHostsFile, known);
                 e.CanTrust = true;
             }
         }

@@ -1,7 +1,10 @@
 using MpbkpuLib.Interfaces;
 using FluentFTP;
 using System.Net;
+using System.Net.Security;
 using System.Security.Authentication;
+using System.Security.Cryptography;
+using FluentFTP.Client.BaseClient;
 using MpbkpuLib.Utility;
 using File = MpbkpuLib.DataModel.File;
 
@@ -17,6 +20,20 @@ namespace MpbkpuLib.FileManagers
         public int Port { get; set; }
         public SslProtocols SslProtocols { get; set; } = SslProtocols.None;
         public NetworkCredential? Credentials { get; set; }
+        /// <summary>
+        /// Fail when the server has no TLS, instead of sending the password in clear (path option "tls=required")
+        /// </summary>
+        public bool RequireTls { get; set; }
+        /// <summary>
+        /// SHA-256 fingerprint (hex) of a certificate to trust even if it does not validate, e.g. a self-signed one
+        /// (path option "fingerprint=...")
+        /// </summary>
+        public string? TrustedFingerprint { get; set; }
+
+        /// <summary>
+        /// Fingerprint of the last certificate rejected, reported in the connection error
+        /// </summary>
+        private string? _rejectedFingerprint;
 
         public void Dispose()
         {
@@ -133,7 +150,7 @@ namespace MpbkpuLib.FileManagers
             return await client.FileExists(GetPath(path));
         }
 
-        public async Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null)
+        public async Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null, DateTime? lastModified = null)
         {
             if (string.IsNullOrEmpty(filePath))
                 throw new ArgumentNullException(filePath);
@@ -184,15 +201,47 @@ namespace MpbkpuLib.FileManagers
             if (_client == null) {
                 _client = new AsyncFtpClient(Host, Credentials, Port);
                 _client.Config.SocketKeepAlive = true;
-                // TLS when the server supports it; certificates are validated (self-signed ones are rejected)
-                _client.Config.EncryptionMode = FtpEncryptionMode.Auto;
+                // TLS when the server supports it (always with RequireTls); certificates are validated, a certificate
+                // that does not validate is accepted only when its fingerprint is the trusted one
+                _client.Config.EncryptionMode = RequireTls ? FtpEncryptionMode.Explicit : FtpEncryptionMode.Auto;
                 _client.Config.SslProtocols = SslProtocols;
                 _client.Config.ValidateAnyCertificate = false;
+                _client.ValidateCertificate += OnValidateCertificate;
             }
 
-            if (!_client.IsConnected)
-                await _client.Connect();
+            if (!_client.IsConnected) {
+                _rejectedFingerprint = null;
+                try {
+                    await _client.Connect();
+                } catch (Exception ex) when (_rejectedFingerprint != null) {
+                    throw new AuthenticationException($"The certificate of {Host} is not trusted. If it is the right one, " +
+                                                      $"add \"?fingerprint={_rejectedFingerprint}\" to the path", ex);
+                }
+            }
             return _client;
+        }
+
+        private void OnValidateCertificate(BaseFtpClient control, FtpSslValidationEventArgs e)
+        {
+            if (e.PolicyErrors == SslPolicyErrors.None) {
+                e.Accept = true;
+                return;
+            }
+
+            var fingerprint = e.Certificate.GetCertHashString(HashAlgorithmName.SHA256);
+            e.Accept = NormalizeFingerprint(TrustedFingerprint) == fingerprint;
+            if (!e.Accept)
+                _rejectedFingerprint = fingerprint;
+        }
+
+        /// <summary>
+        /// A fingerprint as hex digits only, upper case ("AB:CD ef" -> "ABCDEF")
+        /// </summary>
+        public static string? NormalizeFingerprint(string? fingerprint)
+        {
+            return string.IsNullOrEmpty(fingerprint) ?
+                null :
+                new string(fingerprint.Where(Uri.IsHexDigit).Select(char.ToUpperInvariant).ToArray());
         }
 
         /// <summary>

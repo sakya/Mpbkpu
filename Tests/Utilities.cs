@@ -189,7 +189,43 @@ public class Utilities
 
         using var sftpUrl = (MpbkpuLib.FileManagers.Sftp)MpbkpuLib.FileManagers.FileManagerFactory.GetFileManager("sftp://me:keyfile=/home/me/key@host:2222/x", out _);
         Assert.That(sftpUrl.PrivateKeyFile, Is.EqualTo("/home/me/key"));
+        Assert.That(sftpUrl.PrivateKeyPassphrase, Is.Null);
         Assert.That(sftpUrl.Port, Is.EqualTo(2222));
+    }
+
+    [Test]
+    public void SmbDatesAreUtc()
+    {
+        var utc = new DateTime(2026, 11, 27, 10, 0, 0, DateTimeKind.Utc);
+        Assert.That(MpbkpuLib.FileManagers.Smb.ToUtc(utc), Is.EqualTo(utc));
+        Assert.That(MpbkpuLib.FileManagers.Smb.ToUtc(utc.ToLocalTime())!.Value.Kind, Is.EqualTo(DateTimeKind.Utc));
+        Assert.That(MpbkpuLib.FileManagers.Smb.ToUtc(utc.ToLocalTime()), Is.EqualTo(utc));
+        Assert.That(MpbkpuLib.FileManagers.Smb.ToUtc(DateTime.SpecifyKind(utc, DateTimeKind.Unspecified))!.Value.Kind, Is.EqualTo(DateTimeKind.Utc));
+        Assert.That(MpbkpuLib.FileManagers.Smb.ToUtc(null), Is.Null);
+    }
+
+    [Test]
+    public void FtpAndSftpReadThePathOptions()
+    {
+        using var ftp = (MpbkpuLib.FileManagers.Ftp)MpbkpuLib.FileManagers.FileManagerFactory.GetFileManager(
+            "ftp:///host:2121/backups?tls=required&fingerprint=ab:cd:01", out var ftpPath, "user", "secret");
+        Assert.That(ftp.RequireTls, Is.True);
+        Assert.That(MpbkpuLib.FileManagers.Ftp.NormalizeFingerprint(ftp.TrustedFingerprint), Is.EqualTo("ABCD01"));
+        Assert.That(ftp.Host, Is.EqualTo("host"));
+        Assert.That(ftp.Port, Is.EqualTo(2121));
+        // The options are not part of the position the jobs use
+        Assert.That(ftpPath, Is.EqualTo("/backups"));
+
+        using var plain = (MpbkpuLib.FileManagers.Ftp)MpbkpuLib.FileManagers.FileManagerFactory.GetFileManager("ftp://host/backups", out _, "user", "secret");
+        Assert.That(plain.RequireTls, Is.False);
+        Assert.That(plain.TrustedFingerprint, Is.Null);
+
+        using var sftp = (MpbkpuLib.FileManagers.Sftp)MpbkpuLib.FileManagers.FileManagerFactory.GetFileManager(
+            "sftp://me:keyfile=/home/me/key;passphrase=p;w@host/x?hostkey=ssh-key", out var sftpPath);
+        Assert.That(sftp.PrivateKeyFile, Is.EqualTo("/home/me/key"));
+        Assert.That(sftp.PrivateKeyPassphrase, Is.EqualTo("p;w"));
+        Assert.That(sftp.AcceptedHostKey, Is.EqualTo("ssh-key"));
+        Assert.That(sftpPath, Is.EqualTo("/x"));
     }
 
     [Test]
@@ -301,6 +337,7 @@ public class Utilities
     [TestCase("\"Destination\": \"mediafire://user:secret\"", "\"Destination\": \"mediafire://user:***\"")]
     [TestCase("ftp://user:p4ss@host:21/path", "ftp://user:***@host:21/path")]
     [TestCase("sftp://user:keyfile=c:\\key@host/path", "sftp://user:***@host/path")]
+    [TestCase("sftp://user:keyfile=c:\\key;passphrase=secret@host/path", "sftp://user:***@host/path")]
     [TestCase("ftp://host:21/path", "ftp://host:21/path")]
     [TestCase("C:\\data\\source", "C:\\data\\source")]
     public void CredentialsAreMasked(string text, string expected)

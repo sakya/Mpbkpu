@@ -90,10 +90,7 @@ public partial class JobListItem : UserControl
             message += $"\n{localizer["CommandEncryptionPassword"]}";
         if (res.HasPlaceholders)
             message += $"\n{string.Format(localizer["CommandPlaceholders"], MpbkpuLib.Utility.CommandLine.PasswordPlaceholder)}";
-        if (res.UnsupportedPaths.Count > 0)
-            message += $"\n{string.Format(localizer["CommandUnsupported"], string.Join(", ", res.UnsupportedPaths))}";
-        await MessageDialog.ShowMessage(App.GetMainWindow(), message,
-            res.UnsupportedPaths.Count > 0 ? MessageDialog.Icons.Warning : MessageDialog.Icons.Info);
+        await MessageDialog.ShowMessage(App.GetMainWindow(), message, MessageDialog.Icons.Info);
     }
 
     private void OnSettingsClick(object? sender, RoutedEventArgs e)

@@ -51,6 +51,57 @@ public class Regressions : BaseTest
         AssertSameContent(BackupSource, RestoreDestination);
     }
 
+    [Test]
+    public async Task DatabaseOfAnotherBackupIsRejected()
+    {
+        await RunBackup(Backup.BackupTypes.Full);
+        // Another backup in the extra destination, newer than the first one
+        await RunBackup(Backup.BackupTypes.Full, configure: s => s.Destinations = Destinations([ExtraDestinations[0]]));
+
+        var ex = await Assert.ThrowsAsync<ForeignDatabaseException>(async () =>
+            await RunBackup(Backup.BackupTypes.Incremental, configure: s => s.Destinations = Destinations([BackupDestination, ExtraDestinations[0]])));
+        Assert.That(ex!.DatabasePath, Is.EqualTo(ExtraDestinations[0]));
+        Assert.That(ex.Path, Is.EqualTo(BackupDestination));
+
+        // Each backup still works on its own destination
+        Assert.That(await RunBackup(Backup.BackupTypes.Incremental), Is.Not.Null);
+    }
+
+    [Test]
+    public async Task ConfirmationReportsTheFreeSpace()
+    {
+        BackupJob.ConfirmArgs? args = null;
+        await RunBackup(Backup.BackupTypes.Full, confirm: (_, e) =>
+        {
+            args = e;
+            return Task.FromResult(true);
+        });
+
+        Assert.That(args, Is.Not.Null);
+        Assert.That(args!.AvailableBytes, Is.GreaterThan(0), "A local destination reports its space");
+        Assert.That(args.NeededBytes, Is.EqualTo(args.BytesToBackup));
+        Assert.That(args.NotEnoughSpace, Is.False);
+        Assert.That(new BackupJob.ConfirmArgs() { AvailableBytes = 10, NeededBytes = 11 }.NotEnoughSpace, Is.True);
+        Assert.That(new BackupJob.ConfirmArgs() { AvailableBytes = null, NeededBytes = 11 }.NotEnoughSpace, Is.False);
+    }
+
+    [Test]
+    public async Task BackupSkipsExcludedItems()
+    {
+        Directory.CreateDirectory(Path.Combine(BackupSource, "Cache"));
+        CreateFile(Path.Combine(BackupSource, "Cache", "big"), 1024);
+        CreateFile(Path.Combine(BackupSource, "notes.tmp"), 1024);
+        var guid = await RunBackup(Backup.BackupTypes.Full, configure: s => s.Exclude = ["Cache", "*.tmp"]);
+
+        Assert.That((await Restore(guid)).Success, Is.True);
+        Assert.That(Directory.Exists(Path.Combine(RestoreDestination, "Cache")), Is.False);
+        Assert.That(File.Exists(Path.Combine(RestoreDestination, "notes.tmp")), Is.False);
+        // Everything else is in the backup
+        Directory.Delete(Path.Combine(BackupSource, "Cache"), true);
+        File.Delete(Path.Combine(BackupSource, "notes.tmp"));
+        AssertSameContent(BackupSource, RestoreDestination);
+    }
+
     [TestCase(null)]
     [TestCase(EncryptionPassword)]
     public async Task RestoreSingleItemKeepsOtherFiles(string? password)
@@ -775,6 +826,9 @@ public class Regressions : BaseTest
         var res = (VerifyJobResult)await verify.Run(CancellationToken.None);
         Assert.That(res.Errors, Is.Not.Empty);
         Assert.That(res.Errors!.All(e => e.Code == VerifyJobResult.Error.ErrorCodes.FileNotFound), Is.True);
+        // A verification with errors fails (CLI exit code, GUI message)
+        Assert.That(res.Success, Is.False);
+        Assert.That(res.ErrorMessage, Does.StartWith($"{res.Errors!.Count} verification errors"));
     }
 
     [Test]

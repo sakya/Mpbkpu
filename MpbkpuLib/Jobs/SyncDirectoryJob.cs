@@ -49,7 +49,7 @@ public class SyncDirectoryJob : BaseJob
     private const string TempFileSuffix = ".mpbkpu-tmp";
 
     #region delegates
-    public class ConfirmArgs : EventArgs
+    public class ConfirmArgs : SpaceConfirmArgs
     {
         /// <summary>
         /// Number of files that will be backed up
@@ -218,6 +218,7 @@ public class SyncDirectoryJob : BaseJob
                 .Select(f => f.Size)
                 .SumAsync(),
         };
+        CheckSpace(cArgs, DestinationAvailableBytes, cArgs.BytesToBackup - cArgs.BytesToDelete);
         if (cArgs.FilesToBackup == 0 && cArgs.FilesToDelete == 0) {
             LogInfo("No files to backup or delete");
             return _hasWarnings ? Backup.Results.CompletedWithWarnings : null;
@@ -409,7 +410,7 @@ public class SyncDirectoryJob : BaseJob
                 FileProgress?.Invoke(this, fileToBackup.RelativePath!, 0, fileToBackup.Size);
                 DateTime? lastFileProgress = null;
                 using (var sourceStream = await _sourceFm.OpenFile(fileToBackup.FullPath)) {
-                    using (var destStream = await BackupFm.OpenFile(tempFilePath, true, fileToBackup.Size)) {
+                    using (var destStream = await BackupFm.OpenFile(tempFilePath, true, fileToBackup.Size, fileToBackup.LastModified)) {
                         int read;
                         long copied = 0;
                         var buffer = new byte[32768];

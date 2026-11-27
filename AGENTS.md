@@ -9,8 +9,9 @@ Nella chat parla in italiano
 
 ## Commands
 - Build: `dotnet build Mpbkpu.sln`
-- Tests (without the remote FileManagers ones, ~2-5 min): `dotnet test Tests/Tests.csproj --filter "FullyQualifiedName!~FileManagers"`
-- The `FileManagers` tests need `filemanagers-settings.json` with real credentials: do not run them without asking.
+- Tests (~5-7 min): `dotnet test Tests/Tests.csproj`
+- The `FileManagers` tests are explicit and need `filemanagers-settings.json` with real credentials: do not run them
+  (`--filter "FullyQualifiedName~FileManagers"`) without asking.
 - NUnit 5: `Assert.ThrowsAsync` returns a `Task` and must be awaited, otherwise the test asserts nothing.
 - Installer: `Setup\build.bat`, then `%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe Setup\Mpbkpu.iss`.
 
@@ -46,6 +47,5 @@ property of every object (Newtonsoft; use `[ordered]@{}` with `ConvertTo-Json`, 
 opens a confirmation dialog ("Yes" button).
 
 ## CLI verification
-Run the CLI in a real console (a terminal tab): with redirected output it crashes on `Console.CursorVisible` (TODO.md),
-and the exit code is always 0, so check the results on disk or in the `--log` file (ignored by list,
-list content and verify).
+The CLI runs with redirected output too (no progress lines) and returns 0 success, 1 error, 2 cancelled, -1 invalid
+arguments; check the results on disk or in the `--log` file as well.

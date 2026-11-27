@@ -152,7 +152,7 @@ public class Mega : IFileManager
         }
     }
 
-    public async Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null)
+    public async Task<FileSystemStream> OpenFile(string? filePath, bool write = false, long? size = null, DateTime? lastModified = null)
     {
         if (string.IsNullOrEmpty(filePath))
             throw new ArgumentNullException(filePath);
@@ -174,7 +174,7 @@ public class Mega : IFileManager
         var parent = await GetParentNode(filePath, out var childName);
         var res = new UploadStream(size.Value, (stream, token) =>
         {
-            var node = client.Upload(stream, childName, parent, null, token);
+            var node = client.Upload(stream, childName, parent, lastModified, token);
             lock (_nodes!) {
                 _nodes.Add(node);
             }
