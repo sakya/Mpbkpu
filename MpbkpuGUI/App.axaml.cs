@@ -38,6 +38,7 @@ namespace MpbkpuGUI
             try {
                 Dispatcher.UIThread.MainLoop(ct);
             } catch (Exception ex) {
+                MpbkpuLib.Utility.ErrorReporting.Report(ex);
                 // Log the exception
                 using (var sw = new StreamWriter(Path.Combine(LocalPath!, "crash.log"))) {
                     Exception? lex = ex;

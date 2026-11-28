@@ -161,10 +161,10 @@ public partial class PositionDetail : UserControl, IValidate
                     errors.Add(new ErrorContainer.ErrorData("User", Localizer.Localizer.Instance["RequiredError"]));
                 break;
             case Job.Position.FileSystemTypes.Mega:
+            case Job.Position.FileSystemTypes.MediaFire:
+            case Job.Position.FileSystemTypes.OneDrive:
                 if (string.IsNullOrEmpty(_model.User))
                     errors.Add(new ErrorContainer.ErrorData("User", Localizer.Localizer.Instance["RequiredError"]));
-                if (string.IsNullOrEmpty(_model.Password))
-                    errors.Add(new ErrorContainer.ErrorData("Password", Localizer.Localizer.Instance["RequiredError"]));
                 break;
             case Job.Position.FileSystemTypes.Nextcloud:
                 if (string.IsNullOrEmpty(_model.User))
@@ -176,8 +176,6 @@ public partial class PositionDetail : UserControl, IValidate
                         errors.Add(new ErrorContainer.ErrorData("OauthRedirectUrl", Localizer.Localizer.Instance["RequiredError"]));
                     if (string.IsNullOrEmpty(_model.OauthAppId))
                         errors.Add(new ErrorContainer.ErrorData("OauthAppId", Localizer.Localizer.Instance["RequiredError"]));
-                    if (string.IsNullOrEmpty(_model.OauthAppSecret))
-                        errors.Add(new ErrorContainer.ErrorData("OauthAppSecret", Localizer.Localizer.Instance["RequiredError"]));
                 }
                 break;
             case Job.Position.FileSystemTypes.DropBox:
@@ -188,20 +186,11 @@ public partial class PositionDetail : UserControl, IValidate
                     errors.Add(new ErrorContainer.ErrorData("OauthRedirectUrl", Localizer.Localizer.Instance["RequiredError"]));
                 if (string.IsNullOrEmpty(_model.OauthAppId))
                     errors.Add(new ErrorContainer.ErrorData("OauthAppId", Localizer.Localizer.Instance["RequiredError"]));
-                if (string.IsNullOrEmpty(_model.OauthAppSecret))
-                    errors.Add(new ErrorContainer.ErrorData("OauthAppSecret", Localizer.Localizer.Instance["RequiredError"]));
-                break;
-            case Job.Position.FileSystemTypes.MediaFire:
-                if (string.IsNullOrEmpty(_model.User))
-                    errors.Add(new ErrorContainer.ErrorData("User", Localizer.Localizer.Instance["RequiredError"]));
-                if (string.IsNullOrEmpty(_model.Password))
-                    errors.Add(new ErrorContainer.ErrorData("Password", Localizer.Localizer.Instance["RequiredError"]));
-                break;
-            case Job.Position.FileSystemTypes.OneDrive:
-                if (string.IsNullOrEmpty(_model.User))
-                    errors.Add(new ErrorContainer.ErrorData("User", Localizer.Localizer.Instance["RequiredError"]));
                 break;
         }
+        // The same rule the job list uses to detect secrets lost from the secret store
+        if (Job.Position.GetMissingSecret(_model.Type, _model.Password, _model.OauthAppSecret) is { } secret)
+            errors.Add(new ErrorContainer.ErrorData(secret, Localizer.Localizer.Instance["RequiredError"]));
 
         _model.Errors = errors;
         return errors.Count == 0;

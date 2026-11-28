@@ -43,6 +43,10 @@ public class AppSettings
     /// Look for a new release on GitHub at startup
     /// </summary>
     public bool CheckForUpdates { get; set; } = true;
+    /// <summary>
+    /// Send unhandled exceptions and crashes to the developers (<see cref="MpbkpuLib.Utility.ErrorReporting"/>)
+    /// </summary>
+    public bool SendErrorReports { get; set; } = true;
     public List<Job> Jobs { get; set; }
 
     public static async Task<AppSettings?> Load(string fileName)

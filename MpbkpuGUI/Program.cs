@@ -18,6 +18,8 @@ namespace MpbkpuGUI
             // Set current directory to the one containing the executable
             var exeDir = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly()!.Location);
             Directory.SetCurrentDirectory(exeDir!);
+            // Unhandled exceptions and crashes; AppSettings.SendErrorReports is applied once the settings are read
+            using var errorReporting = MpbkpuLib.Utility.ErrorReporting.Init("gui");
 
             // Started by the scheduler of the operating system: run the job without a window
             var run = Array.IndexOf(args, Utility.ScheduledRun.Argument);
@@ -46,7 +48,9 @@ namespace MpbkpuGUI
             if (!Directory.Exists(App.LocalPath))
                 Directory.CreateDirectory(App.LocalPath);
             App.SettingFile = Path.Combine(App.LocalPath, "settings.json");
-            return File.Exists(App.SettingFile) ? await AppSettings.Load(App.SettingFile) : null;
+            var res = File.Exists(App.SettingFile) ? await AppSettings.Load(App.SettingFile) : null;
+            MpbkpuLib.Utility.ErrorReporting.Enabled = res?.SendErrorReports ?? true;
+            return res;
         }
 
         // Avalonia configuration, don't remove; also used by visual designer.

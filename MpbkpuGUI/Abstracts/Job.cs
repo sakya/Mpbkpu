@@ -111,6 +111,25 @@ public abstract class Job
             return FileManagerFactory.GetFileManager(FullPath, out path, User, Password, GetOAuth2Settings());
         }
 
+        /// <summary>
+        /// The secret a position of this type cannot work without, when it is empty
+        /// </summary>
+        /// <returns><see cref="Password"/>, <see cref="OauthAppSecret"/> (their names) or null</returns>
+        public static string? GetMissingSecret(FileSystemTypes type, string? password, string? appSecret) => type switch
+        {
+            FileSystemTypes.Mega or FileSystemTypes.MediaFire when string.IsNullOrEmpty(password) => nameof(Password),
+            FileSystemTypes.DropBox or FileSystemTypes.PCloud when string.IsNullOrEmpty(appSecret) => nameof(OauthAppSecret),
+            // Nextcloud signs in with an app password or with OAuth
+            FileSystemTypes.Nextcloud when string.IsNullOrEmpty(password) && string.IsNullOrEmpty(appSecret) => nameof(OauthAppSecret),
+            _ => null
+        };
+
+        /// <summary>
+        /// The required secret this position lacks (lost from the secret store, or a job imported without secrets)
+        /// </summary>
+        [JsonIgnore]
+        public string? MissingSecret => GetMissingSecret(Type, Password, OauthAppSecret);
+
         public void GetSecrets(string prefix, IDictionary<string, string> secrets)
         {
             if (!string.IsNullOrEmpty(Password))
@@ -231,6 +250,14 @@ public abstract class Job
     /// </summary>
     [JsonIgnore]
     public virtual IReadOnlyList<Position> Destinations => Destination == null ? [] : [Destination];
+
+    /// <summary>
+    /// The first position (source or destination) whose required secret is missing, or null
+    /// </summary>
+    public Position? GetPositionWithMissingSecret()
+    {
+        return Destinations.Prepend(Source).FirstOrDefault(p => p?.MissingSecret != null);
+    }
 
     /// <summary>
     /// The destinations as the jobs of the library take them

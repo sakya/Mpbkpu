@@ -18,7 +18,7 @@ namespace MpbkpuGUI.Pages;
 
 public partial class BackupVerifyPage : BasePage
 {
-    private readonly BackupVerifyPageModel _model = new();
+    private readonly JobProgressModel _model = new();
     private readonly CancellationTokenSource _cts = new();
     private readonly Backup _backup;
     private readonly string? _password;
@@ -144,7 +144,7 @@ public partial class BackupVerifyPage : BasePage
 
     private void VerifJobOnLogEmitted(object? sender, BaseJobSettings.LogLevels level, string message)
     {
-        _model.Log ??= new ObservableCollection<JobRunningPageModel.LogMessage>();
+        _model.Log ??= new ObservableCollection<JobProgressModel.LogMessage>();
 
         switch (level) {
             case BaseJobSettings.LogLevels.Debug:
@@ -166,7 +166,7 @@ public partial class BackupVerifyPage : BasePage
             while (_model.Log.Count > 200)
                 _model.Log.RemoveAt(0);
 
-            _model.Log.Add(new JobRunningPageModel.LogMessage()
+            _model.Log.Add(new JobProgressModel.LogMessage()
             {
                 Level = level,
                 Message = message

@@ -26,8 +26,24 @@ public static class ScheduledRun
 
     /// <param name="EndedAt">When the run ended (local time)</param>
     /// <param name="PasswordNotSaved">The backup is encrypted and its password is not saved</param>
+    /// <param name="MissingSecret">The required secret a position lacks (<see cref="Job.Position.MissingSecret"/>)</param>
+    /// <param name="MissingSecretPath">The path of that position</param>
     public record Result(string JobId, DateTime StartedAt, DateTime EndedAt, Backup.Results Outcome, string? ErrorMessage,
-        bool PasswordNotSaved = false);
+        bool PasswordNotSaved = false, string? MissingSecret = null, string? MissingSecretPath = null)
+    {
+        /// <summary>
+        /// The error of a failed run, in the language of the GUI (the run itself has no localizer)
+        /// </summary>
+        public string? GetErrorText()
+        {
+            var localizer = Localizer.Localizer.Instance;
+            if (PasswordNotSaved)
+                return localizer["SchedulePasswordMissing"];
+            if (MissingSecret != null)
+                return string.Format(localizer["ScheduleSecretMissing"], localizer[MissingSecret], MissingSecretPath);
+            return ErrorMessage;
+        }
+    }
 
     private static string Folder(string name)
     {
@@ -75,10 +91,11 @@ public static class ScheduledRun
         var outcome = Backup.Results.Error;
         string? error = null;
         var passwordNotSaved = false;
+        var missingSecret = job.GetPositionWithMissingSecret();
         try {
             if (job is BackupJob { Encrypted: true } backup && string.IsNullOrEmpty(backup.Password)) {
                 passwordNotSaved = true;
-            } else {
+            } else if (missingSecret == null) {
                 var log = GetLogFile(jobId);
                 File.Delete(log);
                 using var libraryJob = CreateLibraryJob(job, log);
@@ -91,7 +108,8 @@ public static class ScheduledRun
             error = ex.Message;
         }
 
-        WriteResult(new Result(jobId, started, DateTime.Now, outcome, error, passwordNotSaved));
+        WriteResult(new Result(jobId, started, DateTime.Now, outcome, error, passwordNotSaved,
+            missingSecret?.MissingSecret, missingSecret?.FullPath));
         return outcome is Backup.Results.Completed or Backup.Results.CompletedWithWarnings ? 0 : 1;
     }
 

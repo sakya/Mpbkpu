@@ -77,6 +77,7 @@ public partial class JobRunningPage : BasePage
         _model.Source = _job.Source?.FullPath;
         _model.Destination = string.Join(", ", _job.Destinations.Select(d => d.FullPath));
         CreateSpaceRows();
+        CreatePhases();
         _model.Running = true;
         _model.ButtonText = Localizer.Localizer.Instance["Cancel"];
         App.UpdateLayout();
@@ -128,6 +129,7 @@ public partial class JobRunningPage : BasePage
             backupJob.Step += BackupJobOnStep;
             backupJob.ConfirmBackup += BackupJobOnConfirmBackup;
             backupJob.Progress += BackupJobOnProgress;
+            backupJob.DeleteProgress += BackupJobOnProgress;
             backupJob.SpaceChanged += BackupJobOnSpaceChanged;
             backupJob.FileProgress += BackupJobOnFileProgress;
 
@@ -157,7 +159,7 @@ public partial class JobRunningPage : BasePage
             else
                 result = backupRes.Success ? Backup.Results.Completed : Backup.Results.Error;
             await SaveLastRun(result);
-            _model.Step = Localizer.Localizer.Instance["Step_Completed"];
+            Dispatcher.UIThread.Post(() => Phases.Finish(result));
 
             if (!backupRes.Success) {
                 await MessageDialog.ShowMessage(App.GetMainWindow(),
@@ -174,6 +176,7 @@ public partial class JobRunningPage : BasePage
             await SaveLastRun(Backup.Results.Error);
             Dispatcher.UIThread.Post(() =>
             {
+                Phases.Finish(Backup.Results.Error);
                 _ = MessageDialog.ShowMessage(App.GetMainWindow(), message, MessageDialog.Icons.Error);
             });
         } finally {
@@ -267,7 +270,7 @@ public partial class JobRunningPage : BasePage
 
     private void BackupJobOnLogEmitted(object? sender, BaseJobSettings.LogLevels level, string message)
     {
-        _model.Log ??= new ObservableCollection<JobRunningPageModel.LogMessage>();
+        _model.Log ??= new ObservableCollection<JobProgressModel.LogMessage>();
 
         switch (level) {
             case BaseJobSettings.LogLevels.Debug:
@@ -289,7 +292,7 @@ public partial class JobRunningPage : BasePage
             while (_model.Log.Count > 200)
                 _model.Log.RemoveAt(0);
 
-            _model.Log.Add(new JobRunningPageModel.LogMessage()
+            _model.Log.Add(new JobProgressModel.LogMessage()
             {
                 Level = level,
                 Message = message
@@ -320,12 +323,47 @@ public partial class JobRunningPage : BasePage
 
     private void BackupJobOnStep(object sender, SyncDirectoryJob.Steps step)
     {
-        _model.Step = Localizer.Localizer.Instance[$"Step_{step.ToString()}"];
+        Phases.OnStepStarted(step.ToString());
     }
 
     private void BackupJobOnStep(object sender, MpbkpuLib.Jobs.BackupJob.Steps step)
     {
-        _model.Step = Localizer.Localizer.Instance[$"Step_{step.ToString()}"];
+        Phases.OnStepStarted(step.ToString());
+    }
+
+    /// <summary>
+    /// Set on the UI thread by <see cref="CreatePhases"/>: the job thread reports its steps to it and cannot look
+    /// controls up
+    /// </summary>
+    private Controls.PhaseList Phases { get; set; } = null!;
+
+    /// <summary>
+    /// The phases the job may run, in order. Phases that depend on what the job finds (database copy, deletion of
+    /// old backups, verification of a full backup) are listed when the settings allow them and marked as skipped
+    /// when the job does not run them.
+    /// </summary>
+    private void CreatePhases()
+    {
+        var phases = new List<JobPhase>();
+        if (_job is BackupJob bkp) {
+            phases.Add(JobPhase.FromStep(nameof(MpbkpuLib.Jobs.BackupJob.Steps.OpenDatabase)));
+            phases.Add(JobPhase.FromStep(nameof(MpbkpuLib.Jobs.BackupJob.Steps.ReadSource)));
+            phases.Add(JobPhase.FromStep(nameof(MpbkpuLib.Jobs.BackupJob.Steps.CalculateFilesToBackup)));
+            phases.Add(JobPhase.FromStep(nameof(MpbkpuLib.Jobs.BackupJob.Steps.BackupFiles), true, 6));
+            phases.Add(JobPhase.FromStep(nameof(MpbkpuLib.Jobs.BackupJob.Steps.CopyDatabase)));
+            if (bkp.KeepChains > 0)
+                phases.Add(JobPhase.FromStep(nameof(MpbkpuLib.Jobs.BackupJob.Steps.DeleteOldBackups)));
+            if (bkp.Verify != BackupJobSettings.VerifyModes.Never)
+                phases.Add(JobPhase.FromStep(nameof(MpbkpuLib.Jobs.BackupJob.Steps.VerifyBackup), true, 4));
+        } else {
+            phases.Add(JobPhase.FromStep(nameof(SyncDirectoryJob.Steps.ReadSource)));
+            phases.Add(JobPhase.FromStep(nameof(SyncDirectoryJob.Steps.ReadDestination)));
+            phases.Add(JobPhase.FromStep(nameof(SyncDirectoryJob.Steps.CalculateFilesToBackup)));
+            phases.Add(JobPhase.FromStep(nameof(SyncDirectoryJob.Steps.DeleteFiles), true, 2));
+            phases.Add(JobPhase.FromStep(nameof(SyncDirectoryJob.Steps.BackupFiles), true, 6));
+        }
+        Phases = this.FindControl<Controls.PhaseList>("Phases")!;
+        Phases.SetPhases(_model, phases);
     }
 
     private Task<bool> BackupJobOnConfirmBackup(object sender, MpbkpuLib.Jobs.BackupJob.ConfirmArgs e)

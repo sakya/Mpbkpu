@@ -38,6 +38,7 @@ public class DeleteAction : BaseAction
             DeleteJob.Steps.OpenDatabase => "Opening backup",
             DeleteJob.Steps.DeleteBackups => "Deleting backups",
             DeleteJob.Steps.CopyDatabase => "Copying database file",
+            DeleteJob.Steps.DeleteFiles => "Deleting files",
             _ => step.ToString()
         });
     }

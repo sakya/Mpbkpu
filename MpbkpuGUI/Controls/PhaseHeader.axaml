@@ -1,0 +1,22 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="90"
+             x:Class="MpbkpuGUI.Controls.PhaseHeader">
+    <!-- Bound to a JobProgressModel. The percentage is the one of the current phase, hidden for phases that report no
+         progress, whose bar is indeterminate -->
+    <StackPanel Spacing="16">
+        <StackPanel Orientation="Horizontal" Spacing="14" MinHeight="60">
+            <TextBlock FontSize="44" FontWeight="Bold" LetterSpacing="-1" IsVisible="{Binding PhaseHasProgress}"
+                       Text="{Binding Progress, StringFormat='{}{0:0}%', FallbackValue='0%', TargetNullValue='0%'}" />
+            <StackPanel VerticalAlignment="Bottom" Margin="0,0,0,10" Spacing="2">
+                <TextBlock Classes="muted" FontSize="12" Text="{Binding PhaseText}"
+                           IsVisible="{Binding PhaseText, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                <TextBlock FontSize="15" Foreground="{DynamicResource SubtleTextBrush}" Text="{Binding Step}" />
+            </StackPanel>
+        </StackPanel>
+        <ProgressBar Minimum="0" Maximum="100" Value="{Binding Progress}"
+                     IsIndeterminate="{Binding ProgressIndeterminate}" />
+    </StackPanel>
+</UserControl>

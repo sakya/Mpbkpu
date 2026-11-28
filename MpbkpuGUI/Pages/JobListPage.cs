@@ -62,7 +62,7 @@ public partial class JobListPage : BasePage
         var failed = merged
             .Where(m => m.Result.Outcome is not (Backup.Results.Completed or Backup.Results.CompletedWithWarnings))
             .Select(m => $"• {m.Job.Name} ({m.Result.EndedAt.ToString("g", new CultureInfo(App.Settings!.Language))}): " +
-                         (m.Result.PasswordNotSaved ? localizer["SchedulePasswordMissing"] : m.Result.ErrorMessage ?? localizer["Result_Error"]))
+                         (m.Result.GetErrorText() ?? localizer["Result_Error"]))
             .ToList();
         if (failed.Count > 0)
             await MessageDialog.ShowMessage(App.GetMainWindow(),
@@ -124,8 +124,28 @@ public partial class JobListPage : BasePage
         await MainWindow!.NavigateTo(new JobSettingsPage(new SyncJob()));
     }
 
+    /// <summary>
+    /// A job whose required secret is missing would fail with an obscure library error: explain it and offer the job
+    /// settings, where the secret can be entered again
+    /// </summary>
+    /// <returns>True when every required secret is there</returns>
+    private async Task<bool> EnsureSecrets(Job job)
+    {
+        var position = job.GetPositionWithMissingSecret();
+        if (position == null)
+            return true;
+
+        var localizer = Localizer.Localizer.Instance;
+        if (await MessageDialog.ShowConfirmMessage(App.GetMainWindow(),
+                string.Format(localizer["SecretMissing"], localizer[position.MissingSecret!], position.FullPath)))
+            await MainWindow!.NavigateTo(new JobSettingsPage(job));
+        return false;
+    }
+
     private async void OnJobRun(object sender, Job job)
     {
+        if (!await EnsureSecrets(job))
+            return;
         if (await MessageDialog.ShowConfirmMessage(App.GetMainWindow(), Localizer.Localizer.Instance["ConfirmRunJob"])) {
             if (job is BackupJob bkp && !await EnsurePassword(bkp))
                 return;
@@ -165,17 +185,82 @@ public partial class JobListPage : BasePage
         // Hidden where no scheduler is supported
         this.FindControl<Button>("ScheduledButton")!.IsVisible = JobScheduler.Current != null;
         this.FindControl<TextBlock>("ScheduledCount")!.Text = jobs.Count(j => j.Schedule is { Enabled: true }).ToString();
+        SetScheduledList();
     }
 
-    private async void OnScheduledClick(object? sender, RoutedEventArgs e)
+    /// <summary>
+    /// Fill the scheduled view: every scheduled job ordered by next run, with the result of its last run
+    /// </summary>
+    private void SetScheduledList()
     {
-        await NavigateTo(new SchedulePage());
+        var localizer = Localizer.Localizer.Instance;
+        var culture = new CultureInfo(App.Settings!.Language);
+        var now = DateTime.Now;
+        var rows = App.Settings.Jobs
+            .Where(j => j.Schedule is { Enabled: true })
+            .Select(j =>
+            {
+                var next = j.Schedule!.NextRun(now);
+                var result = j.LastRunAutomatic ? ScheduledRun.ReadResult(j.Id) : null;
+                var failed = j.LastResult is not (null or Backup.Results.Completed or Backup.Results.CompletedWithWarnings);
+                return new ScheduledJobRow()
+                {
+                    Job = j,
+                    TypeText = localizer[j is BackupJob ? "Backup" : "Sync"],
+                    ScheduleText = j.Schedule.Describe(culture),
+                    NextRunText = next == null ? null : string.Format(localizer["NextRun"], next.Value.ToString("f", culture)),
+                    LastRunText = j.LastRun == null ? localizer["NeverRun"] :
+                        $"{localizer["LastRunLabel"]}: {j.LastRun.Value.ToString("g", culture)} " +
+                        $"({localizer[j.LastRunAutomatic ? "RunAutomatic" : "RunByHand"]})",
+                    ErrorText = failed ? result?.GetErrorText() : null,
+                    HasLog = j.LastRunAutomatic && System.IO.File.Exists(ScheduledRun.GetLogFile(j.Id))
+                };
+            })
+            .OrderBy(r => r.Job.Schedule!.NextRun(now) ?? DateTime.MaxValue)
+            .ToList();
+
+        this.FindControl<ItemsControl>("ScheduledList")!.ItemsSource = rows;
+        this.FindControl<Control>("ScheduledEmptyState")!.IsVisible = rows.Count == 0;
+    }
+
+    /// <summary>
+    /// Show the job list or the scheduled jobs in the content area, keeping the sidebar
+    /// </summary>
+    private void ShowScheduled(bool scheduled)
+    {
+        this.FindControl<Control>("JobsView")!.IsVisible = !scheduled;
+        this.FindControl<Control>("ScheduledView")!.IsVisible = scheduled;
+        this.FindControl<Button>("JobsButton")!.Classes.Set("active", !scheduled);
+        this.FindControl<Button>("ScheduledButton")!.Classes.Set("active", scheduled);
+        this.FindControl<ScrollViewer>("ContentScroll")!.Offset = default;
+    }
+
+    private void OnJobsClick(object? sender, RoutedEventArgs e)
+    {
+        ShowScheduled(false);
+    }
+
+    private void OnScheduledClick(object? sender, RoutedEventArgs e)
+    {
+        ShowScheduled(true);
+    }
+
+    private async void OnScheduledLogClick(object? sender, RoutedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is ScheduledJobRow row)
+            await ScheduledRun.OpenLog(this, row.Job.Id);
+    }
+
+    private async void OnScheduledSettingsClick(object? sender, RoutedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is ScheduledJobRow row)
+            await MainWindow!.NavigateTo(new JobSettingsPage(row.Job));
     }
 
     private async void OnJobOpen(object sender, Job job)
     {
         if (job is BackupJob bkp) {
-            if (!await EnsurePassword(bkp))
+            if (!await EnsureSecrets(bkp) || !await EnsurePassword(bkp))
                 return;
             await MainWindow!.NavigateTo(new BackupOpenPage(bkp));
         }

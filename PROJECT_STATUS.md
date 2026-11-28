@@ -1,6 +1,6 @@
 # Project status
 
-_Updated: 2026-11-27_
+_Updated: 2026-11-28_
 
 ## Goal
 Mpbkpu: a multi-platform backup utility with encryption and compression, on local and remote file systems
@@ -26,7 +26,8 @@ Tests: 117 pass locally with `dotnet test Tests/Tests.csproj` (~8 min; `FileMana
 build: 0 warnings, 0 errors.
 
 ## Current state
-Everything is committed and pushed (`main` = `origin/main` = `f2a03cc`). Implemented in the 2026-11-27 session,
+Everything is committed and pushed (`main` = `origin/main` = `a6fbe48`, workflow actions updated to
+`checkout@v7`/`setup-dotnet@v6`). Implemented in the 2026-11-27 session,
 **build passes but not seen on screen**:
 - Update check (`Utility/UpdateChecker`, "Updates" card in the settings page, "Update available" in the sidebar,
   `Setup/Mpbkpu.iss` restarts the GUI): check, download and SHA-256 verification tried against the real v0.1.0 release.
@@ -37,14 +38,24 @@ Everything is committed and pushed (`main` = `origin/main` = `f2a03cc`). Impleme
 - Automatic runs (`Utility/JobScheduler`, `WindowsTask`, `SystemdTimer`, `LaunchAgent`, `ScheduledRun`, `--run-job`):
   tried on Windows with a scratch program (task XML created and removed, headless run, results merge, lock). Not
   tried: a task started by Windows, Linux and macOS.
-- Schedule page (`Pages/SchedulePage`), settings page (`Pages/SettingsPage`: theme, accent, updates, export/import),
+- Scheduled view (in `Pages/JobListPage`, in place of the job list since 2026-11-28; build passes, not seen on
+  screen), settings page (`Pages/SettingsPage`: theme, accent, updates, export/import),
   accent color following the system (`Utility/AccentPalette`, contrast checked numerically).
 - Verification card in the job settings (logic tested, see above).
+- Phase list on the running page (2026-11-28): seen on screen with a local test backup (KeepChains 1, verify all):
+  phases, durations, "not needed", segmented bar. Not seen: a failed or cancelled run, a synchronization.
+  The delete page of the history uses the same controls (build and delete tests pass). After moving the phases to
+  `Controls/PhaseList` the running page failed with "The calling thread cannot access this object" (control looked up
+  from the job thread); fixed and checked on screen by the user.
+- Error reports to GlitchTip (2026-11-28, `Utility/ErrorReporting`, Sentry 7.1.0): build passes; no event sent yet,
+  so not verified that GlitchTip receives them.
+- Clear message for a missing required secret (2026-11-28, `Job.Position.GetMissingSecret`): checked on screen by
+  the user. The destination passwords of "Pico Torrent" had been deleted by an agent screen test and were restored.
 - Export/import of jobs (`Utility/JobTransfer`): round trip tried with a scratch program (no secrets, new job ids,
   position ids kept, history cleared, schedule off, foreign `$type`/empty/newer files refused). File pickers not tried.
 - CI: the first run (`23d529c`) failed on `Utilities.LocalDatesAreUtcAndLinksAreNotFollowed`: broken file links were
   listed (the runner can create file links, this PC cannot). Fixed in `f2a03cc` (`BaseLocalFileSystem` resolves file
-  links to their target, skips broken ones); its CI run was in progress at the end of the session: **not confirmed**.
+  links to their target, skips broken ones). CI runs of `f2a03cc` and `a6fbe48`: success (checked 2026-11-28).
 
 Older items not verified on a real service or on screen: FTP/SFTP/MEGA/MediaFire service options, pCloud, compression
 on Dropbox/Nextcloud, switches/free space dialog/path hints in the GUI.
@@ -61,5 +72,5 @@ on Dropbox/Nextcloud, switches/free space dialog/path hints in the GUI.
   dates restored shifted by the UTC offset (change detection not affected).
 
 ## Next step
-Check the CI run of `f2a03cc` on GitHub (Actions tab); if it fails, read the log of the link test. Then check the
-version in `SolutionInfo.proj` and look at the new pages on screen (settings, schedule, verification card, export/import).
+Check the version in `SolutionInfo.proj` and look at the new pages on screen (settings, schedule, verification card,
+export/import).

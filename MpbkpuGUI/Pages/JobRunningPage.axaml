@@ -26,16 +26,9 @@
             </StackPanel>
 
             <Border Grid.Row="1" Classes="card" Margin="0,24,0,0">
+              <Grid ColumnDefinitions="*,28,250">
                 <StackPanel Spacing="16">
-                    <Grid ColumnDefinitions="*,Auto">
-                        <StackPanel Orientation="Horizontal" Spacing="14">
-                            <TextBlock FontSize="44" FontWeight="Bold" LetterSpacing="-1"
-                                       Text="{Binding Progress, StringFormat='{}{0:0}%'}" />
-                            <TextBlock FontSize="15" Foreground="{DynamicResource SubtleTextBrush}" VerticalAlignment="Bottom"
-                                       Margin="0,0,0,10" Text="{Binding Step}" />
-                        </StackPanel>
-                    </Grid>
-                    <ProgressBar Minimum="0" Maximum="100" Value="{Binding Progress}" />
+                    <controls:PhaseHeader />
                     <Grid ColumnDefinitions="*,12,*,12,*">
                         <Border Classes="tile">
                             <StackPanel Spacing="4">
@@ -84,6 +77,9 @@
                     <!-- One row per destination, shown when its space is known -->
                     <StackPanel Name="SpaceList" Spacing="10" />
                 </StackPanel>
+
+                <controls:PhaseList Grid.Column="2" Name="Phases" />
+              </Grid>
             </Border>
 
             <Border Grid.Row="2" Classes="card" Margin="0,20,0,0" Padding="20">

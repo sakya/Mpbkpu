@@ -12,7 +12,11 @@ public class DeleteJob : BaseJob
     {
         OpenDatabase,
         DeleteBackups,
-        CopyDatabase
+        CopyDatabase,
+        /// <summary>
+        /// Deleting the files of the deleted backups, after the database no longer references them
+        /// </summary>
+        DeleteFiles
     }
 
     #region classes
@@ -134,6 +138,8 @@ public class DeleteJob : BaseJob
 
                 // Delete the files only now that the database no longer references them:
                 // a failure from here on leaves orphan files, never backups with missing files
+                if (_deletedBackups.Count > 0)
+                    Step?.Invoke(this, Steps.DeleteFiles);
                 foreach (var deleted in _deletedBackups) {
                     await DeleteBackupFiles(deleted);
                 }

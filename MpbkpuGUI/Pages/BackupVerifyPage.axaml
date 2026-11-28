@@ -9,7 +9,7 @@
              mc:Ignorable="d" d:DesignWidth="1180" d:DesignHeight="740"
              x:Class="MpbkpuGUI.Pages.BackupVerifyPage">
     <Design.DataContext>
-        <models:BackupVerifyPageModel />
+        <models:JobProgressModel />
     </Design.DataContext>
     <UserControl.Resources>
         <converters:LogLevelToColorConverter x:Key="LogLevelToColorConverter"/>

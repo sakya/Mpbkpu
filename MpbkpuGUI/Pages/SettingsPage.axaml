@@ -47,6 +47,17 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Unhandled exceptions and crashes sent to GlitchTip (MpbkpuLib.Utility.ErrorReporting) -->
+                <Border Classes="card">
+                    <StackPanel Spacing="12">
+                        <TextBlock Classes="h2" Text="{i18n:Localize ErrorReports}" />
+                        <ToggleSwitch Name="SendErrorReports" IsCheckedChanged="OnSendErrorReportsChanged"
+                                      OnContent="{i18n:Localize SendErrorReports}" OffContent="{i18n:Localize SendErrorReports}"
+                                      AutomationProperties.Name="{i18n:Localize SendErrorReports}" />
+                        <TextBlock Classes="hint" Margin="0" Text="{i18n:Localize SendErrorReportsHint}" />
+                    </StackPanel>
+                </Border>
+
                 <Border Classes="card">
                     <StackPanel Spacing="12">
                         <TextBlock Classes="h2" Text="{i18n:Localize Updates}" />

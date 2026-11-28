@@ -104,6 +104,14 @@
   report it. Cloud services return the space of the account (Dropbox team: of the team). Jobs read it at the start and
   at the end and estimate it in between (`BaseJob.SpaceChanged`); the GUI saves the last value in the job, reads local
   destinations live and remote ones only on request (refresh button) or during a run, to avoid logins at startup.
+- **Missing required secrets** (GUI, 2026-11-28): a secret lost from the secret store (or a job imported without
+  its secrets) used to fail with a library error ("Value cannot be null (password)"). `Job.Position.GetMissingSecret`
+  is the one rule of the required secrets (MEGA and MediaFire password, Dropbox and pCloud app secret, Nextcloud app
+  password or app secret), shared by the field validation of `PositionDetail`. Running or opening a job with a missing
+  one shows which secret of which position is missing and offers the job settings; a scheduled run does not start and
+  its result names the secret (`ScheduledRun.Result.GetErrorText`). Merging the secret file on save was rejected: the
+  secrets lost on 2026-11-28 had been deleted from disk by a test, nothing to merge, and a read error already stops
+  the GUI from saving secrets (`SecretStoreAvailable`).
 - **Remembered encryption password** (GUI only): opt-in per job (`BackupJob.RememberPassword`, default off), stored
   in `SecretStore` like the other secrets, never in `settings.json`. A wrong saved password is detected by the
   dedicated `MpbkpuLib.InvalidPasswordException` and forgotten. Without a secure storage the option is hidden and the
@@ -217,6 +225,16 @@
   running page lists them under the progress tiles (sync: one at a time). The CLI progress line still shows the last
   file reported, so with parallel copies it alternates between files.
 
+## Error reports (2026-11-28)
+- **GlitchTip with the Sentry SDK** (`Sentry` package in the library, `Utility/ErrorReporting`, DSN in the code):
+  unhandled exceptions, unobserved task exceptions and the crash of the GUI main loop (`App.Run`, which also writes
+  `crash.log`). Errors of jobs (network, credentials, files) are not sent: they are reported to the user, not bugs.
+- **No personal data**: `SendDefaultPii` off, no machine name, no breadcrumbs, no sessions; exception messages pass
+  through `BaseJob.MaskCredentials` and the user profile folder becomes "~".
+- **Opt-out**: GUI switch "Send error reports" in the settings page (`AppSettings.SendErrorReports`, default on, also
+  honoured by scheduled runs); CLI: environment variable `MPBKPU_ERROR_REPORTS=0`. The SDK is always initialized and
+  the switch is checked when an event is sent (`ErrorReporting.Enabled`), since the settings are read after startup.
+
 ## CLI
 - **Actions**: `BaseAction.RunJob` runs every job (log, errors, cursor), `WithCommonSettings` sets log level and log
   file for every action (`--log` works everywhere), the progress lines are shared.
@@ -254,8 +272,9 @@
   only). The job list merges the results newer than `LastRun` (`LastRunAutomatic`, "Automatic" button that opens the
   log) when it is shown and, through a `FileSystemWatcher`, while it is visible; failed runs are reported in one
   message. No system notification: the GUI reports them when opened.
-- **Schedule page** (`Pages/SchedulePage`, "Scheduled" in the job list sidebar with the number of scheduled jobs,
-  hidden where no scheduler is supported): every scheduled job, ordered by next run, with days and time, next run,
+- **Scheduled view** ("Scheduled" in the job list sidebar with the number of scheduled jobs, hidden where no
+  scheduler is supported): shown by `JobListPage` in place of the job list, keeping the sidebar (no separate page
+  since 2026-11-28, the user's choice): every scheduled job, ordered by next run, with days and time, next run,
   result and date of the last run (automatic or by hand), the error of a failed automatic run, its log and the job
   settings. Results are merged when the page is shown and while it is visible.
 - **One run per job** (`ScheduledRun.TryLock`): a lock file opened with `FileShare.None` and deleted on close, in any
@@ -341,6 +360,16 @@
   manager from the typed settings, checks the folder (`DirectoryExists`) and reads the free space (optional). A
   missing folder is reported as success with a note (a backup creates it). Cloud services may open the browser to
   sign in: the test gives up after 3 minutes. Nothing is saved.
+- **Phases of a running job** (`JobRunningPage`, `Models/JobPhase`, 2026-11-28): the files reached 100% while the
+  database copy, the deletion of old backups and the verification were still to run, and users took the job as
+  finished. The page lists every phase the settings allow (deletion only with `KeepChains`, verification only when
+  `Verify` is not `Never`) with its state and duration; a phase the job jumps over, or does not reach in a completed
+  job, is "not needed" (e.g. the database copy with one destination). The big percentage is the one of the current
+  phase, with "Phase N of M"; phases without progress hide it and show an indeterminate bar. A segmented bar under the
+  list shows the overall progress (one segment per phase, as wide as its weight). No warning banner: the user found
+  the phase list enough. Shared by the delete page (`Controls/PhaseList` with the logic, `Controls/PhaseHeader`,
+  `Models/JobProgressModel` replacing `BackupVerifyPageModel`); `DeleteJob` got a `DeleteFiles` step, since its files
+  are deleted after the database copy and their progress used to appear under "Copying database".
 - **SingleWindow navigation unchanged** (pages animated in `Container`, back arrow in the TitleBar); the sidebar is
   only on the job list.
 - **Cards with `ItemsControl`** instead of `ItemsList` for the job list and the history: `ItemsList` colors the row

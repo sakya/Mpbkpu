@@ -44,6 +44,8 @@ public static class Program
 
     public static int Main(string[] args)
     {
+        // Unhandled exceptions and crashes; MPBKPU_ERROR_REPORTS=0 turns them off
+        using var errorReporting = MpbkpuLib.Utility.ErrorReporting.Init("cli");
         Console.OutputEncoding = Encoding.UTF8;
         Console.ForegroundColor = Utility.Console.DefaultColor;
         if (args.Length == 0) {

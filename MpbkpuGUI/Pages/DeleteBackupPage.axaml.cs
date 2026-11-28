@@ -11,7 +11,6 @@ using MpbkpuGUI.Dialogs;
 using MpbkpuGUI.Models;
 using MpbkpuLib.Abstracts;
 using MpbkpuLib.DataModel;
-using MpbkpuLib.FileManagers;
 using MpbkpuLib.Jobs;
 using BackupJob = MpbkpuGUI.Models.BackupJob;
 
@@ -24,7 +23,7 @@ public partial class DeleteBackupPage : BasePage
 {
     private readonly BackupJob _job;
     private readonly Backup _backup;
-    private readonly BackupVerifyPageModel _model = new();
+    private readonly JobProgressModel _model = new();
     private readonly CancellationTokenSource _cts = new();
 
     public DeleteBackupPage()
@@ -82,7 +81,7 @@ public partial class DeleteBackupPage : BasePage
     {
         _model.Running = true;
         _model.ButtonText = Localizer.Localizer.Instance["Cancel"];
-        _model.Log = new ObservableCollection<JobRunningPageModel.LogMessage>();
+        _model.Log = new ObservableCollection<JobProgressModel.LogMessage>();
 
         var settings = new DeleteJobSettings()
         {
@@ -91,9 +90,18 @@ public partial class DeleteBackupPage : BasePage
             EncryptPassword = _job.Password
         };
 
+        // The files are deleted after the database is saved: the phases show that the job goes on after the backups
+        // disappear from the database
+        var phases = this.FindControl<Controls.PhaseList>("Phases")!;
+        phases.SetPhases(_model, [
+            JobPhase.FromStep(nameof(DeleteJob.Steps.OpenDatabase)),
+            JobPhase.FromStep(nameof(DeleteJob.Steps.DeleteBackups)),
+            JobPhase.FromStep(nameof(DeleteJob.Steps.CopyDatabase)),
+            JobPhase.FromStep(nameof(DeleteJob.Steps.DeleteFiles), true, 6)
+        ]);
+
         using var deleteJob = new DeleteJob(settings);
-        deleteJob.Step += (_, step) => Dispatcher.UIThread.Post(() =>
-            _model.Step = Localizer.Localizer.Instance[$"Step_{step}"]);
+        deleteJob.Step += (_, step) => phases.OnStepStarted(step.ToString());
         deleteJob.Progress += (_, args) => Dispatcher.UIThread.Post(() =>
         {
             _model.Progress = Math.Floor(args.Percentage);
@@ -107,9 +115,11 @@ public partial class DeleteBackupPage : BasePage
         this.FindControl<Controls.Spinner>("Spinner")!.IsVisible = false;
         try {
             await Task.Run(() => deleteJob.Run(_cts.Token));
-            _model.Progress = 100;
-            _model.Step = Localizer.Localizer.Instance["Step_Completed"];
+            // Steps are posted to the UI thread: finish after them
+            Dispatcher.UIThread.Post(() => phases.Finish(_cts.IsCancellationRequested || _declined ?
+                Backup.Results.Cancelled : Backup.Results.Completed));
         } catch (Exception ex) {
+            Dispatcher.UIThread.Post(() => phases.Finish(Backup.Results.Error));
             AddLog(BaseJobSettings.LogLevels.Error, ex.Message);
             await MessageDialog.ShowMessage(App.GetMainWindow(),
                 $"{Localizer.Localizer.Instance["AnErrorOccurred"]}{ex.Message}", MessageDialog.Icons.Error);
@@ -127,16 +137,23 @@ public partial class DeleteBackupPage : BasePage
         if (e.Backups.Count <= 1)
             return true;
 
-        return await Dispatcher.UIThread.InvokeAsync(() => MessageDialog.ShowConfirmMessage(App.GetMainWindow(),
+        var confirmed = await Dispatcher.UIThread.InvokeAsync(() => MessageDialog.ShowConfirmMessage(App.GetMainWindow(),
             string.Format(Localizer.Localizer.Instance["ConfirmDeleteChain"], e.Backups.Count - 1),
             MessageDialog.Icons.Warning));
+        _declined = !confirmed;
+        return confirmed;
     }
+
+    /// <summary>
+    /// The user declined to delete the following backups of the chain: nothing was deleted
+    /// </summary>
+    private bool _declined;
 
     private void AddLog(BaseJobSettings.LogLevels level, string message)
     {
         Dispatcher.UIThread.Post(() =>
         {
-            _model.Log!.Add(new JobRunningPageModel.LogMessage()
+            _model.Log!.Add(new JobProgressModel.LogMessage()
             {
                 Level = level,
                 Message = message

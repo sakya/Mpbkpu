@@ -38,6 +38,7 @@ public partial class SettingsPage : BasePage
         accent.ItemsSource = Enum.GetValues<AppSettings.AccentModes>();
         accent.SelectedItem = settings.Accent;
         this.FindControl<ToggleSwitch>("CheckAtStartup")!.IsChecked = settings.CheckForUpdates;
+        this.FindControl<ToggleSwitch>("SendErrorReports")!.IsChecked = settings.SendErrorReports;
         // A release found at startup
         if (UpdateChecker.Available != null)
             ShowRelease(UpdateChecker.Available);
@@ -67,6 +68,15 @@ public partial class SettingsPage : BasePage
         if (!_loaded)
             return;
         App.Settings!.CheckForUpdates = (sender as ToggleSwitch)?.IsChecked == true;
+        await App.Settings.Save(App.SettingFile!);
+    }
+
+    private async void OnSendErrorReportsChanged(object? sender, RoutedEventArgs e)
+    {
+        if (!_loaded)
+            return;
+        App.Settings!.SendErrorReports = (sender as ToggleSwitch)?.IsChecked == true;
+        MpbkpuLib.Utility.ErrorReporting.Enabled = App.Settings.SendErrorReports;
         await App.Settings.Save(App.SettingFile!);
     }
 

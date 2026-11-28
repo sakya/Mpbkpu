@@ -5,8 +5,14 @@
              xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              xmlns:i18n="clr-namespace:MpbkpuGUI.Localizer"
              xmlns:controls="clr-namespace:MpbkpuGUI.Controls"
+             xmlns:converters="clr-namespace:MpbkpuGUI.Converters"
              mc:Ignorable="d" d:DesignWidth="1180" d:DesignHeight="740"
              x:Class="MpbkpuGUI.Pages.JobListPage">
+    <UserControl.Resources>
+        <converters:EnumToLocalizedStringConverter x:Key="EnumToLocalizedStringConverter"/>
+        <converters:BackupResultToColorConverter x:Key="BackupResultToColorConverter"/>
+    </UserControl.Resources>
+
     <Grid ColumnDefinitions="232,*">
         <!-- Sidebar -->
         <Border Background="{DynamicResource ChromeBrush}" BorderBrush="{DynamicResource TileLineBrush}" BorderThickness="0,0,1,0" Padding="12,20">
@@ -43,14 +49,15 @@
                     </Button>
                 </StackPanel>
                 <StackPanel Spacing="4">
-                    <Button Classes="nav active" AutomationProperties.Name="{i18n:Localize Jobs}">
+                    <Button Classes="nav active" Name="JobsButton" Click="OnJobsClick"
+                            AutomationProperties.Name="{i18n:Localize Jobs}">
                         <Grid ColumnDefinitions="Auto,*,Auto" Width="184">
                             <mi:MaterialIcon Kind="ArchiveOutline" />
                             <TextBlock Grid.Column="1" Text="{i18n:Localize Jobs}" Margin="12,0,0,0" VerticalAlignment="Center" />
                             <TextBlock Grid.Column="2" Name="JobCount" FontSize="12" Foreground="{DynamicResource MutedTextBrush}" VerticalAlignment="Center" />
                         </Grid>
                     </Button>
-                    <!-- Scheduled jobs and the result of their last run (SchedulePage) -->
+                    <!-- Scheduled jobs and the result of their last run, shown in place of the job list -->
                     <Button Classes="nav" Name="ScheduledButton" Click="OnScheduledClick"
                             AutomationProperties.Name="{i18n:Localize Scheduled}">
                         <Grid ColumnDefinitions="Auto,*,Auto" Width="184">
@@ -64,8 +71,9 @@
         </Border>
 
         <!-- Content -->
-        <ScrollViewer Grid.Column="1">
-            <StackPanel Margin="40,32,40,48" MaxWidth="1040" Spacing="24">
+        <ScrollViewer Grid.Column="1" Name="ContentScroll">
+          <Panel>
+            <StackPanel Name="JobsView" Margin="40,32,40,48" MaxWidth="1040" Spacing="24">
                 <Grid ColumnDefinitions="*,Auto">
                     <StackPanel Spacing="6">
                         <TextBlock Classes="h1" Text="{i18n:Localize Jobs}" />
@@ -112,6 +120,76 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </StackPanel>
+
+            <!-- The scheduled jobs, the next run of each and the result of its last run (automatic or by hand) -->
+            <StackPanel Name="ScheduledView" IsVisible="False" Margin="40,32,40,48" MaxWidth="1040" Spacing="24">
+                <StackPanel Spacing="6">
+                    <TextBlock Classes="h1" Text="{i18n:Localize Scheduled}" />
+                    <TextBlock Classes="subtitle" Text="{i18n:Localize ScheduledSubtitle}" />
+                </StackPanel>
+
+                <Border Name="ScheduledEmptyState" Classes="card" IsVisible="False" Padding="32">
+                    <StackPanel Spacing="12" HorizontalAlignment="Center">
+                        <mi:MaterialIcon Kind="CalendarClock" Width="32" Height="32" Foreground="{DynamicResource MutedTextBrush}" />
+                        <TextBlock Classes="subtitle" TextWrapping="Wrap" TextAlignment="Center" Text="{i18n:Localize NoScheduledJobs}" />
+                    </StackPanel>
+                </Border>
+
+                <ItemsControl Name="ScheduledList">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Spacing="12" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Classes="card">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel Spacing="8">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Classes="title" Text="{Binding Name}" VerticalAlignment="Center" />
+                                            <Border Classes="chip">
+                                                <TextBlock Text="{Binding TypeText}" />
+                                            </Border>
+                                            <Border Classes="chip">
+                                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                                    <mi:MaterialIcon Kind="ClockOutline" Width="12" Height="12" Foreground="{DynamicResource SubtleTextBrush}" />
+                                                    <TextBlock Text="{Binding ScheduleText}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </StackPanel>
+                                        <TextBlock Classes="muted" Text="{Binding NextRunText}" />
+                                        <StackPanel Orientation="Horizontal" Spacing="16">
+                                            <StackPanel Orientation="Horizontal" Spacing="6"
+                                                        IsVisible="{Binding LastResult, Converter={x:Static ObjectConverters.IsNotNull}}">
+                                                <Ellipse Width="8" Height="8" VerticalAlignment="Center"
+                                                         Fill="{Binding LastResult, Converter={StaticResource BackupResultToColorConverter}}" />
+                                                <TextBlock FontSize="13" VerticalAlignment="Center"
+                                                           Foreground="{Binding LastResult, Converter={StaticResource BackupResultToColorConverter}}"
+                                                           Text="{Binding LastResult, Converter={StaticResource EnumToLocalizedStringConverter}, ConverterParameter=Result_}" />
+                                            </StackPanel>
+                                            <TextBlock Classes="muted" VerticalAlignment="Center" Text="{Binding LastRunText}" />
+                                        </StackPanel>
+                                        <TextBlock IsVisible="{Binding HasError}" TextWrapping="Wrap" FontSize="13"
+                                                   Foreground="{DynamicResource DangerBrush}" Text="{Binding ErrorText}" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="20,0,0,0">
+                                        <Button Classes="icon" Click="OnScheduledLogClick" IsVisible="{Binding HasLog}"
+                                                ToolTip.Tip="{i18n:Localize OpenLog}" AutomationProperties.Name="{i18n:Localize OpenLog}">
+                                            <mi:MaterialIcon Kind="TextBoxOutline" />
+                                        </Button>
+                                        <Button Classes="icon" Click="OnScheduledSettingsClick"
+                                                ToolTip.Tip="{i18n:Localize Settings}" AutomationProperties.Name="{i18n:Localize Settings}">
+                                            <mi:MaterialIcon Kind="CogOutline" />
+                                        </Button>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+          </Panel>
         </ScrollViewer>
     </Grid>
 </UserControl>

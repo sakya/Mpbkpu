@@ -10,7 +10,6 @@
 - [ ] Check by hand: Windows animations (minimize, maximize, restore), warnings box in the history, windows narrower
   than 1180 px. Pages of 2026-11-27 never seen: settings, schedule, verification card, export/import, restore of a
   whole backup, test connection, download/restore progress.
-- [ ] Check the CI run of `f2a03cc` (file link test, runs only on the GitHub runner).
 - [ ] `SolutionInfo.proj` version is 0.2.0.0 after the v0.3.0 release: confirm or fix before the next release.
 - [ ] Try a real update from the GUI (an installed older version and a newer release).
 
@@ -20,7 +19,6 @@
 
 ## Mockup features not implemented
 - [ ] Job list filters ("With warnings", "Never run").
-- [ ] Phase list (stepper) on the running page.
 - [ ] Message dialogs with a title and a detail line (today one message string).
 
 ## Fixes and improvements
