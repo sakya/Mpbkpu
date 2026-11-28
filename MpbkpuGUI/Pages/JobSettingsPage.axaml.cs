@@ -17,6 +17,7 @@ using Material.Icons.Avalonia;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.SingleWindow.Abstracts;
+using Avalonia.Threading;
 using MpbkpuGUI.Abstracts;
 using MpbkpuGUI.Controls;
 using MpbkpuGUI.Models;
@@ -29,6 +30,7 @@ public partial class JobSettingsPage : BasePage
     private readonly JobSettingsPageModel _model;
     private readonly string _jobId;
     private readonly Job _job;
+    private readonly bool _showSchedule;
 
     public JobSettingsPage()
     {
@@ -39,8 +41,11 @@ public partial class JobSettingsPage : BasePage
         InitializeComponent();
     }
 
-    public JobSettingsPage(Job job)
+    /// <param name="job">The job to edit</param>
+    /// <param name="showSchedule">Scroll to the schedule card (opened from the scheduled jobs)</param>
+    public JobSettingsPage(Job job, bool showSchedule = false)
     {
+        _showSchedule = showSchedule;
         _jobId = job.Id;
         _job = job.Copy();
 
@@ -72,8 +77,12 @@ public partial class JobSettingsPage : BasePage
         UpdateExcludeBrowse();
         foreach (var exclusion in _job.Exclude)
             AddExclusion(exclusion);
-        ctrl = this.FindControl<Controls.PositionDetail>("Destination")!;
-        ctrl.Value = _job.Destination;
+        // The first destination stays in Job.Destination, the others in BackupJob.MoreDestinations
+        foreach (var destination in _job.Destinations)
+            AddDestination(destination);
+        var firstDestination = DestinationEditors.FirstOrDefault() ?? AddDestination(new Job.Position());
+        // An existing job opens with its destinations closed; a new one with its empty destination open
+        firstDestination.IsExpanded = _model.IsNew;
 
         var cmbType = this.FindControl<ComboBox>("CmbType")!;
         cmbType.ItemsSource = new List<Backup.BackupTypes>()
@@ -101,8 +110,6 @@ public partial class JobSettingsPage : BasePage
             cmbType.SelectedItem = backupJob.Type;
             cmbCompression.SelectedItem = backupJob.CompressionLevel;
             cmbVerify.SelectedItem = backupJob.Verify;
-            foreach (var destination in backupJob.MoreDestinations)
-                AddMoreDestination(destination);
         }
     }
 
@@ -178,18 +185,45 @@ public partial class JobSettingsPage : BasePage
     }
 
     /// <summary>
-    /// The editors of the destinations after the first one
+    /// The editors of the destinations, the first one first
     /// </summary>
-    private IEnumerable<PositionDetail> MoreDestinationEditors =>
-        this.FindControl<StackPanel>("MoreDestinationsList")!.Children.OfType<Grid>()
-            .Select(g => g.Children.OfType<PositionDetail>().First());
+    private IEnumerable<DestinationItem> DestinationEditors =>
+        this.FindControl<StackPanel>("DestinationList")!.Children.OfType<DestinationItem>();
 
     /// <summary>
-    /// Add the editor of a destination after the first one, with a button to remove it
+    /// Add a destination at the end of the list
     /// </summary>
-    private void AddMoreDestination(Job.Position position)
+    private DestinationItem AddDestination(Job.Position? position)
     {
-        AddRemovableRow("MoreDestinationsList", new PositionDetail() { Value = position }, "RemoveDestination", VerticalAlignment.Top);
+        var list = this.FindControl<StackPanel>("DestinationList")!;
+        var item = new DestinationItem() { Value = position };
+        // One destination open at a time
+        item.ExpandRequested += (_, _) =>
+        {
+            foreach (var other in DestinationEditors)
+                other.IsExpanded = other == item;
+        };
+        item.RemoveRequested += (_, _) =>
+        {
+            list.Children.Remove(item);
+            UpdateDestinationNumbers();
+        };
+        list.Children.Add(item);
+        UpdateDestinationNumbers();
+        return item;
+    }
+
+    /// <summary>
+    /// Numbers, count and remove buttons after the list changed: a job keeps at least one destination
+    /// </summary>
+    private void UpdateDestinationNumbers()
+    {
+        var items = DestinationEditors.ToList();
+        for (var i = 0; i < items.Count; i++) {
+            items[i].Number = i + 1;
+            items[i].Removable = items.Count > 1;
+        }
+        this.FindControl<TextBlock>("DestinationCount")!.Text = items.Count > 1 ? items.Count.ToString() : null;
     }
 
     /// <summary>
@@ -198,14 +232,14 @@ public partial class JobSettingsPage : BasePage
     /// <param name="listName">Name of the StackPanel holding the rows</param>
     /// <param name="editor">The editor of the row</param>
     /// <param name="removeTextKey">Localized text of the remove button (tooltip and automation name)</param>
-    private void AddRemovableRow(string listName, Control editor, string removeTextKey, VerticalAlignment alignment)
+    private void AddRemovableRow(string listName, Control editor, string removeTextKey)
     {
         var list = this.FindControl<StackPanel>(listName)!;
         var removeText = Localizer.Localizer.Instance[removeTextKey];
         var remove = new Button()
         {
             Content = new MaterialIcon() { Kind = MaterialIconKind.DeleteOutline },
-            VerticalAlignment = alignment,
+            VerticalAlignment = VerticalAlignment.Center,
             Margin = new Avalonia.Thickness(12, 0, 0, 0)
         };
         remove.Classes.Add("icon");
@@ -225,7 +259,9 @@ public partial class JobSettingsPage : BasePage
 
     private void OnAddDestinationClick(object? sender, RoutedEventArgs e)
     {
-        AddMoreDestination(new Job.Position());
+        var item = AddDestination(new Job.Position());
+        foreach (var other in DestinationEditors)
+            other.IsExpanded = other == item;
     }
 
     /// <summary>
@@ -239,7 +275,7 @@ public partial class JobSettingsPage : BasePage
     {
         var editor = new TextBox() { Text = value };
         AutomationProperties.SetName(editor, Localizer.Localizer.Instance["Exclude"]);
-        AddRemovableRow("ExcludeList", editor, "RemoveExclusion", VerticalAlignment.Center);
+        AddRemovableRow("ExcludeList", editor, "RemoveExclusion");
         return editor;
     }
 
@@ -315,7 +351,12 @@ public partial class JobSettingsPage : BasePage
 
     public override void OnNavigatedTo(NavigationDirection direction)
     {
-        this.FindControl<TextBox>("Name")!.Focus();
+        if (_showSchedule) {
+            // After the layout, so the card has its position in the scroll viewer
+            Dispatcher.UIThread.Post(() => this.FindControl<Control>("ScheduleCard")!.BringIntoView(), DispatcherPriority.Loaded);
+        } else {
+            this.FindControl<TextBox>("Name")!.Focus();
+        }
         base.OnNavigatedTo(direction);
     }
 
@@ -328,10 +369,10 @@ public partial class JobSettingsPage : BasePage
     {
         var ctrl = this.FindControl<Controls.PositionDetail>("Source")!;
         _job.Source = ctrl.Value;
-        ctrl = this.FindControl<Controls.PositionDetail>("Destination")!;
-        _job.Destination = ctrl.Value;
+        var destinations = DestinationEditors.Select(d => d.Value!).ToList();
+        _job.Destination = destinations[0];
         if (_job is BackupJob backupJob)
-            backupJob.MoreDestinations = MoreDestinationEditors.Select(d => d.Value!).ToList();
+            backupJob.MoreDestinations = destinations.Skip(1).ToList();
         // Distinct values: the CLI parser drops repeated ones (Copy command)
         _job.Exclude = ExclusionEditors
             .Select(t => t.Text?.Trim() ?? string.Empty)
@@ -403,12 +444,10 @@ public partial class JobSettingsPage : BasePage
 
         var ctrl = this.FindControl<Controls.PositionDetail>("Source")!;
         var sValid = ctrl.Validate();
-        ctrl = this.FindControl<Controls.PositionDetail>("Destination")!;
-        var dValid = ctrl.Validate();
-        // Validate every editor, to show all the errors
-        var moreValid = MoreDestinationEditors.Select(d => d.Validate()).ToList().All(v => v);
+        // Validate every editor, to show all the errors (destinations with errors are opened)
+        var dValid = DestinationEditors.Select(d => d.Validate()).ToList().All(v => v);
 
         _model.Errors = errors;
-        return sValid && dValid && moreValid && errors.Count == 0;
+        return sValid && dValid && errors.Count == 0;
     }
 }

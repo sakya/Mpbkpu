@@ -1,0 +1,55 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:i18n="clr-namespace:MpbkpuGUI.Localizer"
+             xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:controls="clr-namespace:MpbkpuGUI.Controls"
+             mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="300"
+             x:Class="MpbkpuGUI.Controls.DestinationItem">
+    <UserControl.Styles>
+        <Style Selector="Border.destination">
+            <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+        </Style>
+        <Style Selector="Border.destination.expanded">
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+        </Style>
+        <Style Selector="Border.number">
+            <Setter Property="Width" Value="22" />
+            <Setter Property="Height" Value="22" />
+            <Setter Property="CornerRadius" Value="11" />
+            <Setter Property="Background" Value="{DynamicResource ChipBrush}" />
+        </Style>
+    </UserControl.Styles>
+
+    <!-- A destination of a job: a header with number, type, path and free space that opens the editor below -->
+    <Border Name="Frame" Classes="destination">
+        <StackPanel>
+            <Button Name="Header" Classes="nav" HorizontalContentAlignment="Stretch" MinHeight="44" Click="OnHeaderClick">
+                <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto">
+                    <Border Classes="number" VerticalAlignment="Center">
+                        <TextBlock Name="Number" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource SubtleTextBrush}" />
+                    </Border>
+                    <mi:MaterialIcon Grid.Column="1" Name="TypeIcon" Width="16" Height="16" Margin="10,0,8,0"
+                                     VerticalAlignment="Center" Foreground="{DynamicResource SubtleTextBrush}" />
+                    <TextBlock Grid.Column="2" Name="PathText" Classes="mono" FontSize="12" VerticalAlignment="Center"
+                               TextTrimming="LeadingCharacterEllipsis" />
+                    <TextBlock Grid.Column="3" Name="SpaceText" Classes="muted" FontSize="12" Margin="10,0,0,0"
+                               VerticalAlignment="Center" />
+                    <mi:MaterialIcon Grid.Column="4" Name="Chevron" Kind="ChevronDown" Width="16" Height="16"
+                                     Margin="10,0,0,0" VerticalAlignment="Center" />
+                </Grid>
+            </Button>
+            <StackPanel Name="Body" IsVisible="False" Margin="12,4,12,12" Spacing="10">
+                <controls:PositionDetail Name="Editor" />
+                <Button Name="Remove" Classes="icon dangerHover" HorizontalAlignment="Right" Click="OnRemoveClick"
+                        ToolTip.Tip="{i18n:Localize RemoveDestination}" AutomationProperties.Name="{i18n:Localize RemoveDestination}">
+                    <mi:MaterialIcon Kind="DeleteOutline" />
+                </Button>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</UserControl>

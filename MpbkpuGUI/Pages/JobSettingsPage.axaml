@@ -50,7 +50,8 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Source and destination -->
+                <!-- Source and destinations: every destination in one list (the files of a backup are split among them),
+                     one destination open at a time -->
                 <Grid ColumnDefinitions="*,20,*">
                     <Border Classes="card">
                         <StackPanel Spacing="12">
@@ -60,29 +61,26 @@
                     </Border>
                     <Border Grid.Column="2" Classes="card">
                         <StackPanel Spacing="12">
-                            <TextBlock Classes="h2" Text="{i18n:Localize Destination}" />
-                            <controls:PositionDetail Name="Destination" />
+                            <StackPanel Spacing="4">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Classes="h2" Text="{i18n:Localize Destinations}" />
+                                    <TextBlock Name="DestinationCount" Classes="muted" VerticalAlignment="Center" />
+                                </StackPanel>
+                                <TextBlock Classes="hint" Margin="0" Text="{i18n:Localize MoreDestinationsHint}"
+                                           IsVisible="{Binding Job, Converter={StaticResource IsBackupJobConverter}}" />
+                            </StackPanel>
+                            <StackPanel Name="DestinationList" Spacing="8" />
+                            <Button Click="OnAddDestinationClick" HorizontalAlignment="Left"
+                                    IsVisible="{Binding Job, Converter={StaticResource IsBackupJobConverter}}"
+                                    AutomationProperties.Name="{i18n:Localize AddDestination}">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <mi:MaterialIcon Kind="Plus" Width="16" Height="16" />
+                                    <TextBlock Text="{i18n:Localize AddDestination}" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
                         </StackPanel>
                     </Border>
                 </Grid>
-
-                <!-- More destinations: the files of a backup are split among all the destinations -->
-                <Border Classes="card" IsVisible="{Binding Job, Converter={StaticResource IsBackupJobConverter}}">
-                    <StackPanel Spacing="12">
-                        <StackPanel Spacing="4">
-                            <TextBlock Classes="h2" Text="{i18n:Localize MoreDestinations}" />
-                            <TextBlock Classes="hint" Margin="0" Text="{i18n:Localize MoreDestinationsHint}" />
-                        </StackPanel>
-                        <StackPanel Name="MoreDestinationsList" Spacing="20" />
-                        <Button Click="OnAddDestinationClick" HorizontalAlignment="Left"
-                                AutomationProperties.Name="{i18n:Localize AddDestination}">
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <mi:MaterialIcon Kind="Plus" Width="16" Height="16" />
-                                <TextBlock Text="{i18n:Localize AddDestination}" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Button>
-                    </StackPanel>
-                </Border>
 
                 <!-- Files and directories to skip (backup and synchronization) -->
                 <Border Classes="card">

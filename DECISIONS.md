@@ -276,7 +276,8 @@
   scheduler is supported): shown by `JobListPage` in place of the job list, keeping the sidebar (no separate page
   since 2026-11-28, the user's choice): every scheduled job, ordered by next run, with days and time, next run,
   result and date of the last run (automatic or by hand), the error of a failed automatic run, its log and the job
-  settings. Results are merged when the page is shown and while it is visible.
+  settings (opened scrolled to the schedule card: `JobSettingsPage(job, showSchedule)`). Results are merged when the
+  page is shown and while it is visible.
 - **One run per job** (`ScheduledRun.TryLock`): a lock file opened with `FileShare.None` and deleted on close, in any
   process and on every OS (a named mutex is thread-affine, named semaphores are Windows only). A scheduled run of a
   job already running ends at once; a run by hand of a job running by itself is refused with a message.
@@ -314,6 +315,12 @@
 
 ## GUI
 - **Service picker**: a ComboBox; chips were tried (2026-11-27) and rejected by the user.
+- **Destinations in the job settings** (2026-11-28): source on the left, one "Destinations" list on the right
+  (`Controls/DestinationItem`: number, type icon, path and cached free space in a header that opens its
+  `PositionDetail`; one destination open at a time, a destination with validation errors is opened; an existing job
+  opens with every destination closed, a new job with its empty destination open). Replaces the
+  first destination on the right with "More destinations" in a card below, which the user disliked. The first item is
+  still saved in `Job.Destination`; synchronizations have one destination and no add/remove.
 - **Switches, no check boxes**: options are `ToggleSwitch` with the label as `OnContent`/`OffContent` (beside the
   switch, like a check box) and `AutomationProperties.Name`; UI Automation toggles them with `TogglePattern`.
 - **Themes**: `App.axaml` keeps one color set per theme variant in `ThemeDictionaries` (Dark: the original palette,

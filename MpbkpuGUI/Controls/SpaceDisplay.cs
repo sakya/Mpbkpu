@@ -32,7 +32,16 @@ public static class SpaceDisplay
             text.Text = string.Format(localizer["FreeSpace"], MpbkpuLib.Utility.String.BytesToString(space.Available),
                 MpbkpuLib.Utility.String.BytesToString(space.Total.Value));
         } else {
-            text.Text = string.Format(localizer["FreeSpaceNoTotal"], MpbkpuLib.Utility.String.BytesToString(space.Available));
+            text.Text = FreeText(space);
         }
+    }
+
+    /// <summary>
+    /// "N free", null when the space is not known
+    /// </summary>
+    public static string? FreeText(StorageSpace? space)
+    {
+        return space == null ? null :
+            string.Format(Localizer.Localizer.Instance["FreeSpaceNoTotal"], MpbkpuLib.Utility.String.BytesToString(space.Available));
     }
 }

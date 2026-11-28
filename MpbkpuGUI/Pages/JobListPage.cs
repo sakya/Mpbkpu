@@ -254,7 +254,7 @@ public partial class JobListPage : BasePage
     private async void OnScheduledSettingsClick(object? sender, RoutedEventArgs e)
     {
         if ((sender as Control)?.DataContext is ScheduledJobRow row)
-            await MainWindow!.NavigateTo(new JobSettingsPage(row.Job));
+            await MainWindow!.NavigateTo(new JobSettingsPage(row.Job, true));
     }
 
     private async void OnJobOpen(object sender, Job job)
