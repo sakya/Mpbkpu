@@ -193,4 +193,5 @@ UpgradeLog*.htm
 
 # Installer
 Setup/publish/
+Setup/publish-linux/
 Setup/Output/
