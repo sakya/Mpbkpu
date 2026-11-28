@@ -16,6 +16,8 @@ Nella chat parla in italiano
   file symbolic links, this PC cannot (no Developer Mode): tests guarded by that run only on CI.
 - NUnit 5: `Assert.ThrowsAsync` returns a `Task` and must be awaited, otherwise the test asserts nothing.
 - Installer: `Setup\build.bat`, then `%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe Setup\Mpbkpu.iss`.
+- Linux: `Setup/publish.sh [runtime]` (default `linux-x64`) publishes to `Setup/publish-linux/<runtime>` and packs
+  `Setup/Output/Mpbkpu-<version>-<runtime>.tar.gz`; it also runs from Git Bash on Windows.
 
 ## Rules
 - JSON serialization uses **Newtonsoft**: to exclude a field use `Newtonsoft.Json.JsonIgnore`, never the

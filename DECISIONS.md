@@ -245,6 +245,9 @@
   -1 invalid arguments. A verification with errors is a failure (`VerifyJob`: `Success` false, `ErrorMessage`).
 
 ## Setup
+- **Linux** (`Setup/publish.sh`, 2026-11-28): self-contained GUI and CLI in one folder, packed as a tar.gz (no
+  package or desktop entry yet). Same clean + publish steps as `build.bat`; the archive gives the executables mode
+  755 explicitly and owner 0, so it is right also when built from Windows (Git Bash loses the executable bit).
 - **Uninstall** (`Setup/Mpbkpu.iss`, `[Code]`): after removing the program it asks whether to delete the settings
   and saved credentials of the user who uninstalls (`%LOCALAPPDATA%\MpbkpuGUI`: settings.json, secrets;
   `%LOCALAPPDATA%\Mpbkpu`: OAuth tokens, known_hosts). Default No, so a reinstall finds the jobs; nothing is deleted
